@@ -1,0 +1,59 @@
+# Client Events
+
+## Core:Client:PlayerJoined
+
+Akkor fut le, amikor a játékos sikeresen betölt a szerverre.
+```lua copy
+RegsiterNetEvent('Core:Client:PlayerJoined', function(characters) end)
+```
+* characters: `table`
+
+## Core:Client:CharacterLoaded
+
+Akkor fut le, amikor a karakter sikeresen betöltődik.
+```lua copy
+RegsiterNetEvent('Core:Client:CharacterLoaded', function(characterData) end)
+```
+* characterData: `table`
+
+## Core:Client:CharacterLogout
+
+Akkor fut le, amikor a karakter kijelentkezik.
+```lua copy
+RegsiterNetEvent('Core:Client:CharacterLogout', function(charId) end)
+```
+* charId: `number`
+
+## Core:Client:CharacterDataChanged
+
+Akkor fut le, amikor a karakter adatai megváltoznak.
+```lua copy
+RegisterNetEvent('Core:Client:CharacterDataChanged', function(key, val) end)
+```
+* key: `string`
+* value: `any`
+
+## Core:Client:PlayerDataChanged
+
+Akkor fut le, amikor a játékos adatai megváltoznak.
+```lua copy
+RegisterNetEvent('Core:Client:PlayerDataChanged', function(key, value) end)
+```
+* key: `string`
+* value: `any`
+
+## Core:Client:CharacterCreated
+
+Akkor fut le, amikor a játékos létrehoz egy új karaktert.
+```lua copy
+RegisterNetEvent('Core:Client:CharacterCreated', function(characterData) end)
+```
+* characterData: `table`
+
+## Routing:Client:NewRoute
+
+Akkor fut le, amikor a játékos egy új routing bucketre lép.
+```lua copy
+RegisterNetEvent('Routing:Client:NewRoute', function(route) end)
+```
+* route: `number`
