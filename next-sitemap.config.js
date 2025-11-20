@@ -1,6 +1,6 @@
 /** @type {import('next-sitemap').IConfig} */
 module.exports = {
-  siteUrl: 'https://coxdocs.dev/',
+  siteUrl: 'http://95.138.193.87:3000/',
   generateRobotsTxt: true,
   generateIndexSitemap: false,
   outDir: './out',
