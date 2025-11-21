@@ -1,0 +1,28 @@
+---
+title: PlayerClass
+---
+
+## PlayerClass
+
+- source: `number` – A játékos forrásazonosítója
+- identifier: `string` – License azonosító, például: `98399a05dac2ccae820142f8af6804178b5f178a`
+- discord: `number` – Discord azonosító, például: `212704429323976706`
+- playerId: `number` – Játékos azonosító, például: `10001`
+- isLoggedIn: `boolean` – Be van-e jelentkezve karakterbe, vagy karakterválasztón van
+- adminGroup: `string` – Admin rangja, alapértelmezett: `user`
+- characters: `table` – A karakter azonosítókat tartalmazza
+- points: `number` – Prémium pontok száma
+- duty: `boolean` – Admin szolgálatban van-e
+
+## PlayerClass:Event
+## PlayerClass:SetAsLoggedIn
+## PlayerClass:SetGroup
+## PlayerClass:SetDuty
+## PlayerClass:GetDuty
+## PlayerClass:GetGroup
+## PlayerClass:GetPoints
+## PlayerClass:SetPoints
+## PlayerClass:AddPoints
+## PlayerClass:RemovePoints
+## PlayerClass:CreateCharacter
+## PlayerClass:SetActiveCharacter

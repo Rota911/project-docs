@@ -1,0 +1,101 @@
+---
+title: CharacterClass
+---
+
+## CharacterClass
+
+- source: `number` - Játékos source
+- charId: `number` - Karakter azonosító, Pl: `42`
+- playerId: `number` - Játékos azonosító, Pl: `10001`
+- stateId: `string` - Állapot azonosító, Pl: `0OW2OX2`
+- firstName: `string` - Keresztnév
+- lastName: `string` - Vezetéknév
+- fullName: `string` - Teljes név
+- dateOfBirth: `string` - Születési dátum
+- nationality: `string` - Nemzetiség
+- gender: `string` - Nem
+- groups: `table` - Csoportok, amelyekhez tartozik
+- pathType: `string` - Kiválasztott életút
+- position: `vector4` - Jelenlegi pozíció (5 percenként frissül, valamint kilépéskor.)
+- statuses: `table` - Státuszok
+
+## CharacterClass:Event
+
+Eseményt küld a kliens számára.
+
+```lua copy
+character:Event('Core:Client:Clipboard`, 'Tevepata')
+```
+
+**Parameters**
+- eventName: `string`,
+- str: `string`
+
+## CharacterClass:Save
+
+Elmenti a karakter adatait az adatbázisba.
+
+```lua copy
+character:Save(false)
+```
+
+**Parameters**
+- logout: `boolean` - (elhagyható)
+
+## CharacterClass:Unload
+
+Kijelentkezteti a karaktert.
+
+```lua copy
+character:Unload(false)
+```
+
+**Parameters**
+- instant: `boolean` - (elhagyható)
+
+## CharacterClass:SetData
+
+Adatot ad hozzá vagy módosít a karakteren.
+
+```lua copy
+character:SetData('Perec', 'Sos', true, false)
+```
+
+**Parameters**
+- key: `string` – Kulcs
+- value: `any` – Érték
+- state: `boolean` – Legyen-e statebag-re rakva? (elhagyható)
+- replicated: `boolean` – Legyen-e replikálva kliens oldalra a state? (elhagyható)
+
+## CharacterClass:GetData
+
+Adatot kér le a karakterről.
+
+```lua copy
+local perecState = character:GetData('Perec')
+```
+
+**Parameters**
+- key: `string` – Kulcs
+
+## CharacterClass:SetCoords
+
+A karaktert megadott koordinátákra teleportálja.
+
+```lua
+character:SetCoords(vector4(0.0, 0.0, 0.0, 0.0))
+```
+
+**Parameters**
+- newCoords: `vector4` / `vector3` / `table`
+
+## CharacterClass:GetCoords
+
+Visszaadja a karakter jelenlegi pozícióját.
+
+```lua
+local coords = character:GetCoords('vector3')
+```
+
+**Parameters**
+- _type: Típus (`vector4` / `vector3` / `vector2` / `table`) – Alapértelmezett érték: `vector4` (elhagyható)

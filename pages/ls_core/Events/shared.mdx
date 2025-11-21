@@ -1,0 +1,29 @@
+# Megosztott Események
+
+## Core:Shared:RegisterReady
+
+Akkor fut le, ha a modul egy másik resource-ból regisztrálható.
+```lua copy
+AddEventHandler("Core:Shared:RegisterReady", function()
+    LS:RegisterModule("Blips", Blips)
+end)
+```
+
+## Core:Shared:Ready
+
+Akkor fut le, ha a core betöltődött.
+```lua copy
+AddEventHandler("Core:Shared:Ready", function()
+    LS:ImportDependencies("Damage", {
+        "Logger",
+    }, function(errors)
+        print('[Damage] ImportDependencies callback - errors:', #errors)
+        if #errors > 0 then
+            print('[Damage] ERROR: Failed to load dependencies!')
+            return
+        end
+
+        Logger = LS:ImportModule("Logger")
+    end)
+end)
+```

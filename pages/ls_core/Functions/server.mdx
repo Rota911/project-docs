@@ -1,0 +1,61 @@
+# Server functions
+
+## LS:GetPlayer
+
+Jatekos lekérése identifier alapján
+```lua copy
+    local player = LS:GetPlayer(identifier)
+```
+
+**Parameters**
+
+- identifier: `number`/ `string` Player ID, PlayerSrc vagy Discord ID vagy License2 azonosító
+
+**Returns**
+- [`PlayerClass`](/ls_core/Classes/Server/player)
+
+## LS:GetCharacter
+
+Karakter lekérése identifier alapján
+```lua copy
+    local character = LS:GetCharacter(identifier)
+```
+
+**Parameters**
+
+- identifier: `number`/ `string` Karakter ID vagy PlayerSrc
+
+**Returns**
+- [`CharacterClass`](/ls_core/Classes/Server/character)
+
+## LS:RegisterCommand
+
+Parancs regisztralasa
+
+```lua copy
+LS:RegisterCommand(commandName, permission, cb, params, helpText)
+```
+
+- commandName: `string` or `string[]`
+- permission: `string`
+- cb: `function`
+- params?: `table[]`
+    - name: `string`
+    - help?: `string`
+    - type?: `'number'` or `'playerId'` or `'string'` or `'longString'`
+    - optional?: `boolean`
+- helpText?: `string`
+
+```lua copy
+LS:RegisterCommand({ 'back', 'tpback' }, 'dev', function(source, args, raw)
+    local player = args.player or source
+    Admin:Back(player)
+end, {
+    {
+        name = 'player',
+        help = 'Cél játékos',
+        type = 'playerId',
+        optional = true
+    }
+}, 'Visszatérés az előző helyre')
+```
