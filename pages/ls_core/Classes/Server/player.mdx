@@ -15,9 +15,47 @@ title: PlayerClass
 - duty: `boolean` – Admin szolgálatban van-e
 
 ## PlayerClass:Event
+Eseményt küld a kliensnek.
+
+```lua copy
+player:Event('Core:Client:Clipboard`, 'Tevepata')
+```
+
+**Parameters**
+- eventName: `string`,
+- str: `string`
+
 ## PlayerClass:SetAsLoggedIn
+Beállítja a beléptetés státuszát.
+
+```lua copy
+player:SetAsLoggedIn(true)
+```
+
+**Parameters**
+- state: `boolean`
+
 ## PlayerClass:SetGroup
+Megváltoztatja az admin csoportot.
+
+```lua copy
+player:SetGroup('admin', true)
+```
+
+**Parameters**
+- group: `string` - `moderator` / `admin` / `headadmin` / `dev` / `owner`
+- temporary: `boolean` - Ideiglenes restartig tart
+
 ## PlayerClass:SetDuty
+Admin szolgálatba lépteti a játékost.
+
+```lua copy
+player:SetDuty(false)
+```
+
+**Parameters**
+- state: `boolean`
+
 ## PlayerClass:GetDuty
 ## PlayerClass:GetGroup
 ## PlayerClass:GetPoints
