@@ -2,50 +2,57 @@
 
 ## LS:GetPlayer
 
-Jatekos lekérése identifier alapján
+Lekéri a játékos objektumot azonosító alapján.
+
+**Paraméterek**
+- identifier: `number|string` – Player ID, PlayerSrc, Discord ID vagy License2
+
+**Visszatérési érték**
+- [`PlayerClass`](/core/Classes/Server/player) – Játékos objektum
+
+**Példa**
 ```lua copy
-local player = LS:GetPlayer(identifier)
+local player = LS:GetPlayer(10001)
+print(player.source)
+print(player.adminGroup)
 ```
-
-**Parameters**
-
-- identifier: `number` | `string` Player ID, PlayerSrc vagy Discord ID vagy License2 azonosító
-
-**Returns**
-- [`PlayerClass`](/ls_core/Classes/Server/player)
 
 ## LS:GetCharacter
 
-Karakter lekérése identifier alapján
+Lekéri a karakter objektumot azonosító alapján.
+
+**Paraméterek**
+- identifier: `number|string` – Karakter ID vagy PlayerSrc
+
+**Visszatérési érték**
+- [`CharacterClass`](/core/Classes/Server/character) – Karakter objektum
+
+**Példa**
 ```lua copy
-local character = LS:GetCharacter(identifier)
+local character = LS:GetCharacter(42)
+print(character.fullName)
+print(character.charId)
 ```
-
-**Parameters**
-
-- identifier: `number` | `string` Karakter ID vagy PlayerSrc
-
-**Returns**
-- [`CharacterClass`](/ls_core/Classes/Server/character)
 
 ## LS:RegisterCommand
 
-Parancs regisztralasa
+Regisztrál egy szerver parancsot.
 
-```lua copy
-LS:RegisterCommand(commandName, permission, cb, params, helpText)
-```
+**Paraméterek**
+- commandName: `string|string[]` – Parancs neve vagy nevei
+- permission: `string` – Szükséges jogosultság
+- cb: `function` – Callback függvény
+- params?: `table[]` – Paraméterek tömbje
+  - name: `string` – Paraméter neve
+  - help?: `string` – Paraméter leírása
+  - type?: `'number'|'playerId'|'string'|'longString'` – Paraméter típusa
+  - optional?: `boolean` – Opcionális-e
+- helpText?: `string` – Parancs leírása
 
-- commandName: `string` or `string[]`
-- permission: `string`
-- cb: `function`
-- params?: `table[]`
-    - name: `string`
-    - help?: `string`
-    - type?: `'number'` or `'playerId'` or `'string'` or `'longString'`
-    - optional?: `boolean`
-- helpText?: `string`
+**Visszatérési érték**
+- nincs
 
+**Példa**
 ```lua copy
 LS:RegisterCommand({ 'back', 'tpback' }, 'dev', function(source, args, raw)
     local player = args.player or source

@@ -20,82 +20,139 @@ title: CharacterClass
 - statuses: `table` - Státuszok
 
 ## CharacterClass:Event
-
 Eseményt küld a kliens számára.
 
-```lua copy
-character:Event('Core:Client:Clipboard`, 'Tevepata')
-```
+**Paraméterek**
+- eventName: `string` – Az esemény neve
+- ...: `any` – További paraméterek, amelyeket az eseménynek átadunk
 
-**Parameters**
-- eventName: `string`,
-- str: `string`
+```lua copy
+character:Event('Core:Client:Clipboard', 'Tevepata')
+```
 
 ## CharacterClass:Save
-
 Elmenti a karakter adatait az adatbázisba.
 
-```lua copy
-character:Save(false)
-```
+**Paraméterek**
+- logout?: `boolean` – Ha igaz, akkor a jelenlegi pozíciót menti, egyébként a tárolt pozíciót
 
-**Parameters**
-- logout: `boolean` - (elhagyható)
+**Visszatérési érték**
+- `boolean` – `true` ha sikeres a mentés, `false` ha sikertelen
+
+```lua copy
+local success = character:Save(true)
+if success then
+    print('Karakter sikeresen mentve')
+else
+    print('Hiba a karakter mentésekor')
+end
+```
 
 ## CharacterClass:Unload
-
 Kijelentkezteti a karaktert.
 
+**Paraméterek**
+- instant?: `boolean` – Ha igaz, azonnali kiléptetés callback nélkül
+
+**Visszatérési érték**
+- `boolean` – `true` ha sikeres a kiléptetés, `false` ha sikertelen
+
+1. példa: Normál kiléptetés
 ```lua copy
-character:Unload(false)
+local success = character:Unload()
+if success then
+    print('Karakter sikeresen kijelentkeztetve')
+end
 ```
 
-**Parameters**
-- instant: `boolean` - (elhagyható)
+2. példa: Azonnali kiléptetés
+```lua copy
+character:Unload(true) -- Nincs callback, azonnal kilép
+```
 
 ## CharacterClass:SetData
-
 Adatot ad hozzá vagy módosít a karakteren.
 
-```lua copy
-character:SetData('Perec', 'Sos', true, false)
-```
-
-**Parameters**
+**Paraméterek**
 - key: `string` – Kulcs
 - value: `any` – Érték
-- state: `boolean` – Legyen-e statebag-re rakva? (elhagyható)
-- replicated: `boolean` – Legyen-e replikálva kliens oldalra a state? (elhagyható)
+- state?: `boolean` – Legyen-e statebag-re rakva?
+- replicated?: `boolean` – Legyen-e replikálva kliens oldalra a state?
+
+1. példa: Egyszerű adat beállítás
+```lua copy
+character:SetData('customData', { value = 100 })
+```
+
+2. példa: Adat beállítás statebag-gel
+```lua copy
+character:SetData('inventory', items, true, false)
+```
+
+3. példa: Adat beállítás kliens replikációval
+```lua copy
+character:SetData('health', 100, true, true)
+```
 
 ## CharacterClass:GetData
-
 Adatot kér le a karakterről.
 
-```lua copy
-local perecState = character:GetData('Perec')
-```
-
-**Parameters**
+**Paraméterek**
 - key: `string` – Kulcs
 
-## CharacterClass:SetCoords
+**Visszatérési érték**
+- `any` – A kért kulcshoz tartozó érték
 
+```lua copy
+local firstName = character:GetData('firstName')
+local customData = character:GetData('customData')
+local position = character:GetData('position')
+```
+
+## CharacterClass:SetCoords
 A karaktert megadott koordinátákra teleportálja.
 
-```lua
-character:SetCoords(vector4(0.0, 0.0, 0.0, 0.0))
+**Paraméterek**
+- newCoords: `vector4|vector3|table` – Az új koordináták
+
+1. példa: Teleportálás vector4-gyel
+```lua copy
+character:SetCoords(vector4(100.0, 200.0, 30.0, 90.0))
 ```
 
-**Parameters**
-- newCoords: `vector4` | `vector3` | `table`
+2. példa: Teleportálás vector3-mal (heading nélkül)
+```lua copy
+character:SetCoords(vector3(100.0, 200.0, 30.0))
+```
+
+3. példa: Teleportálás tábla formátumban
+```lua copy
+character:SetCoords({ x = 100.0, y = 200.0, z = 30.0, heading = 90.0 })
+```
 
 ## CharacterClass:GetCoords
-
 Visszaadja a karakter jelenlegi pozícióját.
 
-```lua
-local coords = character:GetCoords('vector3')
+**Paraméterek**
+- _type?: `"vector4"|"vector3"|"vector2"|"table"` – Visszatérési érték típusa (alapértelmezett: `"vector4"`)
+
+**Visszatérési érték**
+- `vector4|vector3|vector2|table` – A karakter koordinátái a kért formátumban
+
+1. példa: Koordináták lekérése vector4-ként (alapértelmezett)
+```lua copy
+local coords = character:GetCoords()
+print(coords.x, coords.y, coords.z, coords.w)
 ```
 
-**Parameters**
-- _type: Típus (`vector4` | `vector3` | `vector2` | `table`) – Alapértelmezett érték: `vector4` (elhagyható)
+2. példa: Koordináták lekérése vector3-ként
+```lua copy
+local coords = character:GetCoords('vector3')
+print(coords.x, coords.y, coords.z)
+```
+
+3. példa: Koordináták lekérése táblázatként
+```lua copy
+local coords = character:GetCoords('table')
+print(coords.x, coords.y, coords.z, coords.heading)
+```

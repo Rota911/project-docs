@@ -2,7 +2,12 @@
 
 ## Core:Shared:RegisterReady
 
-Akkor fut le, ha a modul egy másik resource-ból regisztrálható.
+Esemény, amely akkor fut le, ha egy modul egy másik resource-ból regisztrálható.
+
+**Paraméterek**
+- nincs
+
+**Példa**
 ```lua copy
 AddEventHandler("Core:Shared:RegisterReady", function()
     LS:RegisterModule("Blips", Blips)
@@ -11,7 +16,12 @@ end)
 
 ## Core:Shared:Ready
 
-Akkor fut le, ha a core betöltődött.
+Esemény, amely akkor fut le, ha a core modul teljesen betöltődött.
+
+**Paraméterek**
+- nincs
+
+**Példa**
 ```lua copy
 AddEventHandler("Core:Shared:Ready", function()
     LS:ImportDependencies("Damage", {

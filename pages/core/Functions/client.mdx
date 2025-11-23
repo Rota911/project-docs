@@ -1,35 +1,43 @@
 # Client functions
 
 ## LS:GetPlayerData()
-Vissza adja a jatekos adatait
+Visszaadja a játékos adatait.
 
+**Visszatérési érték**
+- `table` – Játékos adatok
+	- adminGroup: `string` – Admin csoport
+	- playerId: `number` – Játékos azonosító
+	- points: `number` – Prémium pontok száma
+
+**Példa**
 ```lua copy
 local playerData = LS:GetPlayerData()
-```
-
-```lua
-"adminGroup": "dev",
-"playerId": 10000,
-"points": 123
+print(playerData.adminGroup)
+print(playerData.playerId)
+print(playerData.points)
 ```
 
 ## LS:GetCharacterData()
-Vissza adja a karakter adatait
+Visszaadja a karakter adatait.
 
+**Visszatérési érték**
+- `table` – Karakter adatok
+	- charId: `number` – Karakter azonosító
+	- dateOfBirth: `string` – Születési dátum
+	- firstName: `string` – Keresztnév
+	- fullName: `string` – Teljes név
+	- gender: `string` – Nem
+	- lastName: `string` – Vezetéknév
+	- nationality: `string` – Nemzetiség
+	- pathType: `string` – Életút
+	- playerId: `number` – Játékos azonosító
+	- stateId: `string` – Állapot azonosító
+	- statuses: `table` – Státuszok
+
+**Példa**
 ```lua copy
 local characterData = LS:GetCharacterData()
-```
-
-```lua
-"charId": 42,
-"dateOfBirth": "1995-01-02",
-"firstName": "Corby",
-"fullName": "Corby Damien",
-"gender": "male",
-"lastName": "Damien",
-"nationality": "gb",
-"pathType": "gangster",
-"playerId": 10000,
-"stateId": "0OW2OX2",
-"statuses": []
+print(characterData.fullName)
+print(characterData.charId)
+print(characterData.nationality)
 ```
