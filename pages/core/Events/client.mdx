@@ -4,7 +4,7 @@
 
 Akkor fut le, amikor a játékos sikeresen betölt a szerverre.
 ```lua copy
-RegsiterNetEvent('Core:Client:PlayerJoined', function(characters) end)
+RegisterNetEvent('Core:Client:PlayerJoined', function(characters) end)
 ```
 * characters: `table`
 
@@ -12,7 +12,7 @@ RegsiterNetEvent('Core:Client:PlayerJoined', function(characters) end)
 
 Akkor fut le, amikor a karakter sikeresen betöltődik.
 ```lua copy
-RegsiterNetEvent('Core:Client:CharacterLoaded', function(characterData) end)
+RegisterNetEvent('Core:Client:CharacterLoaded', function(characterData) end)
 ```
 * characterData: `table`
 
@@ -20,7 +20,7 @@ RegsiterNetEvent('Core:Client:CharacterLoaded', function(characterData) end)
 
 Akkor fut le, amikor a karakter kijelentkezik.
 ```lua copy
-RegsiterNetEvent('Core:Client:CharacterLogout', function(charId) end)
+RegisterNetEvent('Core:Client:CharacterLogout', function(charId) end)
 ```
 * charId: `number`
 

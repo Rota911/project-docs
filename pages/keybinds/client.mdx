@@ -1,0 +1,138 @@
+# Client functions
+
+## Keybinds:Add()
+Regisztrál egy keybind-ot.
+- id: `string`
+- key: `string`
+- pad: `string`
+- category: `string`
+- desc: `string`
+- keydownCb: `function`
+- keyupCb: `function`
+- global: `boolean`
+
+```lua copy
+KeyBinds:Add('cancel_progress', 'X', 'keyboard', 'UI', 'Progressbar Cancel', nil, function()
+    cancelProgress()
+end)
+```
+
+## Keybinds:Disable()
+Letiltja a keybind-ot.
+
+- keys: `string` | `table`
+
+1. példa: Összes gomb letiltása
+```lua copy
+KeyBinds:Disable()
+```
+2. példa: Egy gomb letiltása
+```lua copy
+KeyBinds:Disable("interact")
+```
+3. példa: Több gomb letiltása
+```lua copy
+KeyBinds:Disable({"interact", "radial_menu", "inventory"})
+```
+
+## Keybinds:Enable()
+Visszakapcsolja a keybind-ot.
+
+- keys: `string` | `table`
+
+1. példa: Összes gomb visszakapcsolása
+```lua copy
+KeyBinds:Enable()
+```
+2. példa: Egy gomb visszakapcsolása
+```lua copy
+KeyBinds:Enable("interact")
+```
+3. példa: Több gomb visszakapcsolása
+```lua copy
+KeyBinds:Enable({"interact", "radial_menu", "inventory"})
+```
+
+## Keybinds:IsDisabled()
+Visszaadja, hogy egy adott gomb ki van-e kapcsolva
+
+- key: `string`
+
+1. példa: Ellenőrzi, hogy egy adott gomb le van-e tiltva
+```lua copy
+if KeyBinds:IsDisabled("interact") then
+    print("Az interact gomb le van tiltva")
+end
+```
+
+2. példa: Ellenőrzi, hogy minden gomb le van-e tiltva
+```lua copy
+if KeyBinds:IsDisabled() then
+    print("Minden gomb le van tiltva")
+end
+```
+
+3. példa: Feltételes logika a gomb állapota alapján
+```lua copy
+local function tryToInteract()
+    if KeyBinds:IsDisabled("interact") then
+        UI:Notification({
+            type = "error",
+            message = "Jelenleg nem tudsz interaktálni"
+        })
+        return
+    end
+    
+    -- Interakció végrehajtása
+end
+```
+
+## Keybinds:DisableControlAction()
+Kikapcsol bármilyen GTA natív gombot.
+- Group: `number` (általában 0)
+- Key: `number`
+- Disable: `boolean`
+
+```lua copy
+Keybinds:DisableControlAction(0, 126, true)
+```
+
+## Keybinds:GetCustomizedKey()
+Visszaadja, hogy a keybind melyik gombra van kötve.
+- CommandString: `string`
+- Visszatér: `string`
+
+1. példa: Lekéri, hogy a játékos melyik gombra kötötte a parancsot
+```lua copy
+local interactKey = KeyBinds:GetCustomizedKey("interact")
+print("Az interact gombod: " .. interactKey) -- Kimenet: "E" vagy amit a játékos beállított
+```
+
+2. példa: Gomb megjelenítése értesítésben
+```lua copy
+local openInventoryKey = KeyBinds:GetCustomizedKey("inventory")
+UI:Notification({
+    type = "info",
+    message = "Nyomd meg a(z) " .. openInventoryKey .. " gombot az inventár megnyitásához"
+})
+```
+
+## Keybinds:DisableMouse()
+Letiltja a natív egér mozgatást.
+- disable: `boolean`
+
+## Keybinds:DisableMove()
+Letiltja a natív karakter mozgatást.
+- disable: `boolean`
+
+## Keybinds:DisableSprint()
+Letiltja a futást.
+- disable: `boolean`
+
+## Keybinds:DisableDrive()
+Letiltja a járművezetést.
+- disable: `boolean`
+
+## Keybinds:DisableCombat()
+Letiltja a harcot.
+- disable: `boolean`
