@@ -1,0 +1,54 @@
+## Logger:Debug()
+Fejlesztői (debug) üzenetet ír ki, csak fejlesztői környezetben.
+- module: `string` – Modul neve
+- message: `string` – Üzenet szövege
+- flags: `table` – Opcionális beállítások (pl. console, file)
+- ...: `any` – További formázási paraméterek
+
+```lua copy
+Components.Logger:Debug('Routing', 'Teszt debug üzenet: %s', {console = true}, 'adat')
+```
+
+## Logger:Info()
+Információs üzenetet ír ki.
+- module: `string` – Modul neve
+- message: `string` – Üzenet szövege
+- flags: `table` – Opcionális beállítások (pl. console, file)
+- ...: `any` – További formázási paraméterek
+
+```lua copy
+Components.Logger:Info('Routing', 'Játékos hozzáadva: %s', {console = true, file = true}, playerSrc)
+```
+
+## Logger:Warn()
+Figyelmeztető üzenetet ír ki.
+- module: `string` – Modul neve
+- message: `string` – Üzenet szövege
+- flags: `table` – Opcionális beállítások (pl. console, file)
+- ...: `any` – További formázási paraméterek
+
+```lua copy
+Components.Logger:Warn('Routing', 'Figyelmeztetés: %s', {console = true}, 'Hibás route')
+```
+
+## Logger:Error()
+Hibaüzenetet ír ki.
+- module: `string` – Modul neve
+- message: `string` – Üzenet szövege
+- flags: `table` – Opcionális beállítások (pl. console, file)
+- ...: `any` – További formázási paraméterek
+
+```lua copy
+Components.Logger:Error('Routing', 'Hiba történt: %s', {console = true, file = true}, 'Entitás nem létezik')
+```
+
+## Események
+Szerver oldali események naplózáshoz:
+- `Logger:Debug`
+- `Logger:Info`
+- `Logger:Warn`
+- `Logger:Error`
+
+```lua copy
+TriggerEvent('Logger:Info', 'Routing', 'Játékos hozzáadva: %s', {console = true}, playerSrc)
+```

@@ -1,0 +1,50 @@
+## Logger:Debug()
+Fejlesztői (debug) üzenetet ír ki, csak fejlesztői környezetben.
+- module: `string` – Modul neve
+- message: `string` – Üzenet szövege
+- ...: `any` – További formázási paraméterek
+
+```lua copy
+Components.Logger:Debug('UI', 'Teszt debug üzenet: %s', 'adat')
+```
+
+## Logger:Info()
+Információs üzenetet ír ki.
+- module: `string` – Modul neve
+- message: `string` – Üzenet szövege
+- ...: `any` – További formázási paraméterek
+
+```lua copy
+Components.Logger:Info('UI', 'Panel megnyitva: %s', panelName)
+```
+
+## Logger:Warn()
+Figyelmeztető üzenetet ír ki.
+- module: `string` – Modul neve
+- message: `string` – Üzenet szövege
+- ...: `any` – További formázási paraméterek
+
+```lua copy
+Components.Logger:Warn('UI', 'Figyelmeztetés: %s', 'Hibás panel')
+```
+
+## Logger:Error()
+Hibaüzenetet ír ki.
+- module: `string` – Modul neve
+- message: `string` – Üzenet szövege
+- ...: `any` – További formázási paraméterek
+
+```lua copy
+Components.Logger:Error('UI', 'Hiba történt: %s', 'Panel nem található')
+```
+
+## Események
+Kliens oldali események naplózáshoz:
+- `Logger:Debug`
+- `Logger:Info`
+- `Logger:Warn`
+- `Logger:Error`
+
+```lua copy
+TriggerEvent('Logger:Info', 'UI', 'Panel megnyitva: %s', panelName)
+```
