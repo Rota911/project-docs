@@ -1,59 +1,94 @@
 # Client Events
 
 ## Core:Client:PlayerJoined
+Esemény, amikor a játékos sikeresen betölt a szerverre.
 
-Akkor fut le, amikor a játékos sikeresen betölt a szerverre.
+**Paraméterek**
+- characters: `table` – Karakterek adatai
+
+**Példa**
 ```lua copy
-RegisterNetEvent('Core:Client:PlayerJoined', function(characters) end)
+RegisterNetEvent('Core:Client:PlayerJoined', function(characters)
+    print(characters)
+end)
 ```
-* characters: `table`
 
 ## Core:Client:CharacterLoaded
+Esemény, amikor a karakter sikeresen betöltődik.
 
-Akkor fut le, amikor a karakter sikeresen betöltődik.
+**Paraméterek**
+- characterData: `table` – Karakter adatai
+
+**Példa**
 ```lua copy
-RegisterNetEvent('Core:Client:CharacterLoaded', function(characterData) end)
+RegisterNetEvent('Core:Client:CharacterLoaded', function(characterData)
+    print(characterData.fullName)
+end)
 ```
-* characterData: `table`
 
 ## Core:Client:CharacterLogout
+Esemény, amikor a karakter kijelentkezik.
 
-Akkor fut le, amikor a karakter kijelentkezik.
+**Paraméterek**
+- charId: `number` – Karakter azonosító
+
+**Példa**
 ```lua copy
-RegisterNetEvent('Core:Client:CharacterLogout', function(charId) end)
+RegisterNetEvent('Core:Client:CharacterLogout', function(charId)
+    print('Karakter kijelentkezett:', charId)
+end)
 ```
-* charId: `number`
 
 ## Core:Client:CharacterDataChanged
+Esemény, amikor a karakter adatai megváltoznak.
 
-Akkor fut le, amikor a karakter adatai megváltoznak.
+**Paraméterek**
+- key: `string` – Módosított adat kulcsa
+- value: `any` – Új érték
+
+**Példa**
 ```lua copy
-RegisterNetEvent('Core:Client:CharacterDataChanged', function(key, val) end)
+RegisterNetEvent('Core:Client:CharacterDataChanged', function(key, value)
+    print(key, value)
+end)
 ```
-* key: `string`
-* value: `any`
 
 ## Core:Client:PlayerDataChanged
+Esemény, amikor a játékos adatai megváltoznak.
 
-Akkor fut le, amikor a játékos adatai megváltoznak.
+**Paraméterek**
+- key: `string` – Módosított adat kulcsa
+- value: `any` – Új érték
+
+**Példa**
 ```lua copy
-RegisterNetEvent('Core:Client:PlayerDataChanged', function(key, value) end)
+RegisterNetEvent('Core:Client:PlayerDataChanged', function(key, value)
+    print(key, value)
+end)
 ```
-* key: `string`
-* value: `any`
 
 ## Core:Client:CharacterCreated
+Esemény, amikor a játékos létrehoz egy új karaktert.
 
-Akkor fut le, amikor a játékos létrehoz egy új karaktert.
+**Paraméterek**
+- characterData: `table` – Új karakter adatai
+
+**Példa**
 ```lua copy
-RegisterNetEvent('Core:Client:CharacterCreated', function(characterData) end)
+RegisterNetEvent('Core:Client:CharacterCreated', function(characterData)
+    print(characterData.fullName)
+end)
 ```
-* characterData: `table`
 
 ## Routing:Client:NewRoute
+Esemény, amikor a játékos egy új routing bucketre lép.
 
-Akkor fut le, amikor a játékos egy új routing bucketre lép.
+**Paraméterek**
+- route: `number` – Routing bucket azonosító
+
+**Példa**
 ```lua copy
-RegisterNetEvent('Routing:Client:NewRoute', function(route) end)
+RegisterNetEvent('Routing:Client:NewRoute', function(route)
+    print('Új routing bucket:', route)
+end)
 ```
-* route: `number`

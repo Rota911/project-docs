@@ -1,54 +1,84 @@
 # Server Events
 
 ## Core:Server:PlayerJoined
+Esemény, amikor a játékos sikeresen betölt a szerverre.
 
-Akkor fut le, amikor a játékos sikeresen betölt a szerverre.
+**Paraméterek**
+- playerSrc: `number` – Játékos forrásazonosító
+- player: `player class` – Játékos objektum
+
+**Példa**
 ```lua copy
-AddEventHadler('Core:Client:PlayerJoined', function(playerSrc, player) end)
+AddEventHandler('Core:Server:PlayerJoined', function(playerSrc, player)
+    print(playerSrc, player)
+end)
 ```
-* playerSrc: `number`
-* player: `player class`
 
 ## Core:Server:PlayerLeft
+Esemény, amikor a játékos lelép a szerverről.
 
-Akkor fut le, amikor a játékos lelép a szerverről.
+**Paraméterek**
+- playerSrc: `number` – Játékos forrásazonosító
+- reason: `string` – Kilépés oka
+
+**Példa**
 ```lua copy
-AddEventHadler('Core:Server:PlayerLeft', function(playerSrc, reason) end)
+AddEventHandler('Core:Server:PlayerLeft', function(playerSrc, reason)
+    print(playerSrc, reason)
+end)
 ```
-* playerSrc: `number`
-* reason: `string`
 
 ## Core:Server:CharacterLoaded
+Esemény, amikor a karakter sikeresen betöltődik.
 
-Akkor fut le, amikor a karakter sikeresen betöltődik.
+**Paraméterek**
+- playerSrc: `number` – Játékos forrásazonosító
+- charId: `number` – Karakter azonosító
+
+**Példa**
 ```lua copy
-AddEventHadler('Core:Server:CharacterLoaded', function(playerSrc, charId) end)
+AddEventHandler('Core:Server:CharacterLoaded', function(playerSrc, charId)
+    print(playerSrc, charId)
+end)
 ```
-* playerSrc: `number`
-* charId: `number`
 
 ## Core:Server:CharacterLogout
+Esemény, amikor a karakter kijelentkezik.
 
-Akkor fut le, amikor a karakter kijelentkezik.
+**Paraméterek**
+- playerSrc: `number` – Játékos forrásazonosító
+- charId: `number` – Karakter azonosító
+
+**Példa**
 ```lua copy
-AddEventHadler('Core:Server:CharacterLogout', function(playerSrc, charId) end)
+AddEventHandler('Core:Server:CharacterLogout', function(playerSrc, charId)
+    print(playerSrc, charId)
+end)
 ```
-* playerSrc: `number`
-* charId: `number`
 
 ## Core:Server:SetActiveCharacter
+Esemény, amikor a játékos kiválaszt egy karaktert.
 
-Akkor fut le, amikor a játékos kiválaszt egy karaktert.
+**Paraméterek**
+- characterId: `number` – Karakter azonosító
+
+**Példa**
 ```lua copy
-RegisterNetEvent("Core:Server:SetActiveCharacter", function(characterId) end)
+RegisterNetEvent('Core:Server:SetActiveCharacter', function(characterId)
+    print('Kiválasztott karakter:', characterId)
+end)
 ```
-* characterId: `number`
 
 ## Core:Server:CharacterCreated
+Esemény, amikor a játékos létrehoz egy új karaktert.
 
-Akkor fut le, amikor a játékos létrehoz egy új karaktert.
+**Paraméterek**
+- playerSrc: `number` – Játékos forrásazonosító
+- characterData: `table` – Új karakter adatai
+
+**Példa**
 ```lua copy
-AddEventHadler('Core:Server:CharacterCreated', function(playerSrc, characterData) end)
+AddEventHandler('Core:Server:CharacterCreated', function(playerSrc, characterData)
+    print(playerSrc, characterData)
+end)
 ```
-* playerSrc: `number`
-* characterData: `table`
