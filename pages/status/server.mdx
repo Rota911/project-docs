@@ -1,0 +1,96 @@
+# Status modul (szerver oldal)
+
+> Ez a modul kizárólag szerver oldalon használható!
+
+## Status:Register()
+Regisztrál egy új státuszt a rendszerbe.
+- name: `string` – A státusz neve
+- max: `number` – A státusz maximális értéke
+- icon: `string` – A státusz ikonja
+- tick: `number` – A státusz frissítési időköze
+- modify: `function` – A státusz módosító függvénye
+
+```lua copy
+Components.Status:Register('custom_status', 100, 'icon-name', 60, function()
+    -- Módosító logika
+end)
+```
+
+## Status.Get:All()
+Visszaadja az összes regisztrált státuszt.
+
+```lua copy
+local statuses = Components.Status.Get:All()
+for name, data in pairs(statuses) do
+    print(name, data.max)
+end
+```
+
+## Status.Get:Single()
+Visszaadja egy konkrét státuszt.
+- name: `string` – A státusz neve
+
+```lua copy
+local status = Components.Status.Get:Single('hunger')
+print(status.name, status.max)
+```
+
+## Status.Modify:Add()
+Hozzáad egy értéket a státuszhoz (callback-en keresztül a kliens oldalra).
+- playerSrc: `number` – A játékos szerver azonosítója
+- name: `string` – A státusz neve
+- value: `number` – A hozzáadandó érték
+- addCd: `boolean|nil` – Hozzáadjon-e cooldownt
+- isForced: `boolean|nil` – Kényszerítse-e a módosítást
+
+```lua copy
+local success = Components.Status.Modify:Add(source, 'hunger', 20, false, false)
+```
+
+## Status.Modify:Remove()
+Elvesz egy értéket a státusztól (callback-en keresztül a kliens oldalra).
+- playerSrc: `number` – A játékos szerver azonosítója
+- name: `string` – A státusz neve
+- value: `number` – Az elvenni kívánt érték
+- isForced: `boolean|nil` – Kényszerítse-e a módosítást
+
+```lua copy
+local success = Components.Status.Modify:Remove(source, 'thirst', 15, false)
+```
+
+## Status:Set()
+Beállítja egy konkrét státusz értékét.
+- playerSrc: `number` – A játékos szerver azonosítója
+- name: `string` – A státusz neve
+- value: `number` – Az új érték
+
+```lua copy
+Components.Status:Set(source, 'hunger', 50)
+```
+
+## Események
+
+### Status:Server:Update
+Státusz frissítés a szerverről a kliens felé.
+- data: `table` – Státusz adatok
+  - status: `string` – A státusz neve
+  - value: `number` – Az új érték
+
+```lua copy
+TriggerServerEvent('Status:Server:Update', {
+    status = 'hunger',
+    value = 75
+})
+```
+
+### Status:Server:StoreAll
+Összes státusz mentése a szerveren.
+- data: `table` – Státusz értékek táblázata
+
+```lua copy
+TriggerServerEvent('Status:Server:StoreAll', {
+    hunger = 80,
+    thirst = 90,
+    stress = 10
+})
+```

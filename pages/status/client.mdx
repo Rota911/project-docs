@@ -1,0 +1,155 @@
+## Status:Register()
+Regisztrál egy új státuszt a rendszerbe.
+- name: `string` – A státusz neve
+- max: `number` – A státusz maximális értéke
+- icon: `string` – A státusz ikonja
+- color: `string` – A státusz színe (hex formátum)
+- flash: `boolean` – Villogjon-e a státusz alacsony értéknél
+- modify: `function` – A státusz módosító funkciója (tick-enként hívódik)
+- options: `table|nil` – Opcionális beállítások
+  - noReset: `boolean` – Ne állítsa vissza a Reset() híváskor
+  - inverted: `boolean` – Fordított logika (magas érték = rossz)
+  - hideZero: `boolean` – Rejtse el 0 értéknél
+  - hideHigh: `boolean` – Rejtse el magas értéknél
+
+```lua copy
+Components.Status:Register('hunger', 100, 'drumstick-bite', '#ca5fe8', true, function(change)
+    local statusData = Components.Status.Get:Single('hunger')
+    local val = statusData and statusData.value or 100
+    val = val + (change or -1.66)
+    
+    if val > 100 then val = 100 end
+    if val < 0 then val = 0 end
+    
+    Components.Status.Set:Single('hunger', val)
+end, {
+    noReset = false,
+    hideHigh = true
+})
+```
+
+## Status:GetRegistered()
+Visszaadja az összes regisztrált státuszt.
+
+```lua copy
+local statuses = Components.Status:GetRegistered()
+for name, data in pairs(statuses) do
+    print(name, data.max, data.icon)
+end
+```
+
+## Status.Get:All()
+Visszaadja az összes státuszt értékekkel együtt.
+
+```lua copy
+local statuses = Components.Status.Get:All()
+for name, data in pairs(statuses) do
+    print(name, data.value, data.max)
+end
+```
+
+## Status.Get:Single()
+Visszaadja egy konkrét státuszt értékével.
+- name: `string` – A státusz neve
+
+```lua copy
+local hunger = Components.Status.Get:Single('hunger')
+print('Éhség:', hunger.value, '/', hunger.max)
+```
+
+## Status.Set:All()
+Beállítja az összes státusz értékét.
+- entity: `number|nil` – Az entitás (nem használt)
+- value: `number` – Az új érték
+
+```lua copy
+Components.Status.Set:All(nil, 100)
+```
+
+## Status.Set:Single()
+Beállítja egy konkrét státusz értékét.
+- name: `string` – A státusz neve
+- value: `number` – Az új érték
+
+```lua copy
+Components.Status.Set:Single('hunger', 50)
+```
+
+## Status:Reset()
+Visszaállítja az összes státuszt a maximális értékére (kivéve a noReset opciójúakat).
+
+```lua copy
+Components.Status:Reset()
+```
+
+## Status.Modify:Add()
+Hozzáad egy értéket a státuszhoz.
+- status: `string` – A státusz neve
+- value: `number` – A hozzáadandó érték
+- addCd: `boolean|nil` – Hozzáadjon-e cooldownt
+- force: `boolean|nil` – Kényszerítse-e a módosítást
+
+```lua copy
+Components.Status.Modify:Add('hunger', 20, false, false)
+```
+
+## Status.Modify:Remove()
+Elvesz egy értéket a státusztól.
+- status: `string` – A státusz neve
+- value: `number` – Az elvenni kívánt érték
+- force: `boolean|nil` – Kényszerítse-e a módosítást
+
+```lua copy
+Components.Status.Modify:Remove('thirst', 15, false)
+```
+
+## Status:Toggle()
+Ki/bekapcsolja a státusz rendszert.
+
+```lua copy
+Components.Status:Toggle()
+```
+
+## Status:Check()
+Ellenőrzi, hogy a státusz rendszer be van-e kapcsolva.
+
+```lua copy
+if Components.Status:Check() then
+    print('Status rendszer aktív')
+end
+```
+
+## Események
+
+### Status:Client:Update
+Kliens oldali státusz frissítés esemény.
+- status: `string` – A státusz neve
+- value: `number` – Az új érték
+
+```lua copy
+AddEventHandler('Status:Client:Update', function(status, value)
+    print('Státusz frissítve:', status, value)
+end)
+```
+
+### Status:Client:Tick
+Kliens oldali státusz tick esemény.
+- values: `table` – Összes státusz értékeit visszaadja
+
+```lua copy
+AddEventHandler('Status:Client:Tick', function(values)
+    for statusName, statusValue in pairs(values) do
+        print(statusName, statusValue)
+    end
+end)
+```
+
+### Status:Client:updateStatus
+Szerver által küldött státusz módosítás.
+- need: `string` – A státusz neve
+- action: `boolean` – Hozzáadás (true) vagy elvétel (false)
+- amount: `number` – A módosítás mértéke
+
+```lua copy
+TriggerEvent('Status:Client:updateStatus', 'hunger', true, 20)
+```
