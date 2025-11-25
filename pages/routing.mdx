@@ -11,7 +11,7 @@ Lekéri a játékos aktuális route adatait.
 
 **Példa**
 ```lua copy
-local routeInfo = Components.Routing:GetPlayerRoute(12)
+local routeInfo = Routing:GetPlayerRoute(12)
 print(routeInfo.state, routeInfo.oldRoute, routeInfo.route)
 ```
 
@@ -30,7 +30,7 @@ Hozzárendeli a játékost egy adott route-hoz. Ha már ott van, csak akkor mozg
 
 **Példa**
 ```lua copy
-Components.Routing:AddPlayerToRoute(12, 5, false)
+Routing:AddPlayerToRoute(12, 5, false)
 ```
 
 ---
@@ -46,7 +46,7 @@ A játékost a globális route-ba helyezi át.
 
 **Példa**
 ```lua copy
-Components.Routing:RoutePlayerToGlobalRoute(12)
+Routing:RoutePlayerToGlobalRoute(12)
 ```
 
 ---
@@ -63,7 +63,7 @@ Egy entitást áthelyez egy adott route-ba.
 
 **Példa**
 ```lua copy
-Components.Routing:MoveEntityToRoute(vehicle, 5)
+Routing:MoveEntityToRoute(vehicle, 5)
 ```
 
 ---
@@ -79,7 +79,7 @@ Az entitást a globális route-ba helyezi át.
 
 **Példa**
 ```lua copy
-Components.Routing:MoveEntityToGlobalRoute(vehicle)
+Routing:MoveEntityToGlobalRoute(vehicle)
 ```
 
 ---
@@ -96,7 +96,7 @@ Components.Routing:MoveEntityToGlobalRoute(vehicle)
 
 **Példa**
 ```lua copy
-local newRouteId = Components.Routing:CreateRouteId('VIP', true)
+local newRouteId = Routing:CreateRouteId('VIP', true)
 ```
 
 ---
@@ -113,7 +113,7 @@ Lekéri vagy létrehozza a route ID-t név alapján.
 
 **Példa**
 ```lua copy
-local routeId = Components.Routing:RequestRouteId('VIP', true)
+local routeId = Routing:RequestRouteId('VIP', true)
 ```
 
 ---
@@ -129,7 +129,7 @@ Lekéri a route ID-t név alapján.
 
 **Példa**
 ```lua copy
-local routeId = Components.Routing:GetRouteId('VIP')
+local routeId = Routing:GetRouteId('VIP')
 ```
 
 ---
@@ -145,5 +145,5 @@ Eltávolítja a route ID-t név alapján.
 
 **Példa**
 ```lua copy
-Components.Routing:RemoveRouteId('VIP')
+Routing:RemoveRouteId('VIP')
 ```

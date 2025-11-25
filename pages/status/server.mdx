@@ -11,7 +11,7 @@ Regisztrál egy új státuszt a rendszerbe.
 - modify: `function` – A státusz módosító függvénye
 
 ```lua copy
-Components.Status:Register('custom_status', 100, 'icon-name', 60, function()
+Status:Register('custom_status', 100, 'icon-name', 60, function()
     -- Módosító logika
 end)
 ```
@@ -20,7 +20,7 @@ end)
 Visszaadja az összes regisztrált státuszt.
 
 ```lua copy
-local statuses = Components.Status.Get:All()
+local statuses = Status.Get:All()
 for name, data in pairs(statuses) do
     print(name, data.max)
 end
@@ -31,7 +31,7 @@ Visszaadja egy konkrét státuszt.
 - name: `string` – A státusz neve
 
 ```lua copy
-local status = Components.Status.Get:Single('hunger')
+local status = Status.Get:Single('hunger')
 print(status.name, status.max)
 ```
 
@@ -44,7 +44,7 @@ Hozzáad egy értéket a státuszhoz (callback-en keresztül a kliens oldalra).
 - isForced: `boolean|nil` – Kényszerítse-e a módosítást
 
 ```lua copy
-local success = Components.Status.Modify:Add(source, 'hunger', 20, false, false)
+local success = Status.Modify:Add(source, 'hunger', 20, false, false)
 ```
 
 ## Status.Modify:Remove()
@@ -55,7 +55,7 @@ Elvesz egy értéket a státusztól (callback-en keresztül a kliens oldalra).
 - isForced: `boolean|nil` – Kényszerítse-e a módosítást
 
 ```lua copy
-local success = Components.Status.Modify:Remove(source, 'thirst', 15, false)
+local success = Status.Modify:Remove(source, 'thirst', 15, false)
 ```
 
 ## Status:Set()
@@ -65,7 +65,7 @@ Beállítja egy konkrét státusz értékét.
 - value: `number` – Az új érték
 
 ```lua copy
-Components.Status:Set(source, 'hunger', 50)
+Status:Set(source, 'hunger', 50)
 ```
 
 ## Események

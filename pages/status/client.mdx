@@ -13,15 +13,15 @@ Regisztrál egy új státuszt a rendszerbe.
   - hideHigh: `boolean` – Rejtse el magas értéknél
 
 ```lua copy
-Components.Status:Register('hunger', 100, 'drumstick-bite', '#ca5fe8', true, function(change)
-    local statusData = Components.Status.Get:Single('hunger')
+Status:Register('hunger', 100, 'drumstick-bite', '#ca5fe8', true, function(change)
+    local statusData = Status.Get:Single('hunger')
     local val = statusData and statusData.value or 100
     val = val + (change or -1.66)
     
     if val > 100 then val = 100 end
     if val < 0 then val = 0 end
     
-    Components.Status.Set:Single('hunger', val)
+    Status.Set:Single('hunger', val)
 end, {
     noReset = false,
     hideHigh = true
@@ -32,7 +32,7 @@ end, {
 Visszaadja az összes regisztrált státuszt.
 
 ```lua copy
-local statuses = Components.Status:GetRegistered()
+local statuses = Status:GetRegistered()
 for name, data in pairs(statuses) do
     print(name, data.max, data.icon)
 end
@@ -42,7 +42,7 @@ end
 Visszaadja az összes státuszt értékekkel együtt.
 
 ```lua copy
-local statuses = Components.Status.Get:All()
+local statuses = Status.Get:All()
 for name, data in pairs(statuses) do
     print(name, data.value, data.max)
 end
@@ -53,7 +53,7 @@ Visszaadja egy konkrét státuszt értékével.
 - name: `string` – A státusz neve
 
 ```lua copy
-local hunger = Components.Status.Get:Single('hunger')
+local hunger = Status.Get:Single('hunger')
 print('Éhség:', hunger.value, '/', hunger.max)
 ```
 
@@ -63,7 +63,7 @@ Beállítja az összes státusz értékét.
 - value: `number` – Az új érték
 
 ```lua copy
-Components.Status.Set:All(nil, 100)
+Status.Set:All(nil, 100)
 ```
 
 ## Status.Set:Single()
@@ -72,14 +72,14 @@ Beállítja egy konkrét státusz értékét.
 - value: `number` – Az új érték
 
 ```lua copy
-Components.Status.Set:Single('hunger', 50)
+Status.Set:Single('hunger', 50)
 ```
 
 ## Status:Reset()
 Visszaállítja az összes státuszt a maximális értékére (kivéve a noReset opciójúakat).
 
 ```lua copy
-Components.Status:Reset()
+Status:Reset()
 ```
 
 ## Status.Modify:Add()
@@ -90,7 +90,7 @@ Hozzáad egy értéket a státuszhoz.
 - force: `boolean|nil` – Kényszerítse-e a módosítást
 
 ```lua copy
-Components.Status.Modify:Add('hunger', 20, false, false)
+Status.Modify:Add('hunger', 20, false, false)
 ```
 
 ## Status.Modify:Remove()
@@ -100,21 +100,21 @@ Elvesz egy értéket a státusztól.
 - force: `boolean|nil` – Kényszerítse-e a módosítást
 
 ```lua copy
-Components.Status.Modify:Remove('thirst', 15, false)
+Status.Modify:Remove('thirst', 15, false)
 ```
 
 ## Status:Toggle()
 Ki/bekapcsolja a státusz rendszert.
 
 ```lua copy
-Components.Status:Toggle()
+Status:Toggle()
 ```
 
 ## Status:Check()
 Ellenőrzi, hogy a státusz rendszer be van-e kapcsolva.
 
 ```lua copy
-if Components.Status:Check() then
+if Status:Check() then
     print('Status rendszer aktív')
 end
 ```

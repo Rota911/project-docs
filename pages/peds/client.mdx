@@ -22,7 +22,7 @@ Interaktív NPC létrehozása.
   - pedVariaton: `table|nil` – Ped kinézet beállítások
 
 ```lua copy
-local myPed = Components.Peds:Create({
+local myPed = Peds:Create({
     pedType = 4,
     model = 's_m_m_doctor_01',
     position = vector4(100.0, 200.0, 30.0, 90.0),
@@ -155,7 +155,7 @@ NPC eltávolítása ID alapján.
 - id: `string` – NPC azonosítója
 
 ```lua copy
-Components.Peds:Remove('resource_1')
+Peds:Remove('resource_1')
 ```
 
 ## Peds:Get()
@@ -163,7 +163,7 @@ NPC lekérése ID alapján.
 - id: `string` – NPC azonosítója
 
 ```lua copy
-local ped = Components.Peds:Get('resource_1')
+local ped = Peds:Get('resource_1')
 ```
 
 ---
@@ -182,7 +182,7 @@ Az alábbi animációk használhatók string-ként az `anim` mezőben:
 
 **Példa**
 ```lua copy
-local cleanerPed = Components.Peds:Create({
+local cleanerPed = Peds:Create({
     pedType = 4,
     model = 's_m_m_janitor',
     position = vector4(100.0, 200.0, 30.0, 90.0),

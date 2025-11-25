@@ -10,7 +10,7 @@ Ellenséges NPC(k) létrehozása egy küldetéshez.
 
 1. példa: Egy NPC létrehozása
 ```lua copy
-Components.Peds:Create(
+Peds:Create(
     'mission_1',
     's_m_y_swat_01',
     vector4(100.0, 200.0, 30.0, 90.0),
@@ -23,7 +23,7 @@ Components.Peds:Create(
 
 2. példa: Több NPC létrehozása táblázattal
 ```lua copy
-Components.Peds:Create('mission_2', {
+Peds:Create('mission_2', {
     {
         model = 's_m_y_swat_01',
         position = vector4(100.0, 200.0, 30.0, 90.0),
@@ -48,7 +48,7 @@ Küldetés összes NPC-jének törlése.
 - missionID: `string` – Küldetés azonosítója
 
 ```lua copy
-Components.Peds:Remove('mission_1')
+Peds:Remove('mission_1')
 ```
 
 ## Peds:RemoveOne()
@@ -57,5 +57,5 @@ Egy konkrét NPC törlése küldetésből.
 - netID: `number` – NPC network azonosítója
 
 ```lua copy
-Components.Peds:RemoveOne('mission_1', 12345)
+Peds:RemoveOne('mission_1', 12345)
 ```

@@ -5,7 +5,7 @@ Fejlesztői (debug) üzenetet ír ki, csak fejlesztői környezetben.
 - ...: `any` – További formázási paraméterek
 
 ```lua copy
-Components.Logger:Debug('UI', 'Teszt debug üzenet: %s', 'adat')
+Logger:Debug('UI', 'Teszt debug üzenet: %s', 'adat')
 ```
 
 ## Logger:Info()
@@ -15,7 +15,7 @@ Információs üzenetet ír ki.
 - ...: `any` – További formázási paraméterek
 
 ```lua copy
-Components.Logger:Info('UI', 'Panel megnyitva: %s', panelName)
+Logger:Info('UI', 'Panel megnyitva: %s', panelName)
 ```
 
 ## Logger:Warn()
@@ -25,7 +25,7 @@ Figyelmeztető üzenetet ír ki.
 - ...: `any` – További formázási paraméterek
 
 ```lua copy
-Components.Logger:Warn('UI', 'Figyelmeztetés: %s', 'Hibás panel')
+Logger:Warn('UI', 'Figyelmeztetés: %s', 'Hibás panel')
 ```
 
 ## Logger:Error()
@@ -35,7 +35,7 @@ Hibaüzenetet ír ki.
 - ...: `any` – További formázási paraméterek
 
 ```lua copy
-Components.Logger:Error('UI', 'Hiba történt: %s', 'Panel nem található')
+Logger:Error('UI', 'Hiba történt: %s', 'Panel nem található')
 ```
 
 ## Események
