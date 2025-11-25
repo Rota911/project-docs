@@ -1,0 +1,192 @@
+## Peds:Create()
+Interaktív NPC létrehozása.
+- data: `table` – NPC adatai
+  - pedType: `number` – Ped típusa (pl. 4 = civile)
+  - model: `string|number` – Ped modell hash vagy neve
+  - position: `vector4` – Spawn pozíció és irány
+  - settings: `table|nil` – Opcionális beállítások
+    - invincible: `boolean` – Halhatatlan legyen-e
+    - freeze: `boolean` – Befagyasztva legyen-e
+    - ignore: `boolean` – Ignorálja a körülötte történő eseményeket
+    - collision: `boolean` – Ütközés a játékossal
+    - dead: `boolean` – Holtan spawnoljon-e
+    - hidden: `boolean` – Láthatatlanul spawnoljon-e
+    - minusone: `boolean` – 1 méterrel alacsabbra spawnoljon
+  - anim: `table|string|nil` – Animáció beállítások
+    - scenario: `string` – Scenario neve (pl. 'WORLD_HUMAN_SMOKING')
+    - dict: `string` – Animáció dictionary
+    - name: `string` – Animáció neve
+    - flag: `number` – Animáció flag
+    - prop: `table|nil` – Prop beállítások
+  - target: `table|nil` – Ox_target opciók
+  - pedVariaton: `table|nil` – Ped kinézet beállítások
+
+```lua copy
+local myPed = Components.Peds:Create({
+    pedType = 4,
+    model = 's_m_m_doctor_01',
+    position = vector4(100.0, 200.0, 30.0, 90.0),
+    settings = {
+        invincible = true,
+        freeze = true,
+        ignore = true
+    },
+    anim = {
+        scenario = 'WORLD_HUMAN_CLIPBOARD'
+    },
+    target = {
+        {
+            name = 'talk_to_doctor',
+            label = 'Beszélgetés',
+            icon = 'fas fa-comments',
+            onSelect = function()
+                print('Beszélgetés indítása')
+            end
+        }
+    }
+})
+```
+
+## PedObject:Spawn()
+NPC megjelenítése a játékban.
+
+```lua copy
+myPed:Spawn()
+```
+
+## PedObject:Despawn()
+NPC eltávolítása a játékból (de még létezik, újra spawnolható).
+
+```lua copy
+myPed:Despawn()
+```
+
+## PedObject:SetSettings()
+NPC beállításainak módosítása.
+- settings: `table|nil` – Új beállítások (opcionális, ha nincs megadva, az eredeti beállításokat alkalmazza)
+
+```lua copy
+myPed:SetSettings({
+    invincible = false,
+    freeze = false
+})
+```
+
+## PedObject:PlayAnim()
+Animáció lejátszása az NPC-n.
+
+```lua copy
+myPed:PlayAnim()
+```
+
+## PedObject:SetAnim()
+Új animáció beállítása és lejátszása.
+- animData: `table|string` – Animáció adatok
+
+```lua copy
+myPed:SetAnim({
+    scenario = 'WORLD_HUMAN_SMOKING'
+})
+```
+
+## PedObject:ResetAnim()
+Alapértelmezett animáció visszaállítása.
+
+```lua copy
+myPed:ResetAnim()
+```
+
+## PedObject:Show()
+NPC láthatóvá tétele (ha előzőleg el volt rejtve).
+
+```lua copy
+myPed:Show()
+```
+
+## PedObject:Hide()
+NPC elrejtése (láthatatlanná teszi).
+
+```lua copy
+myPed:Hide()
+```
+
+## PedObject:AddTarget()
+Ox_target opciók hozzáadása az NPC-hez.
+- options: `table` – Target opciók
+
+```lua copy
+myPed:AddTarget({
+    {
+        name = 'buy_item',
+        label = 'Vásárlás',
+        icon = 'fas fa-shopping-cart',
+        onSelect = function()
+            print('Vásárlás megnyitása')
+        end
+    }
+})
+```
+
+## PedObject:RemoveTarget()
+Ox_target opciók eltávolítása az NPC-ről.
+
+```lua copy
+myPed:RemoveTarget()
+```
+
+## PedObject:IsSpawned()
+Ellenőrzi, hogy az NPC spawned állapotban van-e.
+
+```lua copy
+if myPed:IsSpawned() then
+    print('Az NPC megjelent')
+end
+```
+
+## PedObject:GetEntity()
+Visszaadja az NPC entity handle-jét.
+
+```lua copy
+local entity = myPed:GetEntity()
+```
+
+## Peds:Remove()
+NPC eltávolítása ID alapján.
+- id: `string` – NPC azonosítója
+
+```lua copy
+Components.Peds:Remove('resource_1')
+```
+
+## Peds:Get()
+NPC lekérése ID alapján.
+- id: `string` – NPC azonosítója
+
+```lua copy
+local ped = Components.Peds:Get('resource_1')
+```
+
+---
+
+## Előre definiált animációk
+
+Az alábbi animációk használhatók string-ként az `anim` mezőben:
+
+- `'phone'` – Telefon használat
+- `'broom'` – Seprűzés
+- `'rake'` – Gereblyézés
+- `'dig'` – Ásás
+- `'leafblower'` – Lombfúvó használat
+- `'armchair'` – Karosszékben ülés
+- `'mop'` – Felmosás
+
+**Példa**
+```lua copy
+local cleanerPed = Components.Peds:Create({
+    pedType = 4,
+    model = 's_m_m_janitor',
+    position = vector4(100.0, 200.0, 30.0, 90.0),
+    anim = 'mop'
+})
+cleanerPed:Spawn()
+```
