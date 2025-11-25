@@ -50,17 +50,17 @@ LS:ImportDependencies('MyComponent', { 'OtherComponent', 'Database' }, function(
 	end
 end)
 ```
-## LS:ExtendComponent
+## LS:ExtendModule
 Kiterjeszti egy már regisztrált komponenst új adatokkal.
 
 **Paraméterek**
-- componentName: `string` – Komponens neve
-- componentData: `table` – Új adatok, amivel kiegészítjük a komponenst
+- moduleName: `string` – Modul neve
+- moduleData: `table` – Új adatok, amivel kiegészítjük a modulet
 
 **Visszatérési érték**
 - nincs
 
 **Példa**
 ```lua copy
-LS:ExtendComponent('MyComponent', { foo = 'bar', version = 2 })
+LS:ExtendModule('MyComponent', { foo = 'bar', version = 2 })
 ```
