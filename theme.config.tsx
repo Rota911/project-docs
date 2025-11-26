@@ -61,7 +61,6 @@ const config: DocsThemeConfig = {
   toc: {
     backToTop: true,
   },
-
   useNextSeoProps: useNextSeoProps,
 };
 
