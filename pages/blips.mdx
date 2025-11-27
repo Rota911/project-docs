@@ -239,3 +239,22 @@ local myBlip = Blips:Create({
 
 myBlip:SetRoute(5)  -- Útvonal sárga színnel
 ```
+
+### BlipObject:UpdateLocation()
+A blip pozíciójának módosítása
+
+**Paraméterek**
+- position: `vector3`
+
+```lua copy
+local myBlip = Blips:Create({
+    position = vector3(100.0, 200.0, 30.0),
+    settings = {
+        sprite = 1,
+        color = 2,
+        text = "Saját helyszín"
+    }
+})
+
+myBlip:UpdateLocation(vector3(0,0,0))
+```
