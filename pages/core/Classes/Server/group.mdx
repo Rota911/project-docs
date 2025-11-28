@@ -1,0 +1,342 @@
+---
+title: GroupClass
+---
+
+## GroupClass
+
+- id: `string` - Csoport azonosító, pl: `lspd`
+- label: `string` - Csoport megjelenítési neve, pl: `Los Santos Police Department`
+- type: `string` - Csoport típusa, pl: `legal`, `illegal`
+- limit: `number` - Maximális létszám (-1 = korlátlan)
+- ranks: `table` - Rangok táblája
+- interactions: `table` - Interakciók táblája
+
+## GroupClass:AddRank
+Rang hozzáadása a csoporthoz.
+
+**Paraméterek**
+- rank: `string` – Rang azonosító
+- rankData: `table` – Rang adatai
+  - label?: `string` – Rang megjelenítési neve
+  - salary?: `number` – Fizetés
+  - permissions?: `table` – Jogosultságok táblája
+
+**Visszatérési érték**
+- `boolean, string?` – Sikeresség és esetleges hibaüzenet
+
+```lua copy
+local group = LS:GetGroup('lspd')
+local success, msg = group:AddRank('sergeant', {
+    label = 'Őrmester',
+    salary = 5000,
+    permissions = { armory = true }
+})
+```
+
+## GroupClass:RemoveRank
+Rang eltávolítása a csoportból. Védett rangokat nem lehet törölni.
+
+**Paraméterek**
+- rank: `string` – Rang azonosító
+
+**Visszatérési érték**
+- `boolean, string?` – Sikeresség és esetleges hibaüzenet
+
+```lua copy
+local group = LS:GetGroup('lspd')
+local success, msg = group:RemoveRank('cadet')
+```
+
+## GroupClass:UpdateRank
+Rang adatainak frissítése.
+
+**Paraméterek**
+- rank: `string` – Rang azonosító
+- data: `table` – Frissítendő adatok
+  - label?: `string` – Új megjelenítési név
+  - salary?: `number` – Új fizetés
+  - permissions?: `table` – Új jogosultságok (csak nem védett rangoknál)
+
+**Visszatérési érték**
+- `boolean, string?` – Sikeresség és esetleges hibaüzenet
+
+```lua copy
+local group = LS:GetGroup('lspd')
+local success = group:UpdateRank('officer', {
+    label = 'Rendőr',
+    salary = 4500
+})
+```
+
+## GroupClass:SetRanks
+Csoport összes rangjának beállítása.
+
+**Paraméterek**
+- ranks: `table` – Rangok táblázata
+
+**Visszatérési érték**
+- `boolean, string?` – Sikeresség és esetleges hibaüzenet
+
+```lua copy
+local group = LS:GetGroup('lspd')
+group:SetRanks({
+    default = { label = 'Gyakornok', salary = 0, permissions = {} },
+    boss = { label = 'Parancsnok', salary = 10000, permissions = { management = true } }
+})
+```
+
+## GroupClass:GetRanks
+Csoport rangjainak lekérése.
+
+**Visszatérési érték**
+- `table` – Rangok táblája
+
+```lua copy
+local group = LS:GetGroup('lspd')
+local ranks = group:GetRanks()
+for rankId, rankData in pairs(ranks) do
+    print(rankId, rankData.label)
+end
+```
+
+## GroupClass:GetRank
+Egy adott rang adatainak lekérése.
+
+**Paraméterek**
+- rank: `string` – Rang azonosító
+
+**Visszatérési érték**
+- `table?` – Rang adatai vagy nil
+
+```lua copy
+local group = LS:GetGroup('lspd')
+local rankData = group:GetRank('officer')
+print(rankData.label, rankData.salary)
+```
+
+## GroupClass:GetMembers
+Csoport tagjainak lekérése.
+
+**Paraméterek**
+- rank?: `string` – Csak ezen ranggal rendelkező tagok (opcionális)
+
+**Visszatérési érték**
+- `table` – Tagok táblája, minden elem tartalmazza:
+  - charId: `number` – Karakter azonosító
+  - name: `string` – Karakter teljes neve
+  - rank: `string` – Rang azonosító
+  - rankLabel: `string` – Rang megjelenítési neve
+  - source: `number` – Játékos source (ha online)
+
+**Példa 1:** Összes tag lekérése
+```lua copy
+local group = LS:GetGroup('lspd')
+local members = group:GetMembers()
+for _, member in pairs(members) do
+    print(member.name, member.rankLabel)
+end
+```
+
+**Példa 2:** Adott ranggal rendelkezők lekérése
+```lua copy
+local group = LS:GetGroup('lspd')
+local officers = group:GetMembers('officer')
+print('Rendőrök száma:', #officers)
+```
+
+## GroupClass:GetMemberData
+Egy tag adatainak lekérése.
+
+**Paraméterek**
+- identifier: `number|string` – Karakter ID vagy PlayerSrc
+
+**Visszatérési érték**
+- `table?` – Tag adatai vagy nil
+
+```lua copy
+local group = LS:GetGroup('lspd')
+local memberData = group:GetMemberData(42)
+if memberData then
+    print(memberData.name, memberData.rankLabel)
+end
+```
+
+## GroupClass:AddMember
+Tag hozzáadása a csoporthoz.
+
+**Paraméterek**
+- identifier: `number|string` – Karakter ID vagy PlayerSrc
+- rank?: `string` – Rang azonosító (alapértelmezett: `default`)
+- silent?: `boolean` – Ne triggerelj eventeket
+
+**Visszatérési érték**
+- `boolean, string?` – Sikeresség és esetleges hibaüzenet
+
+**Példa 1:** Tag hozzáadása alapértelmezett ranggal
+```lua copy
+local group = LS:GetGroup('lspd')
+local success, msg = group:AddMember(42)
+if not success then
+    print('Hiba:', msg)
+end
+```
+
+**Példa 2:** Tag hozzáadása konkrét ranggal
+```lua copy
+local group = LS:GetGroup('lspd')
+group:AddMember(42, 'officer')
+```
+
+**Példa 3:** Tag hozzáadása csendesen (nincs értesítés)
+```lua copy
+local group = LS:GetGroup('lspd')
+group:AddMember(42, 'default', true)
+```
+
+## GroupClass:RemoveMember
+Tag eltávolítása a csoportból.
+
+**Paraméterek**
+- identifier: `number|string` – Karakter ID vagy PlayerSrc
+- silent?: `boolean` – Ne triggerelj eventeket
+
+**Visszatérési érték**
+- `boolean, string?` – Sikeresség és esetleges hibaüzenet
+
+```lua copy
+local group = LS:GetGroup('lspd')
+local success, msg = group:RemoveMember(42)
+if success then
+    print('Tag sikeresen eltávolítva')
+end
+```
+
+## GroupClass:SetRank
+Tag rangjának módosítása.
+
+**Paraméterek**
+- identifier: `number|string` – Karakter ID vagy PlayerSrc
+- rank: `string` – Új rang azonosító
+
+**Visszatérési érték**
+- `boolean, string?` – Sikeresség és esetleges hibaüzenet
+
+```lua copy
+local group = LS:GetGroup('lspd')
+local success = group:SetRank(42, 'sergeant')
+```
+
+## GroupClass:GetInteractions
+Csoport interakcióinak lekérése.
+
+**Paraméterek**
+- key?: `string` – Konkrét interakció kulcsa (opcionális)
+
+**Visszatérési érték**
+- `table|string?` – Interakciók táblája vagy egy konkrét interakció
+
+**Példa 1:** Összes interakció lekérése
+```lua copy
+local group = LS:GetGroup('lspd')
+local interactions = group:GetInteractions()
+```
+
+**Példa 2:** Konkrét interakció lekérése
+```lua copy
+local group = LS:GetGroup('lspd')
+local armory = group:GetInteractions('armory')
+```
+
+## GroupClass:SetInteractions
+Csoport interakcióinak beállítása.
+
+**Paraméterek**
+- data: `table` – Új interakciók táblája
+
+**Visszatérési érték**
+- `boolean, string?` – Sikeresség és esetleges hibaüzenet
+
+```lua copy
+local group = LS:GetGroup('lspd')
+group:SetInteractions({
+    armory = vector3(452.5, -980.1, 30.7),
+    garage = vector3(438.4, -1018.3, 28.7)
+})
+```
+
+## GroupClass:GetLabel
+Csoport megjelenítési nevének lekérése.
+
+**Visszatérési érték**
+- `string` – Csoport címkéje
+
+```lua copy
+local group = LS:GetGroup('lspd')
+print(group:GetLabel()) -- "Los Santos Police Department"
+```
+
+## GroupClass:SetLabel
+Csoport megjelenítési nevének beállítása.
+
+**Paraméterek**
+- label: `string` – Új címke
+
+```lua copy
+local group = LS:GetGroup('lspd')
+group:SetLabel('LSPD - Los Santos Police Department')
+```
+
+## GroupClass:GetLimit
+Csoport maximális létszámának lekérése.
+
+**Visszatérési érték**
+- `number` – Maximális létszám (-1 = korlátlan)
+
+```lua copy
+local group = LS:GetGroup('lspd')
+print('Max létszám:', group:GetLimit())
+```
+
+## GroupClass:SetLimit
+Csoport maximális létszámának beállítása.
+
+**Paraméterek**
+- limit: `number` – Új maximális létszám (-1 = korlátlan)
+
+```lua copy
+local group = LS:GetGroup('lspd')
+group:SetLimit(50)
+```
+
+## GroupClass:GetType
+Csoport típusának lekérése.
+
+**Visszatérési érték**
+- `string` – Csoport típusa
+
+```lua copy
+local group = LS:GetGroup('lspd')
+print(group:GetType()) -- "legal"
+```
+
+## GroupClass:SetType
+Csoport típusának beállítása.
+
+**Paraméterek**
+- _type: `string` – Új típus
+
+```lua copy
+local group = LS:GetGroup('lspd')
+group:SetType('legal')
+```
+
+## GroupClass:GetSize
+Csoport jelenlegi létszámának lekérése.
+
+**Visszatérési érték**
+- `number` – Tagok száma
+
+```lua copy
+local group = LS:GetGroup('lspd')
+print('Tagok száma:', group:GetSize())
+```

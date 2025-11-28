@@ -156,3 +156,69 @@ print(coords.x, coords.y, coords.z)
 local coords = character:GetCoords('table')
 print(coords.x, coords.y, coords.z, coords.heading)
 ```
+
+## CharacterClass:SetGroup
+Karaktert hozzáadja egy csoporthoz vagy eltávolítja onnan. Ez a metódus átirányít a GroupClass metódusokhoz.
+
+**Paraméterek**
+- group: `string` – Csoport azonosító
+- rank?: `string` – Rang azonosító (nil esetén eltávolítás a csoportból)
+- silent?: `boolean` – Ne triggerelj eventeket
+
+**Visszatérési érték**
+- `boolean, string?` – Sikeresség és esetleges hibaüzenet
+
+**Példa 1:** Karakter hozzáadása csoporthoz
+```lua copy
+local success, msg = character:SetGroup('lspd', 'officer')
+if success then
+    print('Karakter hozzáadva a csoporthoz')
+else
+    print('Hiba:', msg)
+end
+```
+
+**Példa 2:** Karakter eltávolítása csoportból
+```lua copy
+character:SetGroup('lspd') -- rang nélkül = eltávolítás
+```
+
+**Példa 3:** Csendesen hozzáadás (nincs értesítés)
+```lua copy
+character:SetGroup('lspd', 'default', true)
+```
+
+## CharacterClass:SetGroupInternal
+Karaktert hozzáadja egy csoporthoz vagy eltávolítja onnan közvetlenül, validációk nélkül. **Ezt a metódust csak a GroupClass használja, ne hívd meg kívülről!**
+
+**Paraméterek**
+- group: `string` – Csoport azonosító
+- rank?: `string` – Rang azonosító (nil esetén eltávolítás)
+- silent?: `boolean` – Ne triggerelj eventeket
+
+**Visszatérési érték**
+- `boolean, string?` – Sikeresség és esetleges hibaüzenet
+
+## CharacterClass:HasGroup
+Ellenőrzi, hogy a karakter tagja-e egy csoportnak.
+
+**Paraméterek**
+- group: `string` – Csoport azonosító
+- rank?: `string` – Konkrét rang ellenőrzése (opcionális)
+
+**Visszatérési érték**
+- `boolean` – Tagja-e a csoportnak (és adott rangnak)
+
+**Példa 1:** Csoporttagság ellenőrzése
+```lua copy
+if character:HasGroup('lspd') then
+    print('A karakter LSPD tag')
+end
+```
+
+**Példa 2:** Konkrét rang ellenőrzése
+```lua copy
+if character:HasGroup('lspd', 'boss') then
+    print('A karakter LSPD főnök')
+end
+```

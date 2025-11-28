@@ -80,3 +80,51 @@ AddEventHandler('Core:Server:CharacterCreated', function(playerSrc, characterDat
     print(playerSrc, characterData)
 end)
 ```
+
+## Core:Server:CharacterGroupChanged
+Esemény, amikor egy karakter csoporttagsága megváltozik.
+
+**Paraméterek**
+- playerSrc: `number` – Játékos forrásazonosító
+- charId: `number` – Karakter azonosító
+- group: `string` – Csoport azonosító
+- rank: `string?` – Új rang azonosító (nil = eltávolítva a csoportból)
+- groups: `table` – Karakter összes csoportja
+
+**Példa**
+```lua copy
+AddEventHandler('Core:Server:CharacterGroupChanged', function(playerSrc, charId, group, rank, groups)
+    if rank then
+        print('Karakter #' .. charId .. ' hozzáadva a(z) ' .. group .. ' csoporthoz')
+    else
+        print('Karakter #' .. charId .. ' eltávolítva a(z) ' .. group .. ' csoportból')
+    end
+end)
+```
+
+## Core:Server:GroupCreated
+Esemény, amikor egy új csoport létrejön.
+
+**Paraméterek**
+- groupId: `string` – Csoport azonosító
+- groupData: `table` – Csoport adatai
+
+**Példa**
+```lua copy
+AddEventHandler('Core:Server:GroupCreated', function(groupId, groupData)
+    print('Új csoport létrehozva:', groupId, groupData.label)
+end)
+```
+
+## Core:Server:GroupRemoved
+Esemény, amikor egy csoport törlésre kerül.
+
+**Paraméterek**
+- groupId: `string` – Törölt csoport azonosító
+
+**Példa**
+```lua copy
+AddEventHandler('Core:Server:GroupRemoved', function(groupId)
+    print('Csoport törölve:', groupId)
+end)
+```

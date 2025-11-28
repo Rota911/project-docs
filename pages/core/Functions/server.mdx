@@ -64,3 +64,125 @@ end, {
     }
 }, 'Visszatérés az előző helyre')
 ```
+
+## LS:GetCharacters
+
+Lekéri a karaktereket megadott feltételek alapján.
+
+**Paraméterek**
+- key?: `string` – Lekérdezés kulcsa (pl. `group`, `playerId`, `charId`)
+- value?: `number|string|table` – Lekérdezés értéke vagy értékek táblája
+
+**Visszatérési érték**
+- `table` – Karakterek táblája
+
+**Példa 1:** Összes karakter lekérése
+```lua copy
+local allCharacters = LS:GetCharacters()
+for _, character in pairs(allCharacters) do
+    print(character.fullName)
+end
+```
+
+**Példa 2:** Egy adott csoportba tartozó karakterek
+```lua copy
+local lspdMembers = LS:GetCharacters('group', 'lspd')
+print('LSPD tagok száma:', #lspdMembers)
+```
+
+**Példa 3:** Egy játékos összes karaktere
+```lua copy
+local playerCharacters = LS:GetCharacters('playerId', 10001)
+```
+
+## LS:GetGroup
+
+Lekér egy csoport objektumot azonosító alapján.
+
+**Paraméterek**
+- groupId: `string` – Csoport azonosító
+
+**Visszatérési érték**
+- [`GroupClass`](/core/Classes/Server/group) – Csoport objektum vagy nil
+
+**Példa**
+```lua copy
+local lspd = LS:GetGroup('lspd')
+if lspd then
+    print(lspd:GetLabel())
+    print('Tagok száma:', lspd:GetSize())
+end
+```
+
+## LS:CreateGroup
+
+Új csoportot hoz létre.
+
+**Paraméterek**
+- groupData: `table` – Csoport adatai
+  - id: `string` – Csoport azonosító
+  - label: `string` – Csoport megjelenítési neve
+  - type?: `string` – Csoport típusa (alapértelmezett: `illegal`)
+  - limit?: `number` – Maximális létszám (alapértelmezett: 21, -1 = korlátlan)
+  - garage?: `string` – Garázs azonosító (alapértelmezett: `legion_square`)
+
+**Visszatérési érték**
+- `boolean, string?` – Sikeresség és esetleges hibaüzenet
+
+**Példa**
+```lua copy
+local success, msg = LS:CreateGroup({
+    id = 'lspd',
+    label = 'Los Santos Police Department',
+    type = 'legal',
+    limit = 50,
+    garage = 'mrpd'
+})
+
+if success then
+    print('Csoport sikeresen létrehozva')
+else
+    print('Hiba:', msg)
+end
+```
+
+## LS:RemoveGroup
+
+Töröl egy csoportot és eltávolítja az összes tagját.
+
+**Paraméterek**
+- groupName: `string` – Csoport azonosító
+
+**Visszatérési érték**
+- `boolean` – Sikeres volt-e a törlés
+
+**Példa**
+```lua copy
+local success = LS:RemoveGroup('lspd')
+if success then
+    print('Csoport törölve')
+end
+```
+
+## LS:EditGroup
+
+Szerkeszt egy meglévő csoportot.
+
+**Paraméterek**
+- groupName: `string` – Csoport azonosító
+- newData: `table` – Frissített csoport adatok
+  - label?: `string` – Új megjelenítési név
+  - limit?: `number` – Új maximális létszám
+  - garage?: `string` – Új garázs azonosító
+  - type?: `string` – Új csoport típus
+
+**Visszatérési érték**
+- `boolean` – Sikeres volt-e a szerkesztés
+
+**Példa**
+```lua copy
+local success = LS:EditGroup('lspd', {
+    label = 'LSPD - Los Santos Police Department',
+    limit = 60
+})
+```

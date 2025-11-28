@@ -78,6 +78,25 @@ RegisterNetEvent('Core:Client:CharacterCreated', function(characterData)
 end)
 ```
 
+## Core:Client:CharacterGroupChanged
+Esemény, amikor a karakter csoporttagsága megváltozik.
+
+**Paraméterek**
+- group: `string` – Csoport azonosító
+- rank: `string?` – Új rang azonosító (nil = eltávolítva a csoportból)
+- groups: `table` – Karakter összes csoportja
+
+**Példa**
+```lua copy
+RegisterNetEvent('Core:Client:CharacterGroupChanged', function(group, rank, groups)
+    if rank then
+        print('Hozzáadva a(z) ' .. group .. ' csoporthoz mint ' .. rank)
+    else
+        print('Eltávolítva a(z) ' .. group .. ' csoportból')
+    end
+end)
+```
+
 ## Routing:Client:NewRoute
 Esemény, amikor a játékos egy új routing bucketre lép.
 
