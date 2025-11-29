@@ -1,6 +1,10 @@
 export default {
      core: "Core",
-     Logger: "Logger",
+     logger: "Logger",
+     peds: "Peds",
+     status: "Status",
+     ui: "UI",
+
      keybinds: "Keybinds",
      blips: "Blips",
      routing: "Routing",
