@@ -1,0 +1,37 @@
+## Core:Shared:RegisterReady
+
+Esemény, amely akkor fut le, ha egy modul egy másik resource-ból regisztrálható.
+
+**Paraméterek**
+- nincs
+
+**Példa**
+```lua copy
+AddEventHandler("Core:Shared:RegisterReady", function()
+    LS:RegisterModule("Blips", Blips)
+end)
+```
+
+## Core:Shared:Ready
+
+Esemény, amely akkor fut le, ha a core modul teljesen betöltődött.
+
+**Paraméterek**
+- nincs
+
+**Példa**
+```lua copy
+AddEventHandler("Core:Shared:Ready", function()
+    LS:ImportDependencies("Damage", {
+        "Logger",
+    }, function(errors)
+        print('[Damage] ImportDependencies callback - errors:', #errors)
+        if #errors > 0 then
+            print('[Damage] ERROR: Failed to load dependencies!')
+            return
+        end
+
+        Logger = LS:ImportModule("Logger")
+    end)
+end)
+```

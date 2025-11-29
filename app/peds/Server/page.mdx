@@ -1,0 +1,61 @@
+## Peds:Create()
+Ellenséges NPC(k) létrehozása egy küldetéshez.
+- missionID: `string` – Küldetés egyedi azonosítója
+- model: `string|table` – Ped modell neve vagy táblázat több NPC-hez
+- position: `vector4` – Spawn pozíció
+- weapon: `number` – Fegyver hash
+- maxHP: `number` – Maximális életerő 
+- killOnSight: `boolean` – Látásra támadjon-e
+- accuracy: `numbe` – Lövés pontosság
+
+1. példa: Egy NPC létrehozása
+```lua copy
+Peds:Create(
+    'mission_1',
+    's_m_y_swat_01',
+    vector4(100.0, 200.0, 30.0, 90.0),
+    GetHashKey('WEAPON_PISTOL'),
+    200,
+    true,
+    50
+)
+```
+
+2. példa: Több NPC létrehozása táblázattal
+```lua copy
+Peds:Create('mission_2', {
+    {
+        model = 's_m_y_swat_01',
+        position = vector4(100.0, 200.0, 30.0, 90.0),
+        weapon = GetHashKey('WEAPON_CARBINERIFLE'),
+        maxHP = 300,
+        killOnSight = true,
+        accuracy = 60
+    },
+    {
+        model = 's_m_y_swat_01',
+        position = vector4(150.0, 250.0, 30.0, 180.0),
+        weapon = GetHashKey('WEAPON_SHOTGUN'),
+        maxHP = 250,
+        killOnSight = true,
+        accuracy = 55
+    }
+})
+```
+
+## Peds:Remove()
+Küldetés összes NPC-jének törlése.
+- missionID: `string` – Küldetés azonosítója
+
+```lua copy
+Peds:Remove('mission_1')
+```
+
+## Peds:RemoveOne()
+Egy konkrét NPC törlése küldetésből.
+- missionID: `string` – Küldetés azonosítója
+- netID: `number` – NPC network azonosítója
+
+```lua copy
+Peds:RemoveOne('mission_1', 12345)
+```

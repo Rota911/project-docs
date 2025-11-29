@@ -1,46 +1,30 @@
 {
-  "name": "nextra-docs-template",
-  "version": "0.0.1",
-  "description": "Nextra docs template",
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build && pnpm run index",
-    "index": "pagefind --site .next --output-path ./public/pagefind",
-    "start": "next start",
-    "postbuild": "next-sitemap"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/shuding/nextra-docs-template.git"
-  },
-  "author": "Shu Ding <g@shud.in>",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/shuding/nextra-docs-template/issues"
-  },
-  "homepage": "https://github.com/shuding/nextra-docs-template#readme",
-  "dependencies": {
-    "@tabler/icons-react": "^2.47.0",
-    "next": "^13.5.11",
-    "next-sitemap": "^4.2.3",
-    "nextra": "^2.13.4",
-    "nextra-theme-docs": "^2.13.4",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
-  "devDependencies": {
-    "@types/node": "18.11.10",
-    "autoprefixer": "^10.4.21",
-    "pagefind": "^1.4.0",
-    "postcss": "^8.5.3",
-    "prettier-plugin-tailwindcss": "^0.6.11",
-    "tailwindcss": "^3.4.17",
-    "typescript": "^4.9.5"
-  },
-  "pnpm": {
-    "patchedDependencies": {
-      "nextra@2.13.4": "patches/nextra@2.13.4.patch"
-    }
-  },
-  "packageManager": "pnpm@10.23.0+sha512.21c4e5698002ade97e4efe8b8b4a89a8de3c85a37919f957e7a0f30f38fbc5bbdd05980ffe29179b2fb6e6e691242e098d945d1601772cad0fef5fb6411e2a4b"
+     "name": "project-docs",
+     "version": "0.1.0",
+     "private": true,
+     "scripts": {
+          "dev": "next --turbopack",
+          "build": "next build",
+          "start": "next start",
+          "lint": "eslint",
+          "postbuild": "pagefind --site .next/server/app --output-path public/_pagefind"
+     },
+     "dependencies": {
+          "next": "16.0.5",
+          "nextra": "^4.6.0",
+          "nextra-theme-docs": "^4.6.0",
+          "pagefind": "^1.4.0",
+          "react": "19.2.0",
+          "react-dom": "19.2.0"
+     },
+     "devDependencies": {
+          "@tailwindcss/postcss": "^4",
+          "@types/node": "^20",
+          "@types/react": "^19",
+          "@types/react-dom": "^19",
+          "eslint": "^9",
+          "eslint-config-next": "16.0.5",
+          "tailwindcss": "^4",
+          "typescript": "^5"
+     }
 }

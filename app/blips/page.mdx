@@ -1,0 +1,260 @@
+> Ez a modul kizárólag kliens oldalon használható!
+
+## Blips:Create()
+Létrehoz egy új blip-et a térképen.
+
+**Paraméterek**
+- position: `vector3` – A blip pozíciója
+- settings: `table` – Beállítások táblázata
+  - sprite?: `number` – Blip ikonjának azonosítója
+  - color?: `number` – Blip színe
+  - scale?: `number` – Blip mérete
+  - short?: `boolean` – Rövid hatótáv
+  - text?: `string` – Blip neve
+  - category?: `number` – Kategória
+  - heading?: `boolean` – Irány jelző mutatása
+  - tick?: `boolean` – Pipa ikon megjelenítése
+
+**Visszatérési érték**
+- `BlipObject` – A létrehozott blip objektum
+
+1. példa: Egyszerű blip létrehozása
+```lua copy
+local myBlip = Blips:Create({
+    position = vector3(100.0, 200.0, 30.0),
+    settings = {
+        sprite = 1,
+        color = 2,
+        text = "Saját helyszín"
+    }
+})
+```
+
+2. példa: Részletes blip beállításokkal
+```lua copy
+local detailedBlip = Blips:Create({
+    position = vector3(-500.0, -300.0, 35.0),
+    settings = {
+        sprite = 50,          -- Garázs sprite
+        color = 3,            -- Zöld szín
+        scale = 0.8,          -- Méret
+        short = true,         -- Rövid hatótáv
+        text = "Garázs",
+        category = 2,         -- Kategória
+        heading = true        -- Irány jelző mutatása
+    }
+})
+
+-- Később használhatjuk a visszaadott blip objektumot
+detailedBlip:SetRoute(5)  -- Útvonal beállítása
+```
+
+3. példa: Több blip létrehozása ciklusban
+```lua copy
+local locations = {
+    {pos = vector3(100.0, 200.0, 30.0), name = "Bolt 1"},
+    {pos = vector3(150.0, 250.0, 30.0), name = "Bolt 2"},
+    {pos = vector3(200.0, 300.0, 30.0), name = "Bolt 3"}
+}
+
+local createdBlips = {}
+
+for i, loc in ipairs(locations) do
+    createdBlips[i] = Blips:Create({
+        position = loc.pos,
+        settings = {
+            sprite = 52,
+            color = 2,
+            text = loc.name,
+            short = true
+        }
+    })
+end
+```
+
+## Blips:Remove()
+Eltávolít egy blip-et a térképről.
+
+**Paraméterek**
+- blipId: `number` – A blip azonosítója
+
+**Visszatérési érték**
+- `boolean` – `true` ha sikeresen törölve, `false` ha nem található
+
+```lua copy
+local myBlip = Blips:Create({
+    position = vector3(100.0, 200.0, 30.0),
+    settings = {
+        sprite = 1,
+        color = 2,
+        text = "Saját helyszín"
+    }
+})
+
+-- Később töröljük a blipet
+local success = Blips:Remove(myBlip.id)
+if success then
+    print("Blip sikeresen törölve")
+else
+    print("Blip nem található")
+end
+```
+
+## Blips:Get()
+Lekér egy blip objektumot azonosító alapján.
+
+**Paraméterek**
+- blipId: `number` – A blip azonosítója
+
+**Visszatérési érték**
+- `BlipObject|nil` – A blip objektum vagy `nil` ha nem található
+
+1. példa: Blip lekérése azonosító alapján és módosítása
+```lua copy
+local myBlip = Blips:Create({
+    position = vector3(100.0, 200.0, 30.0),
+    settings = {
+        sprite = 1,
+        color = 2,
+        text = "Saját helyszín"
+    }
+})
+
+-- Később lekérjük a blipet
+local retrievedBlip = Blips:Get(myBlip.id)
+if retrievedBlip then
+    retrievedBlip:Show()
+    retrievedBlip:SetRoute(5)
+end
+```
+
+2. példa: Ellenőrzés használat előtt
+```lua copy
+local blipId = 123456
+local blip = Blips:Get(blipId)
+
+if blip then
+    blip:SetWayPoint()
+else
+    print("Blip nem található")
+end
+```
+
+3. példa: Blip láthatóságának átváltása
+```lua copy
+local function toggleBlip(blipId)
+    local blip = Blips:Get(blipId)
+    
+    if blip then
+        if blip.visible then
+            blip:Hide()
+            blip.visible = false
+        else
+            blip:Show()
+            blip.visible = true
+        end
+    end
+end
+```
+
+---
+
+## BlipObject
+
+A `Blips:Create()` által visszaadott objektum, amely tartalmazza a blip adatait és metódusait.
+
+**Tulajdonságok**
+- id: `number` – A blip egyedi azonosítója
+- resource: `string` – A blipet létrehozó resource neve
+- position: `vector3` – A blip pozíciója
+- settings: `table` – A blipre alkalmazott beállítások
+- handle: `number` – A natív blip handle
+
+**Metódusok**
+
+### BlipObject:Show()
+Megjeleníti a blipet a térképen.
+
+```lua copy
+local myBlip = Blips:Create({
+    position = vector3(100.0, 200.0, 30.0),
+    settings = {
+        sprite = 1,
+        color = 2,
+        text = "Saját helyszín"
+    }
+})
+
+myBlip:Hide()  -- Elrejtjük
+myBlip:Show()  -- Újra megjelenítjük
+```
+
+### BlipObject:Hide()
+Elrejti a blipet a térképről (nem törli, csak láthatatlanná teszi).
+
+```lua copy
+local myBlip = Blips:Create({
+    position = vector3(100.0, 200.0, 30.0),
+    settings = {
+        sprite = 1,
+        color = 2,
+        text = "Saját helyszín"
+    }
+})
+
+myBlip:Hide()  -- Blip elrejtve, de még létezik
+```
+
+### BlipObject:SetWayPoint()
+Beállítja a blip pozícióját GPS célpontként.
+
+```lua copy
+local myBlip = Blips:Create({
+    position = vector3(100.0, 200.0, 30.0),
+    settings = {
+        sprite = 1,
+        color = 2,
+        text = "Saját helyszín"
+    }
+})
+
+myBlip:SetWayPoint()  -- GPS útvonal a blip pozíciójához
+```
+
+### BlipObject:SetRoute()
+Útvonalat állít be a bliphez a térképen.
+
+**Paraméterek**
+- color?: `number` – Az útvonal színe (opcionális)
+
+```lua copy
+local myBlip = Blips:Create({
+    position = vector3(100.0, 200.0, 30.0),
+    settings = {
+        sprite = 1,
+        color = 2,
+        text = "Saját helyszín"
+    }
+})
+
+myBlip:SetRoute(5)  -- Útvonal sárga színnel
+```
+
+### BlipObject:UpdateLocation()
+A blip pozíciójának módosítása
+
+**Paraméterek**
+- position: `vector3`
+
+```lua copy
+local myBlip = Blips:Create({
+    position = vector3(100.0, 200.0, 30.0),
+    settings = {
+        sprite = 1,
+        color = 2,
+        text = "Saját helyszín"
+    }
+})
+
+myBlip:UpdateLocation(vector3(0,0,0))
+```
