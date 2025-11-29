@@ -33,3 +33,34 @@ RegisterNetEvent("SkillTree:Server:OnNodeUnlocked", function(charId, treeId, nod
      -- Your custom logic here
 end)
 ```
+---
+
+## SkillTree:Shared:FullUpdate
+
+Triggered when the Character loads.
+
+**Parameters:**
+
+* skilltree: `table<string, SkillNode>` – Skilltree data
+
+```lua
+RegisterNetEvent("SkillTree:Server:OnNodeUnlocked", function(skilltree)
+     -- Your custom logic here
+end)
+```
+---
+
+## SkillTree:Shared:XPUpdate
+
+Triggered when Xp changes
+
+**Parameters:**
+
+* treeId: `string` – TreeId
+* data: `table<CharSkills>` – Character identifier
+
+```lua
+RegisterNetEvent("SkillTree:Server:OnNodeUnlocked", function(treeId, data)
+     -- Your custom logic here
+end)
+```
