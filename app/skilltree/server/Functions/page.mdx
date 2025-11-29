@@ -1,0 +1,350 @@
+# Functions
+
+## SkillTree:Create(id, rawNodes, xpGrowth?, baseXp?)
+Creates a new skill tree and registers it in the global `SkillManager`.
+
+- id: `string` – Unique identifier for the skill tree  
+- rawNodes: `table<string, any>` – Raw node definitions for the tree  
+  - Each entry will be instantiated as `SkillNode(nodeId, nodeData)`  
+- xpGrowth: `number|nil` – XP growth multiplier per level *(default: `1.5`)*  
+- baseXp: `number|nil` – Base XP requirement for level 1 → 2 *(default: `500`)*
+
+**Return:**  
+- `table` – The created skill tree object
+
+```lua copy
+local warriorTree = SkillTree:Create('warrior', {
+    ["warrior"] = {
+        id = "warrior",
+        preRequsites = {},
+        children = { "warrior_strength", "warrior_defense" },
+        label = "Warrior",
+        description = "Base warrior combat training.",
+        cost = 1,
+    },
+
+    ["warrior_strength"] = {
+        id = "warrior_strength",
+        preRequsites = { "warrior" },
+        children = { "warrior_strength_advanced" },
+        label = "Strength",
+        description = "Increase melee strength.",
+        cost = 2,
+    },
+
+    ["warrior_strength_advanced"] = {
+        id = "warrior_strength_advanced",
+        preRequsites = { "warrior_strength" },
+        children = {},
+        label = "Advanced Strength",
+        description = "Master heavy melee techniques.",
+        cost = 4,
+    },
+
+    ["warrior_defense"] = {
+        id = "warrior_defense",
+        preRequsites = { "warrior" },
+        children = {},
+        label = "Defense",
+        description = "Improve defensive capabilities.",
+        cost = 2,
+    },
+})
+
+print("Created tree:", warriorTree.id)
+```
+
+## SkillTree:GetTree(treeId)
+
+Returns a specific skill tree if it exists.
+
+* treeId: `string` – Skill tree ID
+
+**Return:**
+
+* `table` – The skill tree
+* `false` – If not found or `SkillManager` is not ready
+
+```lua copy
+local tree = SkillTree:GetTree('lumberjack')
+
+if not tree then
+    print('Lumberjack tree not found')
+    return
+end
+
+print('Tree name:', tree.id)
+```
+
+## SkillTree:GetAllTrees()
+
+Returns every registered skill tree.
+
+**Return:**
+
+* `table<string, table>` – All trees indexed by their tree ID
+
+```lua copy
+local trees = SkillTree:GetAllTrees()
+
+for id, tree in pairs(trees) do
+    print(('Tree ID: %s | Nodes: %d'):format(id, #tree.nodes))
+end
+```
+
+## SkillTree:GetNode(nodeId)
+
+Returns a node from the skill tree.
+
+* nodeId: `string` – Node identifier
+
+**Return:**
+
+* `table` – Node information
+* `false` – If the node does not exist
+
+```lua copy
+local tree = SkillTree:GetTree('lumberjack')
+if not tree then return end
+
+local node = tree:GetNode('speed')
+
+if node then
+    print('Node label:', node.label)
+else
+    print('Node "speed" does not exist in this tree')
+end
+```
+
+## SkillTree:HasNode(charId, nodeId)
+
+Checks whether a character has unlocked a specific node.
+
+* charId: `number|string` – Character identifier
+* nodeId: `string` – Node identifier
+
+**Return:**
+
+* `boolean` – Whether the node is unlocked
+
+```lua copy
+local charId = 1
+local tree = SkillTree:GetTree('lumberjack')
+if not tree then return end
+
+if tree:HasNode(charId, 'speed') then
+    print('Character has unlocked "speed" node')
+else
+    print('Character has NOT unlocked "speed" node yet')
+end
+```
+
+## SkillTree:GetLevel(charId)
+
+Returns the character’s current level in this skill tree.
+
+* charId: `number|string` – Character identifier
+
+**Return:**
+
+* `number` – Level value
+
+```lua copy
+local charId = 1
+local tree = SkillTree:GetTree('lumberjack')
+if not tree then return end
+
+local level = tree:GetLevel(charId)
+print(('Lumberjack level for %s: %d'):format(charId, level))
+```
+
+## SkillTree:GetXP(charId)
+
+Returns the current amount of XP the character has in this skill tree.
+
+* charId: `number|string`
+
+**Return:**
+
+* `number` – XP value
+
+```lua copy
+local charId = 1
+local tree = SkillTree:GetTree('lumberjack')
+if not tree then return end
+
+local xp = tree:GetXP(charId)
+print(('Current XP for %s: %d'):format(charId, xp))
+```
+
+## SkillTree:GetPoints(charId)
+
+Returns how many unspent skill points the character has.
+
+* charId: `number|string`
+
+**Return:**
+
+* `number` – Available points
+
+```lua copy
+local charId = 1
+local tree = SkillTree:GetTree('lumberjack')
+if not tree then return end
+
+local points = tree:GetPoints(charId)
+print(('Available skill points: %d'):format(points))
+```
+
+## SkillTree:GetRequiredXP(charId)
+
+Returns the XP required to reach the next level.
+
+* charId: `number|string`
+
+**Return:**
+
+* `number` – Required XP
+
+```lua copy
+local charId = 1
+local tree = SkillTree:GetTree('lumberjack')
+if not tree then return end
+
+local requiredXP = tree:GetRequiredXP(charId)
+print(('XP needed for next level: %d'):format(requiredXP))
+```
+
+## SkillTree:GetUnlockedNodes(charId)
+
+Returns all unlocked node IDs for this character.
+
+* charId: `number|string`
+
+**Return:**
+
+* `table<string>` – List of unlocked node IDs
+
+```lua copy
+local charId = 1
+local tree = SkillTree:GetTree('lumberjack')
+if not tree then return end
+
+local unlocked = tree:GetUnlockedNodes(charId)
+
+print('Unlocked nodes:')
+for _, nodeId in ipairs(unlocked) do
+    print(' -', nodeId)
+end
+```
+
+## SkillTree:GetTreeData(charId)
+
+Returns the full character-specific data for this tree.
+
+* charId: `number|string`
+
+**Return:**
+
+* `table` – Contains:
+
+  * `xp`: `number`
+  * `level`: `number`
+  * `points`: `number`
+  * `requiredXP`: `number`
+  * `unlockedNodes`: `table<string>`
+
+```lua copy
+local charId = 1
+local tree = SkillTree:GetTree('lumberjack')
+if not tree then return end
+
+local data = tree:GetTreeData(charId)
+
+print(json.encode(data, { indent = true }))
+```
+
+## SkillTree:AddXP(charId, amount)
+
+Adds XP to the character for this skill tree.
+
+* charId: `number|string` – Character identifier
+* amount: `number` – Amount of XP to add
+
+```lua copy
+local charId = 1
+local tree = SkillTree:GetTree('lumberjack')
+if not tree then return end
+
+tree:AddXP(charId, 250)
+
+print('Added 250 XP to lumberjack tree for char:', charId)
+print('New XP:', tree:GetXP(charId))
+```
+
+## SkillTree:UnlockNode(charId, nodeId)
+
+Attempts to unlock a specific node.
+
+* charId: `number|string`
+* nodeId: `string`
+
+**Return:**
+
+* `boolean` – Success
+* `string|nil` – Error reason (e.g., `"manager_missing"`)
+
+```lua copy
+local charId = 1
+local tree = SkillTree:GetTree('lumberjack')
+if not tree then return end
+
+local ok, reason = tree:UnlockNode(charId, 'speed')
+
+if ok then
+    print('Node "speed" unlocked successfully!')
+else
+    print(('Failed to unlock node "speed": %s'):format(reason or 'unknown_error'))
+end
+```
+
+## SkillTree:Respec(charId)
+
+Resets the character’s progress on this skill tree:
+
+* XP → `0`
+
+* Level → `1`
+
+* Points → `0`
+
+* Unlocked nodes → cleared
+
+* Required XP recalculated
+
+* charId: `number|string`
+
+**Return:**
+
+* `true` – Successful reset
+* `false` – If the tree does not exist for the character
+
+```lua copy
+local charId = 1
+local tree = SkillTree:GetTree('lumberjack')
+if not tree then return end
+
+local success = tree:Respec(charId)
+
+if success then
+    print('Skill tree respec successful for char:', charId)
+    local data = tree:GetTreeData(charId)
+    print(('Level: %d | XP: %d | Points: %d'):format(
+        data.level,
+        data.xp,
+        data.points
+    ))
+else
+    print('Failed to respec: no tree data for this character')
+end
+```

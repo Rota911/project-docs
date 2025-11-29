@@ -1,0 +1,35 @@
+# Events
+
+## SkillTree:Server:OnLevelUp
+Triggered when a character levels up in a skill tree.
+
+**Parameters:**
+
+* charId: `number|string` – Character identifier
+* treeId: `string` – Skill tree ID
+* newLevel: `number` – New level after leveling up
+
+```lua
+RegisterNetEvent("SkillTree:Server:OnLevelUp", function(charId, treeId, newLevel)
+     -- Your custom logic here
+end)
+```
+
+
+---
+
+## SkillTree:Server:OnNodeUnlocked
+
+Triggered when the character successfully unlocks a node.
+
+**Parameters:**
+
+* charId: `number|string` – Character identifier
+* treeId: `string` – Skill tree ID
+* nodeId: `string` – Node ID that was unlocked
+
+```lua
+RegisterNetEvent("SkillTree:Server:OnNodeUnlocked", function(charId, treeId, nodeId)
+     -- Your custom logic here
+end)
+```

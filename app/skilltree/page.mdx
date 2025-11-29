@@ -1,0 +1,16 @@
+---
+asIndexPage: true
+---
+
+## Installing
+
+Import the SkillTree module from your shared core:
+
+```lua copy
+AddEventHandler("Core:Shared:RegisterReady", function()
+     local ST = LS:ImportModule('SkillTree')
+     
+     if ST then
+          -- Use SkillTree func's here.
+     end
+end)
