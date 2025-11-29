@@ -4,6 +4,7 @@ export default {
      peds: "Peds",
      status: "Status",
      ui: "UI",
+     skilltree: "Skilltree",
 
      keybinds: "Keybinds",
      blips: "Blips",
