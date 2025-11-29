@@ -4,7 +4,7 @@
      "private": true,
      "scripts": {
           "dev": "next --turbopack",
-          "build": "next build",
+          "build": "postbuild && next build",
           "start": "next start",
           "lint": "eslint",
           "postbuild": "pagefind --site .next/server/app --output-path public/_pagefind"
@@ -14,6 +14,7 @@
           "nextra": "^4.6.0",
           "nextra-theme-docs": "^4.6.0",
           "pagefind": "^1.4.0",
+          "postbuild": "^2.1.0",
           "react": "19.2.0",
           "react-dom": "19.2.0"
      },
