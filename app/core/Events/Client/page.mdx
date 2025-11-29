@@ -1,0 +1,111 @@
+## Core:Client:PlayerJoined
+Esemény, amikor a játékos sikeresen betölt a szerverre.
+
+**Paraméterek**
+- characters: `table` – Karakterek adatai
+
+**Példa**
+```lua copy
+RegisterNetEvent('Core:Client:PlayerJoined', function(characters)
+    print(characters)
+end)
+```
+
+## Core:Client:CharacterLoaded
+Esemény, amikor a karakter sikeresen betöltődik.
+
+**Paraméterek**
+- characterData: `table` – Karakter adatai
+
+**Példa**
+```lua copy
+RegisterNetEvent('Core:Client:CharacterLoaded', function(characterData)
+    print(characterData.fullName)
+end)
+```
+
+## Core:Client:CharacterLogout
+Esemény, amikor a karakter kijelentkezik.
+
+**Paraméterek**
+- charId: `number` – Karakter azonosító
+
+**Példa**
+```lua copy
+RegisterNetEvent('Core:Client:CharacterLogout', function(charId)
+    print('Karakter kijelentkezett:', charId)
+end)
+```
+
+## Core:Client:CharacterDataChanged
+Esemény, amikor a karakter adatai megváltoznak.
+
+**Paraméterek**
+- key: `string` – Módosított adat kulcsa
+- value: `any` – Új érték
+
+**Példa**
+```lua copy
+RegisterNetEvent('Core:Client:CharacterDataChanged', function(key, value)
+    print(key, value)
+end)
+```
+
+## Core:Client:PlayerDataChanged
+Esemény, amikor a játékos adatai megváltoznak.
+
+**Paraméterek**
+- key: `string` – Módosított adat kulcsa
+- value: `any` – Új érték
+
+**Példa**
+```lua copy
+RegisterNetEvent('Core:Client:PlayerDataChanged', function(key, value)
+    print(key, value)
+end)
+```
+
+## Core:Client:CharacterCreated
+Esemény, amikor a játékos létrehoz egy új karaktert.
+
+**Paraméterek**
+- characterData: `table` – Új karakter adatai
+
+**Példa**
+```lua copy
+RegisterNetEvent('Core:Client:CharacterCreated', function(characterData)
+    print(characterData.fullName)
+end)
+```
+
+## Core:Client:CharacterGroupChanged
+Esemény, amikor a karakter csoporttagsága megváltozik.
+
+**Paraméterek**
+- group: `string` – Csoport azonosító
+- rank: `string?` – Új rang azonosító (nil = eltávolítva a csoportból)
+- groups: `table` – Karakter összes csoportja
+
+**Példa**
+```lua copy
+RegisterNetEvent('Core:Client:CharacterGroupChanged', function(group, rank, groups)
+    if rank then
+        print('Hozzáadva a(z) ' .. group .. ' csoporthoz mint ' .. rank)
+    else
+        print('Eltávolítva a(z) ' .. group .. ' csoportból')
+    end
+end)
+```
+
+## Routing:Client:NewRoute
+Esemény, amikor a játékos egy új routing bucketre lép.
+
+**Paraméterek**
+- route: `number` – Routing bucket azonosító
+
+**Példa**
+```lua copy
+RegisterNetEvent('Routing:Client:NewRoute', function(route)
+    print('Új routing bucket:', route)
+end)
+```

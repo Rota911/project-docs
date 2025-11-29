@@ -1,0 +1,185 @@
+---
+title: PlayerClass
+---
+
+## PlayerClass
+
+- source: `number` – A játékos forrásazonosítója
+- identifier: `string` – License azonosító, például: `98399a05dac2ccae820142f8af6804178b5f178a`
+- discord: `number` – Discord azonosító, például: `212704429323976706`
+- playerId: `number` – Játékos azonosító, például: `10001`
+- isLoggedIn: `boolean` – Be van-e jelentkezve karakterbe, vagy karakterválasztón van
+- adminGroup: `string` – Admin rangja, alapértelmezett: `user`
+- characters: `table` – A karakter azonosítókat tartalmazza
+- points: `number` – Prémium pontok száma
+- duty: `boolean` – Admin szolgálatban van-e
+
+## PlayerClass:Event
+Eseményt küld a kliensnek.
+
+**Paraméterek**
+- eventName: `string` – Az esemény neve
+- ...: `any` – További paraméterek, amelyeket az eseménynek átadunk
+
+```lua copy
+player:Event('Core:Client:Clipboard', 'Tevepata')
+player:Event('Core:Client:PlayerDataChanged', 'points', 100)
+```
+
+## PlayerClass:SetAsLoggedIn
+Beállítja a beléptetés státuszát.
+
+**Paraméterek**
+- state: `boolean` – Be van-e jelentkezve karakterbe
+
+**Visszatérési érték**
+- nincs
+
+```lua copy
+player:SetAsLoggedIn(true)
+```
+
+## PlayerClass:SetGroup
+Megváltoztatja az admin csoportot.
+
+**Paraméterek**
+- group: `string` – Új admin csoport (`moderator` | `admin` | `headadmin` | `dev` | `owner`)
+- temporary?: `boolean` – Ideiglenes, restartig tart
+
+**Visszatérési érték**
+- `boolean, string` – Sikeresség és üzenet
+
+1. példa: Csoport beállítása véglegesen
+```lua copy
+local success, msg = player:SetGroup('admin')
+print(success, msg)
+```
+
+2. példa: Csoport beállítása ideiglenesen
+```lua copy
+player:SetGroup('headadmin', true)
+```
+
+## PlayerClass:SetDuty
+Admin szolgálatba lépteti a játékost.
+
+**Paraméterek**
+- state?: `boolean` – Szolgálatba léptetés (`true`), vagy kiléptetés (`false`). Ha nincs megadva, átváltja az aktuális állapotot.
+
+**Visszatérési érték**
+- nincs
+
+1. példa: Szolgálatba léptetés
+```lua copy
+player:SetDuty(true)
+```
+
+2. példa: Kiléptetés szolgálatból
+```lua copy
+player:SetDuty(false)
+```
+
+3. példa: Állapot átváltása
+```lua copy
+player:SetDuty()
+```
+
+## PlayerClass:GetDuty
+Visszaadja, hogy a játékos admin szolgálatban van-e.
+
+**Visszatérési érték**
+- `boolean` – Szolgálatban van-e
+
+```lua copy
+local isDuty = player:GetDuty()
+print(isDuty)
+```
+## PlayerClass:GetGroup
+Visszaadja a játékos admin csoportját.
+
+**Visszatérési érték**
+- `string` – Admin csoport
+
+```lua copy
+local group = player:GetGroup()
+print(group)
+```
+## PlayerClass:GetPoints
+Visszaadja a játékos prémium pontjainak számát.
+
+**Visszatérési érték**
+- `number` – Prémium pontok száma
+
+```lua copy
+local points = player:GetPoints()
+print(points)
+```
+## PlayerClass:SetPoints
+Beállítja a játékos prémium pontjainak számát.
+
+**Paraméterek**
+- value: `number` – Új pont érték
+
+**Visszatérési érték**
+- nincs
+
+```lua copy
+player:SetPoints(100)
+```
+## PlayerClass:AddPoints
+Hozzáad pontokat a játékoshoz.
+
+**Paraméterek**
+- value: `number` – Hozzáadandó pontok száma
+
+**Visszatérési érték**
+- nincs
+
+```lua copy
+player:AddPoints(50)
+```
+## PlayerClass:RemovePoints
+Levon pontokat a játékostól.
+
+**Paraméterek**
+- value: `number` – Levonandó pontok száma
+
+**Visszatérési érték**
+- nincs
+
+```lua copy
+player:RemovePoints(25)
+```
+## PlayerClass:CreateCharacter
+Létrehoz egy új karaktert a játékoshoz.
+
+**Paraméterek**
+- characterData: `table` – Karakter adatok
+
+**Visszatérési érték**
+- `boolean, string` – Sikeresség és üzenet
+
+```lua copy
+local success, msg = player:CreateCharacter({
+	first_name = 'John',
+	last_name = 'Doe',
+	birth_date = '1990-01-01',
+	gender = 'male',
+	nationality = 'Hungarian',
+	pathType = 'civilian'
+})
+print(success, msg)
+```
+## PlayerClass:SetActiveCharacter
+Beállítja a játékos aktív karakterét.
+
+**Paraméterek**
+- characterId: `number` – Karakter azonosító
+
+**Visszatérési érték**
+- `boolean` – Sikeres beállítás
+
+```lua copy
+local success = player:SetActiveCharacter(42)
+print(success)
+```
