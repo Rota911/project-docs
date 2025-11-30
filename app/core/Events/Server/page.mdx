@@ -1,60 +1,93 @@
-## Core:Server:PlayerJoined
-Esemény, amikor a játékos sikeresen betölt a szerverre.
+---
+title: Server Events
+---
+
+# Server Events
+
+A Core Server oldali eseményei.
+
+## LS:Server:PlayerJoined
+Esemény, amikor a játékos sikeresen betölt a szerverre és létrejön a Player objektuma.
 
 **Paraméterek**
-- playerSrc: `number` – Játékos forrásazonosító
-- player: `player class` – Játékos objektum
+- `playerSrc: number` – Játékos forrásazonosító
+- `player: PlayerClass` – Játékos objektum
+
+**Megjegyzés**
+- Ekkor még nincs bejelentkezve karakterbe
+- A Player objektum már elérhető és használható
 
 **Példa**
 ```lua copy
-AddEventHandler('Core:Server:PlayerJoined', function(playerSrc, player)
-    print(playerSrc, player)
+AddEventHandler('LS:Server:PlayerJoined', function(playerSrc, player)
+    print('Játékos csatlakozott:', GetPlayerName(playerSrc))
+    print('Admin csoport:', player.adminGroup)
+    print('Karakterek száma:', #player.characters)
 end)
 ```
 
-## Core:Server:PlayerLeft
+## LS:Server:PlayerLeft
 Esemény, amikor a játékos lelép a szerverről.
 
 **Paraméterek**
-- playerSrc: `number` – Játékos forrásazonosító
-- reason: `string` – Kilépés oka
+- `playerSrc: number` – Játékos forrásazonosító
+- `reason: string` – Kilépés oka
+
+**Megjegyzés**
+- Ez az event a karakter mentése után fut le
+- A Player és Character objektumok már törlődtek
 
 **Példa**
 ```lua copy
-AddEventHandler('Core:Server:PlayerLeft', function(playerSrc, reason)
-    print(playerSrc, reason)
+AddEventHandler('LS:Server:PlayerLeft', function(playerSrc, reason)
+    print(GetPlayerName(playerSrc) .. ' lelépett. Ok:', reason)
 end)
 ```
 
-## Core:Server:CharacterLoaded
-Esemény, amikor a karakter sikeresen betöltődik.
+## LS:Server:CharacterLoaded
+Esemény, amikor a karakter sikeresen betöltődik és a Character objektum létrejön.
 
 **Paraméterek**
-- playerSrc: `number` – Játékos forrásazonosító
-- charId: `number` – Karakter azonosító
+- `playerSrc: number` – Játékos forrásazonosító
+- `charId: number` – Karakter azonosító
+
+**Megjegyzés**
+- Az event a `LS:Client:CharacterLoaded` event előtt fut le
+- Ekkor már elérhető a Character objektum `LS:GetCharacter()` segítségével
 
 **Példa**
 ```lua copy
-AddEventHandler('Core:Server:CharacterLoaded', function(playerSrc, charId)
-    print(playerSrc, charId)
+AddEventHandler('LS:Server:CharacterLoaded', function(playerSrc, charId)
+    local character = LS:GetCharacter(charId)
+    print('Karakter betöltött:', character.fullName)
+    print('Csoportok:', json.encode(character.groups))
 end)
 ```
 
-## Core:Server:CharacterLogout
+## LS:Server:CharacterLogout
 Esemény, amikor a karakter kijelentkezik.
 
 **Paraméterek**
-- playerSrc: `number` – Játékos forrásazonosító
-- charId: `number` – Karakter azonosító
+- `playerSrc: number` – Játékos forrásazonosító
+- `charId: number` – Karakter azonosító
+
+**Megjegyzés**
+- Az event a karakter mentése után fut le
+- A Character objektum már törlődött, ne próbáld lekérni
+- A Player objektum még elérhető
 
 **Példa**
 ```lua copy
-AddEventHandler('Core:Server:CharacterLogout', function(playerSrc, charId)
-    print(playerSrc, charId)
+AddEventHandler('LS:Server:CharacterLogout', function(playerSrc, charId)
+    print('Karakter kijelentkezett:', charId)
+    local player = LS:GetPlayer(playerSrc)
+    if player then
+        print('Játékos még online')
+    end
 end)
 ```
 
-## Core:Server:SetActiveCharacter
+## LS:Server:SetActiveCharacter
 Esemény, amikor a játékos kiválaszt egy karaktert.
 
 **Paraméterek**
@@ -62,12 +95,12 @@ Esemény, amikor a játékos kiválaszt egy karaktert.
 
 **Példa**
 ```lua copy
-RegisterNetEvent('Core:Server:SetActiveCharacter', function(characterId)
+RegisterNetEvent('LS:Server:SetActiveCharacter', function(characterId)
     print('Kiválasztott karakter:', characterId)
 end)
 ```
 
-## Core:Server:CharacterCreated
+## LS:Server:CharacterCreated
 Esemény, amikor a játékos létrehoz egy új karaktert.
 
 **Paraméterek**
@@ -76,12 +109,12 @@ Esemény, amikor a játékos létrehoz egy új karaktert.
 
 **Példa**
 ```lua copy
-AddEventHandler('Core:Server:CharacterCreated', function(playerSrc, characterData)
+AddEventHandler('LS:Server:CharacterCreated', function(playerSrc, characterData)
     print(playerSrc, characterData)
 end)
 ```
 
-## Core:Server:CharacterGroupChanged
+## LS:Server:CharacterGroupChanged
 Esemény, amikor egy karakter csoporttagsága megváltozik.
 
 **Paraméterek**
@@ -93,7 +126,7 @@ Esemény, amikor egy karakter csoporttagsága megváltozik.
 
 **Példa**
 ```lua copy
-AddEventHandler('Core:Server:CharacterGroupChanged', function(playerSrc, charId, group, rank, groups)
+AddEventHandler('LS:Server:CharacterGroupChanged', function(playerSrc, charId, group, rank, groups)
     if rank then
         print('Karakter #' .. charId .. ' hozzáadva a(z) ' .. group .. ' csoporthoz')
     else
@@ -102,7 +135,7 @@ AddEventHandler('Core:Server:CharacterGroupChanged', function(playerSrc, charId,
 end)
 ```
 
-## Core:Server:GroupCreated
+## LS:Server:GroupCreated
 Esemény, amikor egy új csoport létrejön.
 
 **Paraméterek**
@@ -111,12 +144,12 @@ Esemény, amikor egy új csoport létrejön.
 
 **Példa**
 ```lua copy
-AddEventHandler('Core:Server:GroupCreated', function(groupId, groupData)
+AddEventHandler('LS:Server:GroupCreated', function(groupId, groupData)
     print('Új csoport létrehozva:', groupId, groupData.label)
 end)
 ```
 
-## Core:Server:GroupRemoved
+## LS:Server:GroupRemoved
 Esemény, amikor egy csoport törlésre kerül.
 
 **Paraméterek**
@@ -124,7 +157,7 @@ Esemény, amikor egy csoport törlésre kerül.
 
 **Példa**
 ```lua copy
-AddEventHandler('Core:Server:GroupRemoved', function(groupId)
+AddEventHandler('LS:Server:GroupRemoved', function(groupId)
     print('Csoport törölve:', groupId)
 end)
 ```

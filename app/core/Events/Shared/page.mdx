@@ -1,4 +1,4 @@
-## Core:Shared:RegisterReady
+## LS:Shared:RegisterReady
 
 Esemény, amely akkor fut le, ha egy modul egy másik resource-ból regisztrálható.
 
@@ -7,12 +7,12 @@ Esemény, amely akkor fut le, ha egy modul egy másik resource-ból regisztrálh
 
 **Példa**
 ```lua copy
-AddEventHandler("Core:Shared:RegisterReady", function()
+AddEventHandler("LS:Shared:RegisterReady", function()
     LS:RegisterModule("Blips", Blips)
 end)
 ```
 
-## Core:Shared:Ready
+## LS:Shared:Ready
 
 Esemény, amely akkor fut le, ha a core modul teljesen betöltődött.
 
@@ -21,7 +21,7 @@ Esemény, amely akkor fut le, ha a core modul teljesen betöltődött.
 
 **Példa**
 ```lua copy
-AddEventHandler("Core:Shared:Ready", function()
+AddEventHandler("LS:Shared:Ready", function()
     LS:ImportDependencies("Damage", {
         "Logger",
     }, function(errors)

@@ -1,19 +1,28 @@
+---
+title: CharacterClass
+---
+
 ## CharacterClass
 
-- source: `number` - Játékos source
-- charId: `number` - Karakter azonosító, Pl: `42`
-- playerId: `number` - Játékos azonosító, Pl: `10001`
-- stateId: `string` - Állapot azonosító, Pl: `0OW2OX2`
-- firstName: `string` - Keresztnév
-- lastName: `string` - Vezetéknév
-- fullName: `string` - Teljes név
-- dateOfBirth: `string` - Születési dátum
-- nationality: `string` - Nemzetiség
-- gender: `string` - Nem
-- groups: `table` - Csoportok, amelyekhez tartozik
-- pathType: `string` - Kiválasztott életút
-- position: `vector4` - Jelenlegi pozíció (5 percenként frissül, valamint kilépéskor.)
-- statuses: `table` - Státuszok
+A `CharacterClass` egy karakter összes adatát és funkcióit kezeli. A karakter objektum akkor jön létre, amikor egy játékos bejelentkezik egy karakterbe.
+
+### Tulajdonságok
+
+- `source: number` – Játékos source ID
+- `charId: number` – Karakter azonosító (pl.: `42`)
+- `playerId: number` – Játékos azonosító (pl.: `10001`)
+- `stateId: number` – Állapot azonosító (pl.: `0OW2OX2`)
+- `firstName: string` – Keresztnév
+- `lastName: string` – Vezetéknév
+- `fullName: string` – Teljes név
+- `dateOfBirth: string` – Születési dátum (formátum: `YYYY-MM-DD`)
+- `nationality: string` – Nemzetiség
+- `gender: string` – Nem (`male` | `female`)
+- `groups: table` – Csoportok és rangok `{ [groupId] = rankId }`
+- `pathType: string` – Kiválasztott életút
+- `position: vector4` – Jelenlegi pozíció (automatikusan frissül és mentéskor tárolódik)
+- `statuses: table` – Karakter státuszok
+- `skills: table` – Karakter skillek
 
 ## CharacterClass:Event
 Eseményt küld a kliens számára.
@@ -23,20 +32,21 @@ Eseményt küld a kliens számára.
 - ...: `any` – További paraméterek, amelyeket az eseménynek átadunk
 
 ```lua copy
-character:Event('Core:Client:Clipboard', 'Tevepata')
+character:Event('LS:Client:Clipboard', 'Tevepata')
 ```
 
 ## CharacterClass:Save
 Elmenti a karakter adatait az adatbázisba.
 
-**Paraméterek**
-- logout?: `boolean` – Ha igaz, akkor a jelenlegi pozíciót menti, egyébként a tárolt pozíciót
-
 **Visszatérési érték**
 - `boolean` – `true` ha sikeres a mentés, `false` ha sikertelen
 
+**Megjegyzés**
+- Automatikusan menti a karakter aktuális pozícióját, státuszait, csoportjait és skilljeit
+- A metódus a `GetCoords()` hívásával frissíti a pozíciót mentés előtt
+
 ```lua copy
-local success = character:Save(true)
+local success = character:Save()
 if success then
     print('Karakter sikeresen mentve')
 else
@@ -45,13 +55,24 @@ end
 ```
 
 ## CharacterClass:Unload
-Kijelentkezteti a karaktert.
+Kijelentkezteti a karaktert és elmenti az adatait.
 
 **Paraméterek**
-- instant?: `boolean` – Ha igaz, azonnali kiléptetés callback nélkül
+- `instant?: boolean` – Ha `true`, azonnali kiléptetés callback és fade nélkül (alapértelmezett: `false`)
 
 **Visszatérési érték**
 - `boolean` – `true` ha sikeres a kiléptetés, `false` ha sikertelen
+
+**Működés**
+1. Kliens callback küldése (instant=false esetén)
+2. Fade out effect (instant=false esetén)
+3. Karakter state törlése
+4. Karakter koordináták frissítése
+5. Játékos teleportálása a loading képernyő lokációra
+6. Player objektum beléptetési státusz törlése
+7. Karakter adatok mentése
+8. Karakter objektum törlése
+9. Logout eventek triggerelése
 
 1. példa: Normál kiléptetés
 ```lua copy
@@ -61,9 +82,9 @@ if success then
 end
 ```
 
-2. példa: Azonnali kiléptetés
+2. példa: Azonnali kiléptetés (pl. kick esetén)
 ```lua copy
-character:Unload(true) -- Nincs callback, azonnal kilép
+character:Unload(true)
 ```
 
 ## CharacterClass:SetData
@@ -109,7 +130,14 @@ local position = character:GetData('position')
 A karaktert megadott koordinátákra teleportálja.
 
 **Paraméterek**
-- newCoords: `vector4|vector3|table` – Az új koordináták
+- `newCoords: vector4|vector3|table` – Az új koordináták
+- `noSync?: boolean` – Ha `true`, nem frissíti a tárolt pozíciót és nem küldi el kliensnek (alapértelmezett: `false`)
+
+**Támogatott formátumok**
+- `vector3(x, y, z)` – Heading nélkül
+- `vector4(x, y, z, heading)` – Heading-gel
+- `{ x, y, z, [heading] }` – Tábla indexekkel
+- `{ x = x, y = y, z = z, [heading = heading] }` – Tábla kulcsokkal
 
 1. példa: Teleportálás vector4-gyel
 ```lua copy
@@ -124,6 +152,11 @@ character:SetCoords(vector3(100.0, 200.0, 30.0))
 3. példa: Teleportálás tábla formátumban
 ```lua copy
 character:SetCoords({ x = 100.0, y = 200.0, z = 30.0, heading = 90.0 })
+```
+
+4. példa: Teleportálás szinkronizálás nélkül (ideiglenes)
+```lua copy
+character:SetCoords(vector4(100.0, 200.0, 30.0, 90.0), true)
 ```
 
 ## CharacterClass:GetCoords
