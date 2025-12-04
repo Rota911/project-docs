@@ -1,6 +1,7 @@
 export default {
      core: "Core",
      logger: "Logger",
+     audio: "Audio",
      peds: "Peds",
      status: "Status",
      ui: "UI",
