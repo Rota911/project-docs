@@ -1,0 +1,273 @@
+# Server Funkciók
+
+A server oldal felelős a globális populációs beállítások kezeléséért és az admin parancsokért.
+
+## Függőségek
+
+A server oldal importálja a következő modulokat:
+
+```lua
+LS:ImportDependencies('Density', {
+    'Logger',
+}, function(errors)
+    -- ...
+end)
+```
+
+**Modulok:**
+- `Logger`: Naplózási funkciókhoz
+
+---
+
+## Admin Parancsok
+
+### `/setpop`
+
+Globálisan beállítja a populációt az egész szerveren minden játékos számára.
+
+**Szükséges jogosultság:** `admin`
+
+**Paraméterek:**
+- `peds` (number): Gyalogosok sűrűsége (0.0 - 1.0)
+- `vehicles` (number): Járművek sűrűsége (0.0 - 1.0)
+- `randomVehicles` (number): Véletlenszerű járművek sűrűsége (0.0 - 1.0)
+- `parked` (number): Parkolt járművek sűrűsége (0.0 - 1.0)
+- `scenario` (number): Scenario sűrűség (0.0 - 1.0)
+
+**Használat:**
+```
+/setpop 0.5 0.6 0.4 0.7 0.5
+```
+
+**Művelet:**
+1. Validálja, hogy minden paraméter meg van-e adva
+2. Beállítja a `GlobalState.Population` értékét
+3. Naplózza a változást
+
+**Kód:**
+```lua
+LS:RegisterCommand('setpop', 'admin', function(source, args, rawCommand)
+    local peds = args.peds
+    local vehicles = args.vehicles
+    local randomVehicles = args.randomVehicles
+    local parked = args.parked
+    local scenario = args.scenario
+
+    if peds and vehicles and randomVehicles and parked and scenario then
+        GlobalState.Population = {
+            peds = peds,
+            vehicles = vehicles,
+            randomVehicles = randomVehicles,
+            parked = parked,
+            scenario = scenario
+        }
+
+        Logger:info('Density', 'A populáció beállítva: ' .. json.encode(GlobalState.Population))
+    end
+end, {
+    {
+        name = 'peds',
+        help = 'Pedek sűrűsége (0.0 - 1.0)',
+        type = 'number',
+    },
+    {
+        name = 'vehicles',
+        help = 'Járművek sűrűsége (0.0 - 1.0)',
+        type = 'number',
+    },
+    {
+        name = 'randomVehicles',
+        help = 'Véletlenszerű járművek sűrűsége (0.0 - 1.0)',
+        type = 'number',
+    },
+    {
+        name = 'parked',
+        help = 'Parkolt járművek sűrűsége (0.0 - 1.0)',
+        type = 'number',
+    },
+    {
+        name = 'scenario',
+        help = 'Scenario sűrűsége (0.0 - 1.0)',
+        type = 'number',
+    }
+}, 'Populáció beállítása a megadott értékekre (peds, vehicles, randomVehicles, parked, scenario)')
+```
+
+**Példa használat:**
+```
+# Alacsony populáció (éjszakai beállítás)
+/setpop 0.2 0.3 0.2 0.8 0.1
+
+# Közepes populáció
+/setpop 0.5 0.5 0.5 0.5 0.5
+
+# Magas populáció (csúcsidő)
+/setpop 0.9 0.9 0.8 0.2 0.9
+
+# Teljes kiürítés (eseményekhez)
+/setpop 0.0 0.0 0.0 0.0 0.0
+```
+
+---
+
+### `/resetpop`
+
+Visszaállítja a populációt az alapértelmezett (zóna és időalapú) beállításokra.
+
+**Szükséges jogosultság:** `admin`
+
+**Paraméterek:** Nincsenek
+
+**Használat:**
+```
+/resetpop
+```
+
+**Művelet:**
+1. Törli a `GlobalState.Population` értékét (beállítja `nil`-re)
+2. Naplózza a visszaállítást
+3. A client automatikusan visszavált a zóna/idő alapú beállításokra
+
+**Kód:**
+```lua
+LS:RegisterCommand('resetpop', 'admin', function(source, args, rawCommand)
+    GlobalState.Population = nil
+    Logger:info('Density', 'A populáció visszaállítva az alapértelmezett értékekre.')
+end, {}, 'Populáció visszaállítása az alapértelmezett értékekre')
+```
+
+---
+
+## GlobalState Kezelés
+
+### `GlobalState.Population`
+
+Ez a változó tárolja a globális populációs beállításokat, amelyek minden client-en érvényesek.
+
+**Struktúra:**
+```lua
+GlobalState.Population = {
+    peds = 0.5,
+    vehicles = 0.6,
+    randomVehicles = 0.4,
+    parked = 0.7,
+    scenario = 0.5
+}
+```
+
+**Működés:**
+- Ha a `GlobalState.Population` be van állítva, felülbírálja az összes zóna és időalapú beállítást
+- A client oldalon a `getCurrentZone()` függvény ezt ellenőrzi először
+- `nil` értékre állításával visszakapcsolódik az automatikus rendszer
+
+**Használati esetek:**
+- Szerver-szintű események (pl. fesztivál, tüntetés)
+- Teljesítmény optimalizálás stressz teszt során
+- Speciális játékmódok (pl. zombie apokalipszis = 0 NPC)
+- Fotózáshoz/videó készítéshez való környezet beállítás
+
+---
+
+## Események
+
+### `Core:Shared:Ready`
+
+Akkor aktiválódik, amikor a Core rendszer készen áll.
+
+**Művelet:**
+1. Importálja a szükséges függőségeket
+2. Regisztrálja az admin parancsokat
+
+---
+
+### `Density:Shared:DependencyUpdated`
+
+Akkor aktiválódik, amikor egy függőség frissül.
+
+**Művelet:**
+- Újra importálja a modulokat (pl. Logger)
+
+```lua
+AddEventHandler('Density:Shared:DependencyUpdated', importModules)
+```
+
+---
+
+## Naplózás
+
+A server oldal naplózza a következő eseményeket:
+
+### Populáció Beállítva
+
+```lua
+Logger:info('Density', 'A populáció beállítva: ' .. json.encode(GlobalState.Population))
+```
+
+**Példa kimenet:**
+```
+[INFO] [Density] A populáció beállítva: {"peds":0.5,"vehicles":0.6,"randomVehicles":0.4,"parked":0.7,"scenario":0.5}
+```
+
+### Populáció Visszaállítva
+
+```lua
+Logger:info('Density', 'A populáció visszaállítva az alapértelmezett értékekre.')
+```
+
+**Példa kimenet:**
+```
+[INFO] [Density] A populáció visszaállítva az alapértelmezett értékekre.
+```
+
+---
+
+## Tippek Adminoknak
+
+### Legjobb Gyakorlatok
+
+1. **Fokozatos Változtatás**: Ne ugorj hirtelen extrém értékekre, ez lag-et okozhat
+   ```
+   # Rossz
+   /setpop 0.0 0.0 0.0 0.0 0.0  # Hirtelen minden eltűnik
+   
+   # Jó
+   /setpop 0.5 0.5 0.5 0.5 0.5  # Először csökkentsd felére
+   /setpop 0.2 0.2 0.2 0.5 0.2  # Majd tovább
+   ```
+
+2. **Parkolt Járművek**: Magas érték a parkolt járműveknél atmoszférát teremt kiürített városban
+   ```
+   /setpop 0.1 0.1 0.1 0.9 0.1  # Kevés NPC, de sok parkolt autó
+   ```
+
+3. **Események**: Események előtt csökkentsd a populációt a teljesítmény javítása érdekében
+   ```
+   /setpop 0.3 0.3 0.2 0.4 0.2  # Esemény beállítások
+   ```
+
+4. **Visszaállítás**: Mindig állítsd vissza az alapértelmezettre esemény után
+   ```
+   /resetpop
+   ```
+
+### Előre Definiált Profilok
+
+```lua
+-- Nappal - Normál
+/setpop 0.5 0.5 0.5 0.5 0.5
+
+-- Éjszaka - Csendes
+/setpop 0.2 0.3 0.2 0.8 0.1
+
+-- Csúcsidő - Forgalom
+/setpop 0.9 0.9 0.8 0.1 0.9
+
+-- Esemény - Alacsony
+/setpop 0.3 0.3 0.2 0.4 0.2
+
+-- Kiürített - Nincs NPC
+/setpop 0.0 0.0 0.0 0.0 0.0
+
+-- Fotózás - Parkolt autók, kevés NPC
+/setpop 0.1 0.0 0.0 0.9 0.0
+```
