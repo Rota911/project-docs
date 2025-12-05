@@ -1,0 +1,58 @@
+# Client
+> Ami Hangot játszik le az mind vissza adja a soundId-t de azt törli amint lejárt a hang de meg tudod állítani a Native-okkal!
+## Használata
+
+```lua copy
+AddEventHandler("Core:Shared:RegisterReady", function()
+     local Audio = LS:ImportModule('Audio')
+     
+     if Audio then
+          local soundId = Audio.PlaySoundFromPed('buckle')
+          print('buckle soundId', soundId)
+     end
+end)
+```
+De ezt gondolom máshogy is lehet!
+
+## paraméter 
+
+- audioname: `string` – A hang neve
+
+## PlaySoundFromPed(audioName)
+
+```lua copy
+    local seatbeltId = Audio.PlaySoundFromPed('buckle')
+    print('buckle soundId', seatbeltId)
+```
+
+## PlaySoundFromCoord(audioName, coord)
+
+## Paraméter
+
+- audioname: `string` – A hang neve
+- coord: `vector3` - A kordináta
+
+```lua copy
+    local coordedAudioId = Audio.PlaySoundFromCoord('doorbell', vector3(1.23, 1.23, 1.23))
+    print('doorbell playing at', vector3(1.23, 1.23, 1.23), 'with soundId', coordedAudioId)
+```
+
+## PlayAudio(audioName)
+> Kizárólag lokális tehát senki nem halja! (A hang nem 3D pozicionálható!)
+## paraméter
+
+- audioname: `string` – A hang neve
+
+```lua copy
+    local soundId = Audio.PlayAudio('phone_unavailable')ű
+    print(soundId)
+```
+
+## StopAudio(soundId)
+## Paraméter
+- soundID: `number` - A soundID amit bármelyik funkció vissza dob!
+
+```lua copy
+    local phoneSoundId = Audio.PlaySoundFromPed('phone_ring2')
+    Audio.StopAudio(phoneSoundId)
+```
