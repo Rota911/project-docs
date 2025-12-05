@@ -1,0 +1,514 @@
+# Konfiguráció
+
+A `shared/main.lua` fájl tartalmazza a Density rendszer összes konfigurációs beállítását.
+
+## Konfiguráció Struktúra
+
+```lua
+return {
+    Default = { ... },
+    Relationships = { ... },
+    Zones = { ... },
+    Scenarios = { ... },
+    ScenarioBlockedAreas = { ... }
+}
+```
+
+---
+
+## Default - Alapértelmezett Beállítások
+
+Az alapértelmezett időalapú populációs beállítások, amelyek akkor aktiválódnak, ha nincs specifikus zóna konfiguráció vagy globális felülbírálás.
+
+### Struktúra
+
+```lua
+Default = {
+    {
+        from = 0,      -- Kezdő óra (0-24)
+        to = 5,        -- Befejező óra (0-24)
+        data = {       -- Populációs beállítások
+            peds = 0.3,
+            vehicles = 0.2,
+            randomVehicles = 0.1,
+            parked = 0.8,
+            scenario = 0.1,
+        }
+    },
+    -- További időszakok...
+}
+```
+
+### Alapértelmezett Időbeosztás
+
+| Időszak | Leírás | Peds | Vehicles | Random | Parked | Scenario |
+|---------|--------|------|----------|--------|--------|----------|
+| 0-5     | Éjszaka (Hajnal) | 0.3 | 0.2 | 0.1 | 0.8 | 0.1 |
+| 5-9     | Reggel (Csúcsidő) | 0.8 | 0.9 | 0.8 | 0.1 | 0.9 |
+| 9-16    | Délelőtt/Délután | 0.3 | 0.2 | 0.1 | 0.8 | 0.1 |
+| 16-20   | Délután (Csúcsidő) | 0.8 | 0.9 | 0.8 | 0.1 | 0.9 |
+| 20-24   | Este | 0.8 | 0.4 | 0.5 | 0.6 | 0.9 |
+
+### Paraméterek Magyarázata
+
+- **peds**: Gyalogosok sűrűsége (0.0 = nincs, 1.0 = maximum)
+- **vehicles**: Közlekedő járművek sűrűsége
+- **randomVehicles**: Véletlenszerűen megjelenő járművek sűrűsége
+- **parked**: Parkolt/álló járművek sűrűsége
+- **scenario**: NPC animációk és viselkedések gyakorisága
+
+### Példa: Egyedi Időbeosztás
+
+```lua
+Default = {
+    {
+        from = 0,
+        to = 6,
+        data = {
+            peds = 0.1,              -- Nagyon kevés gyalogos éjszaka
+            vehicles = 0.1,           -- Nagyon kevés jármű
+            randomVehicles = 0.05,    -- Minimális véletlen járművek
+            parked = 0.9,             -- Sok parkolt autó
+            scenario = 0.05,          -- Minimális NPC aktivitás
+        }
+    },
+    {
+        from = 6,
+        to = 10,
+        data = {
+            peds = 1.0,               -- Maximum gyalogosok reggel
+            vehicles = 1.0,           -- Maximum járművek
+            randomVehicles = 0.9,     -- Sok véletlen jármű
+            parked = 0.0,             -- Kevés parkolt autó
+            scenario = 1.0,           -- Maximum NPC aktivitás
+        }
+    },
+    -- stb...
+}
+```
+
+---
+
+## Relationships - NPC Kapcsolatok
+
+Meghatározza az NPC csoportok közötti kapcsolatokat.
+
+### Kapcsolat Típusok
+
+| Érték | Típus | Leírás |
+|-------|-------|--------|
+| 0 | Companion | Társ - együttműködnek, segítik egymást |
+| 1 | Respect | Tisztelet - semleges, de pozitív viszony |
+| 2 | Like | Tetszik - barátságos viszony |
+| 3 | Neutral | Semleges - nincs különleges viszony |
+| 4 | Dislike | Nem tetszik - elkerülik egymást |
+| 5 | Hate | Gyűlölet - ellenségesek, támadhatnak |
+| 255 | Pedestrians | Gyalogosok - általános civil NPC-k |
+
+### Alapértelmezett Beállítások
+
+```lua
+Relationships = {
+    { group1 = "AMBIENT_GANG_HILLBILLY", group2 = "PLAYER", relationship = 1 },
+    { group1 = "AMBIENT_GANG_BALLAS", group2 = "PLAYER", relationship = 1 },
+    { group1 = "AMBIENT_GANG_MEXICAN", group2 = "PLAYER", relationship = 1 },
+    { group1 = "AMBIENT_GANG_FAMILY", group2 = "PLAYER", relationship = 1 },
+    { group1 = "AMBIENT_GANG_MARABUNTE", group2 = "PLAYER", relationship = 1 },
+    { group1 = "AMBIENT_GANG_SALVA", group2 = "PLAYER", relationship = 1 },
+    { group1 = "AMBIENT_GANG_LOST", group2 = "PLAYER", relationship = 1 },
+    { group1 = "GANG_1", group2 = "PLAYER", relationship = 1 },
+    { group1 = "GANG_2", group2 = "PLAYER", relationship = 1 },
+    { group1 = "GANG_9", group2 = "PLAYER", relationship = 1 },
+    { group1 = "GANG_10", group2 = "PLAYER", relationship = 1 },
+    { group1 = "FIREMAN", group2 = "PLAYER", relationship = 1 },
+    { group1 = "MEDIC", group2 = "PLAYER", relationship = 1 },
+    { group1 = "COP", group2 = "PLAYER", relationship = 1 },
+    { group1 = "PRISONER", group2 = "PLAYER", relationship = 1 },
+}
+```
+
+**Megjegyzés:** Alapértelmezetten minden csoport `Respect` (1) kapcsolatban van a játékossal, így nem támadnak automatikusan.
+
+### Példa: Egyedi Kapcsolatok
+
+```lua
+Relationships = {
+    -- Bandák gyűlölik egymást
+    { group1 = "AMBIENT_GANG_BALLAS", group2 = "AMBIENT_GANG_FAMILY", relationship = 5 },
+    
+    -- Rendőrök és orvosok együttműködnek
+    { group1 = "COP", group2 = "MEDIC", relationship = 0 },
+    
+    -- Foglyok gyűlölik a rendőröket
+    { group1 = "PRISONER", group2 = "COP", relationship = 5 },
+    
+    -- Játékos semleges civil NPC-kkel
+    { group1 = "PLAYER", group2 = "CIVMALE", relationship = 3 },
+}
+```
+
+---
+
+## Zones - Zóna Specifikus Beállítások
+
+Meghatározott GTA V zónákhoz egyedi populációs beállítások.
+
+### Struktúra
+
+```lua
+Zones = {
+    ['ZONA_NEV'] = {
+        label = 'Zóna Megjelenítendő Neve',
+        population = {
+            {
+                from = 0,
+                to = 24,
+                data = {
+                    peds = 0.5,
+                    vehicles = 0.5,
+                    randomVehicles = 0.5,
+                    parked = 0.5,
+                    scenario = 0.5,
+                }
+            }
+        }
+    }
+}
+```
+
+### Alapértelmezett Zónák
+
+```lua
+Zones = {
+    ['ALTA'] = {
+        label = 'Alta',
+        population = {
+            {
+                from = 0,
+                to = 24,
+                data = {
+                    peds = 0.5,
+                    vehicles = 0.5,
+                    randomVehicles = 0.5,
+                    parked = 0.5,
+                    scenario = 0.5,
+                }
+            }
+        }
+    }
+}
+```
+
+### GTA V Zóna Nevek
+
+Néhány gyakori zóna név:
+- `ALTA` - Alta (Downtown)
+- `ALAMO` - Alamo Sea
+- `AIRP` - Los Santos International Airport
+- `BEACH` - Vespucci Beach
+- `VINEWOOD` - Vinewood
+- `SANDY` - Sandy Shores
+- `PALETO` - Paleto Bay
+- `PALHIGH` - Paleto Forest
+- `DESRT` - Grand Senora Desert
+
+[Teljes zóna lista](https://wiki.rage.mp/index.php?title=Zones_and_Locations)
+
+### Példa: Több Zóna Konfiguráció
+
+```lua
+Zones = {
+    -- Repülőtér - Alacsony gyalogos, sok jármű
+    ['AIRP'] = {
+        label = 'Airport',
+        population = {
+            {
+                from = 0,
+                to = 24,
+                data = {
+                    peds = 0.2,
+                    vehicles = 0.8,
+                    randomVehicles = 0.7,
+                    parked = 0.9,
+                    scenario = 0.3,
+                }
+            }
+        }
+    },
+    
+    -- Vinewood - Magas gyalogos forgalom nappal
+    ['VINEWOOD'] = {
+        label = 'Vinewood',
+        population = {
+            {
+                from = 0,
+                to = 6,
+                data = {
+                    peds = 0.1,
+                    vehicles = 0.2,
+                    randomVehicles = 0.1,
+                    parked = 0.9,
+                    scenario = 0.1,
+                }
+            },
+            {
+                from = 6,
+                to = 22,
+                data = {
+                    peds = 0.9,
+                    vehicles = 0.7,
+                    randomVehicles = 0.6,
+                    parked = 0.3,
+                    scenario = 0.9,
+                }
+            },
+            {
+                from = 22,
+                to = 24,
+                data = {
+                    peds = 0.5,
+                    vehicles = 0.4,
+                    randomVehicles = 0.3,
+                    parked = 0.7,
+                    scenario = 0.5,
+                }
+            }
+        }
+    },
+    
+    -- Sivatag - Minimális populáció
+    ['DESRT'] = {
+        label = 'Desert',
+        population = {
+            {
+                from = 0,
+                to = 24,
+                data = {
+                    peds = 0.0,
+                    vehicles = 0.1,
+                    randomVehicles = 0.1,
+                    parked = 0.0,
+                    scenario = 0.0,
+                }
+            }
+        }
+    }
+}
+```
+
+---
+
+## Scenarios - Letiltott Scenario-k
+
+Meghatározza, mely NPC viselkedések legyenek letiltva.
+
+### Alapértelmezett Letiltott Scenario-k
+
+```lua
+Scenarios = {
+    -- Állatok
+    "WORLD_MOUNTAIN_LION_REST",
+    "WORLD_MOUNTAIN_LION_WANDER",
+    
+    -- Rendőrség
+    "WORLD_VEHICLE_POLICE_BIKE",
+    "WORLD_VEHICLE_POLICE_CAR",
+    "WORLD_VEHICLE_POLICE_NEXT_TO_CAR",
+    "WORLD_VEHICLE_POLICE",
+    
+    -- Mentők
+    "WORLD_VEHICLE_AMBULANCE",
+    "WORLD_VEHICLE_FIRE_TRUCK",
+    
+    -- Katonai
+    "WORLD_VEHICLE_MILITARY_PLANES_BIG",
+    "WORLD_VEHICLE_MILITARY_PLANES_SMALL",
+    
+    -- És sok más...
+}
+```
+
+### Kategóriák
+
+1. **Állatok**: Hegyi oroszlán és más vadállatok
+2. **Rendőrség**: Rendőrautók, motorok, őrjáratok
+3. **Mentők**: Mentőautók, tűzoltók
+4. **Katonai**: Katonai járművek és repülők
+5. **Bandák**: Banda specifikus scenario-k
+6. **Közlekedés**: Bizonyos jármű típusok
+7. **Civilek**: Specifikus civil viselkedések
+
+### Példa: Egyedi Scenario Lista
+
+```lua
+Scenarios = {
+    -- Csak rendőrség letiltása
+    "WORLD_VEHICLE_POLICE_BIKE",
+    "WORLD_VEHICLE_POLICE_CAR",
+    "WORLD_VEHICLE_POLICE_NEXT_TO_CAR",
+    "WORLD_VEHICLE_POLICE",
+    
+    -- Csak katonai letiltása
+    "WORLD_VEHICLE_MILITARY_PLANES_BIG",
+    "WORLD_VEHICLE_MILITARY_PLANES_SMALL",
+}
+```
+
+[Teljes Scenario Lista](https://github.com/DurtyFree/gta-v-data-dumps/blob/master/scenariosCompact.json)
+
+---
+
+## ScenarioBlockedAreas - Blokolt Területek
+
+Meghatározott területeken teljesen letiltja a populációt és scenario-kat.
+
+### Struktúra
+
+```lua
+ScenarioBlockedAreas = {
+    {
+        centerPoint = vector3(x, y, z),  -- Terület középpontja
+        radiusSize = 180.0,               -- Sugár méterben (opcionális, alapértelmezett: 180.0)
+    }
+}
+```
+
+### Alapértelmezett Blokolt Területek
+
+```lua
+ScenarioBlockedAreas = {
+    { -- Bank truck - Bay City
+        centerPoint = vector3(-1324.7, -800.07, 17.71),
+        radiusSize = 180.0,
+    },
+    { -- Bank truck - San Andreas
+        centerPoint = vector3(-45.6, -762.92, 32.93),
+        radiusSize = 180.0,
+    },
+    { -- Bank truck - Boulevard Del Perro
+        centerPoint = vector3(-1191.12, -317.3, 37.86),
+        radiusSize = 180.0,
+    },
+    { -- Repülőtér helikopter leszállók
+        centerPoint = vector3(-1148.49, -2863.15, 13.96),
+        radiusSize = 180.0
+    },
+    { -- Luxury Auto autókereskedés
+        centerPoint = vector3(-792.0819, -219.9751, 37.1612),
+        radiusSize = 80.0
+    }
+}
+```
+
+### Művelet
+
+Minden blokolt területen a következő történik:
+1. **AddScenarioBlockingArea**: Letiltja a scenario-kat
+2. **AddPopMultiplierArea**: Beállítja a populációs szorzót 0.0-ra
+3. **SetPedNonCreationArea**: Megakadályozza új NPC-k spawn-olását
+
+### Példa: Egyedi Blokolt Területek
+
+```lua
+ScenarioBlockedAreas = {
+    { -- Bázis központ
+        centerPoint = vector3(100.0, 200.0, 20.0),
+        radiusSize = 250.0,  -- Nagy terület
+    },
+    { -- Kis esemény terület
+        centerPoint = vector3(-500.0, -300.0, 35.0),
+        radiusSize = 50.0,  -- Kis terület
+    },
+    { -- Autóverseny pálya
+        centerPoint = vector3(1000.0, -2000.0, 30.0),
+        radiusSize = 500.0,  -- Nagyon nagy terület
+    }
+}
+```
+
+### Tippek
+
+- **Bank rablásokhoz**: Használj 150-200 méteres sugarat
+- **Kis üzletekhez**: 50-80 méter elegendő
+- **Nagy eseményekhez**: 300-500 méter lehet szükséges
+- **Autókereskedésekhez**: 80-100 méter ajánlott
+
+---
+
+## Teljes Konfigurációs Példa
+
+```lua
+return {
+    Default = {
+        {
+            from = 0,
+            to = 6,
+            data = {
+                peds = 0.1,
+                vehicles = 0.1,
+                randomVehicles = 0.05,
+                parked = 0.9,
+                scenario = 0.05,
+            }
+        },
+        {
+            from = 6,
+            to = 18,
+            data = {
+                peds = 0.7,
+                vehicles = 0.8,
+                randomVehicles = 0.6,
+                parked = 0.3,
+                scenario = 0.7,
+            }
+        },
+        {
+            from = 18,
+            to = 24,
+            data = {
+                peds = 0.5,
+                vehicles = 0.5,
+                randomVehicles = 0.4,
+                parked = 0.6,
+                scenario = 0.5,
+            }
+        }
+    },
+
+    Relationships = {
+        { group1 = "COP", group2 = "PLAYER", relationship = 1 },
+        { group1 = "MEDIC", group2 = "PLAYER", relationship = 0 },
+    },
+
+    Zones = {
+        ['AIRP'] = {
+            label = 'Airport',
+            population = {
+                {
+                    from = 0,
+                    to = 24,
+                    data = {
+                        peds = 0.3,
+                        vehicles = 0.8,
+                        randomVehicles = 0.7,
+                        parked = 0.9,
+                        scenario = 0.4,
+                    }
+                }
+            }
+        }
+    },
+
+    Scenarios = {
+        "WORLD_VEHICLE_POLICE_CAR",
+        "WORLD_VEHICLE_AMBULANCE",
+    },
+
+    ScenarioBlockedAreas = {
+        {
+            centerPoint = vector3(0.0, 0.0, 0.0),
+            radiusSize = 200.0,
+        }
+    }
+}
+```

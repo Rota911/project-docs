@@ -1,11 +1,20 @@
-## LS:GetPlayerData()
+---
+title: Client Functions
+---
+
+# Client Functions
+
+A Core Client oldalon elérhető főbb funkciói.
+
+## LS:GetPlayerData
 Visszaadja a játékos adatait.
 
 **Visszatérési érték**
 - `table` – Játékos adatok
-	- adminGroup: `string` – Admin csoport
-	- playerId: `number` – Játékos azonosító
-	- points: `number` – Prémium pontok száma
+	- `adminGroup: string` – Admin csoport
+	- `playerId: number` – Játékos azonosító
+	- `points: number` – Prémium pontok száma
+	- `duty: boolean` – Szolgálatban van-e
 
 **Példa**
 ```lua copy
@@ -15,22 +24,25 @@ print(playerData.playerId)
 print(playerData.points)
 ```
 
-## LS:GetCharacterData()
+## LS:GetCharacterData
 Visszaadja a karakter adatait.
 
 **Visszatérési érték**
 - `table` – Karakter adatok
-	- charId: `number` – Karakter azonosító
-	- dateOfBirth: `string` – Születési dátum
-	- firstName: `string` – Keresztnév
-	- fullName: `string` – Teljes név
-	- gender: `string` – Nem
-	- lastName: `string` – Vezetéknév
-	- nationality: `string` – Nemzetiség
-	- pathType: `string` – Életút
-	- playerId: `number` – Játékos azonosító
-	- stateId: `string` – Állapot azonosító
-	- statuses: `table` – Státuszok
+	- `charId: number` – Karakter azonosító
+	- `playerId: number` – Játékos azonosító
+	- `stateId: number` – Állapot azonosító
+	- `firstName: string` – Keresztnév
+	- `lastName: string` – Vezetéknév
+	- `fullName: string` – Teljes név
+	- `dateOfBirth: string` – Születési dátum
+	- `nationality: string` – Nemzetiség
+	- `gender: string` – Nem
+	- `pathType: string` – Életút
+	- `position: vector4` – Pozíció
+	- `groups: table` – Csoportok
+	- `statuses: table` – Státuszok
+	- `skills: table` – Skillek
 
 **Példa**
 ```lua copy
@@ -38,4 +50,246 @@ local characterData = LS:GetCharacterData()
 print(characterData.fullName)
 print(characterData.charId)
 print(characterData.nationality)
+```
+
+## LS.Callback
+Server callback hívása kliens oldalról.
+
+**Paraméterek**
+- `event: string` – Callback esemény neve
+- `delay?: number|false` – Késleltetés ms-ban, amely alatt nem hívható újra az event (alapértelmezett: nincs)
+- `cb?: function` – Callback függvény a válasz kezelésére
+- `...` – További paraméterek, amelyeket átadunk a szervernek
+
+**Visszatérési érték**
+- `...` – A szerver által visszaadott értékek (ha nincs callback függvény megadva)
+
+**Példa 1:** Callback függvénnyel
+```lua copy
+LS.Callback('myresource:getPlayerMoney', false, function(money)
+    print('Pénz:', money)
+end)
+```
+
+**Példa 2:** Késleltetéssel (5 másodperc)
+```lua copy
+LS.Callback('myresource:getData', 5000, function(data)
+    print('Adat:', data)
+end, 'param1', 'param2')
+```
+
+## LS.Callback:Await
+Server callback hívása és a válaszra várakozás (szinkron).
+
+**Paraméterek**
+- `event: string` – Callback esemény neve
+- `delay?: number|false` – Késleltetés ms-ban
+- `...` – További paraméterek
+
+**Visszatérési érték**
+- `...` – A szerver által visszaadott értékek
+
+**Megjegyzés**
+- Blokkolja a szálat, amíg a szerver nem válaszol
+- Használd akkor, ha szükséged van a visszatérési értékre azonnal
+
+**Példa**
+```lua copy
+local money = LS.Callback:Await('myresource:getPlayerMoney')
+print('Pénz:', money)
+
+local data1, data2 = LS.Callback:Await('myresource:getMultipleData', false, 'param')
+print(data1, data2)
+```
+
+## LS.Callback:Register
+Callback regisztrálása, amit a szerver hívhat.
+
+**Paraméterek**
+- `name: string` – Callback neve
+- `cb: function` – Callback függvény
+
+**Megjegyzés**
+- A függvény visszatérési értéke kerül elküldésre a szervernek
+
+**Példa**
+```lua copy
+LS.Callback:Register('myresource:getClientData', function(arg1, arg2)
+    print('Szerver kérte az adatokat:', arg1, arg2)
+    return LocalPlayer.state.someData
+end)
+```
+
+## LS:RequestAnimDict
+Animáció dictionary betöltése. Thread-ből hívva várakozik a betöltésre.
+
+**Paraméterek**
+- `animDict: string` – Animáció dictionary neve
+- `timeout?: number` – Timeout milliszekundumban (alapértelmezett: 10000)
+
+**Visszatérési érték**
+- `string` – Az betöltött animDict neve
+
+**Példa**
+```lua copy
+local animDict = LS:RequestAnimDict('anim@heists@box_carry@')
+TaskPlayAnim(PlayerPedId(), animDict, 'idle', 8.0, -8.0, -1, 50, 0, false, false, false)
+```
+
+## LS:RequestAnimSet
+Animáció clipset betöltése. Thread-ből hívva várakozik a betöltésre.
+
+**Paraméterek**
+- `animSet: string` – Animáció clipset neve
+- `timeout?: number` – Timeout milliszekundumban (alapértelmezett: 10000)
+
+**Visszatérési érték**
+- `string` – Az betöltött animSet neve
+
+**Példa**
+```lua copy
+local animSet = LS:RequestAnimSet('move_m@drunk@slightlydrunk')
+SetPedMovementClipset(PlayerPedId(), animSet, 1.0)
+```
+
+## LS:RequestModel
+Model betöltése. Thread-ből hívva várakozik a betöltésre.
+
+**Paraméterek**
+- `model: number|string` – Model hash vagy név
+- `timeout?: number` – Timeout milliszekundumban (alapértelmezett: 10000)
+
+**Visszatérési érték**
+- `number` – Az betöltött model hash
+
+**Példa**
+```lua copy
+local model = LS:RequestModel('adder')
+local vehicle = CreateVehicle(model, coords.x, coords.y, coords.z, heading, true, false)
+SetModelAsNoLongerNeeded(model)
+```
+
+## LS:RequestAudioBank
+Audio bank betöltése.
+
+**Paraméterek**
+- `audioBank: string` – Audio bank neve
+- `timeout?: number` – Timeout milliszekundumban (alapértelmezett: 30000)
+
+**Visszatérési érték**
+- `string` – Az betöltött audioBank neve
+
+**Példa**
+```lua copy
+local audioBank = LS:RequestAudioBank('DLC_HEIST_FLEECA_SOUNDSET')
+PlaySoundFrontend(-1, 'DRILL', audioBank, true)
+```
+
+## LS:RequestNamedPtfxAsset
+Particle effect asset betöltése. Thread-ből hívva várakozik a betöltésre.
+
+**Paraméterek**
+- `ptFxName: string` – Particle effect neve
+- `timeout?: number` – Timeout milliszekundumban (alapértelmezett: 10000)
+
+**Visszatérési érték**
+- `string` – Az betöltött ptFxName
+
+**Példa**
+```lua copy
+local ptfx = LS:RequestNamedPtfxAsset('core')
+UseParticleFxAssetNextCall(ptfx)
+StartParticleFxNonLoopedAtCoord('exp_grd_bzgas_smoke', coords.x, coords.y, coords.z, 0.0, 0.0, 0.0, 1.0, false, false, false)
+```
+
+## LS:RequestScaleformMovie
+Scaleform movie betöltése. Thread-ből hívva várakozik a betöltésre.
+
+**Paraméterek**
+- `scaleformName: string` – Scaleform movie neve
+- `timeout?: number` – Timeout milliszekundumban (alapértelmezett: 1000)
+
+**Visszatérési érték**
+- `number?` – A betöltött scaleform handle
+
+**Példa**
+```lua copy
+local scaleform = LS:RequestScaleformMovie('MP_BIG_MESSAGE_FREEMODE')
+-- Scaleform használata...
+SetScaleformMovieAsNoLongerNeeded(scaleform)
+```
+
+## LS:RequestStreamedTextureDict
+Texture dictionary betöltése. Thread-ből hívva várakozik a betöltésre.
+
+**Paraméterek**
+- `textureDict: string` – Texture dictionary neve
+- `timeout?: number` – Timeout milliszekundumban (alapértelmezett: 10000)
+
+**Visszatérési érték**
+- `string` – Az betöltött textureDict neve
+
+**Példa**
+```lua copy
+local txd = LS:RequestStreamedTextureDict('helicopterhud')
+-- Használat...
+SetStreamedTextureDictAsNoLongerNeeded(txd)
+```
+
+## LS:RequestWeaponAsset
+Fegyver asset betöltése. Thread-ből hívva várakozik a betöltésre.
+
+**Paraméterek**
+- `weaponType: string|number` – Fegyver hash vagy név
+- `timeout?: number` – Timeout milliszekundumban (alapértelmezett: 10000)
+- `weaponResourceFlags?: number` – Resource flags (alapértelmezett: 31 = összes animáció)
+  - `1` – WRF_REQUEST_BASE_ANIMS
+  - `2` – WRF_REQUEST_COVER_ANIMS
+  - `4` – WRF_REQUEST_MELEE_ANIMS
+  - `8` – WRF_REQUEST_MOTION_ANIMS
+  - `16` – WRF_REQUEST_STEALTH_ANIMS
+  - `32` – WRF_REQUEST_ALL_MOVEMENT_VARIATION_ANIMS
+  - `31` – WRF_REQUEST_ALL_ANIMS
+- `extraWeaponComponentFlags?: number` – Extra komponens flags (alapértelmezett: 0)
+  - `0` – WEAPON_COMPONENT_NONE
+  - `1` – WEAPON_COMPONENT_FLASH
+  - `2` – WEAPON_COMPONENT_SCOPE
+  - `4` – WEAPON_COMPONENT_SUPP
+  - `8` – WEAPON_COMPONENT_SCLIP2
+  - `16` – WEAPON_COMPONENT_GRIP
+
+**Visszatérési érték**
+- `string|number` – Az betöltött weaponType
+
+**Példa**
+```lua copy
+local weapon = LS:RequestWeaponAsset('WEAPON_PISTOL')
+GiveWeaponToPed(PlayerPedId(), weapon, 100, false, true)
+```
+
+## LS:WaitFor
+Várakozás egy feltétel teljesüléséig (callback nem-nil visszatérési értékére).
+
+**Paraméterek**
+- `cb: function` – Callback függvény, amely a várt értéket adja vissza
+- `errMessage?: string` – Hibaüzenet timeout esetén
+- `timeout?: number|false` – Timeout ms-ban (alapértelmezett: 1000, `false` = nincs timeout)
+
+**Visszatérési érték**
+- A callback első nem-nil visszatérési értéke
+
+**Megjegyzés**
+- Async függvény, blokkolja a szálat
+- Hibát dob, ha lejár a timeout
+
+**Példa**
+```lua copy
+local entity = LS:WaitFor(function()
+    local ped = PlayerPedId()
+    if DoesEntityExist(ped) then
+        return ped
+    end
+end, 'Ped nem található', 5000)
+
+print('Ped ID:', entity)
 ```

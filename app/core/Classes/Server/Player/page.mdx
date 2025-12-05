@@ -4,15 +4,19 @@ title: PlayerClass
 
 ## PlayerClass
 
-- source: `number` – A játékos forrásazonosítója
-- identifier: `string` – License azonosító, például: `98399a05dac2ccae820142f8af6804178b5f178a`
-- discord: `number` – Discord azonosító, például: `212704429323976706`
-- playerId: `number` – Játékos azonosító, például: `10001`
-- isLoggedIn: `boolean` – Be van-e jelentkezve karakterbe, vagy karakterválasztón van
-- adminGroup: `string` – Admin rangja, alapértelmezett: `user`
-- characters: `table` – A karakter azonosítókat tartalmazza
-- points: `number` – Prémium pontok száma
-- duty: `boolean` – Admin szolgálatban van-e
+A `PlayerClass` egy játékos alapvető adatait és funkcióit kezeli. Minden játékos rendelkezik egy player objektummal, amely a karakterválasztástól kezdve elérhető.
+
+### Tulajdonságok
+
+- `source: number` – A játékos forrásazonosítója (server ID)
+- `identifier: string` – License2 azonosító (pl.: `98399a05dac2ccae820142f8af6804178b5f178a`)
+- `discord: string` – Discord azonosító (pl.: `212704429323976706`)
+- `playerId: number` – Adatbázisban tárolt játékos azonosító (pl.: `10001`)
+- `isLoggedIn: boolean` – Be van-e jelentkezve karakterbe
+- `adminGroup: string` – Admin csoport neve (alapértelmezett: `user`)
+- `characters: table` – A játékos karakter azonosítóinak listája
+- `points: number` – Prémium pontok száma
+- `duty: boolean` – Admin szolgálatban van-e
 
 ## PlayerClass:Event
 Eseményt küld a kliensnek.
@@ -22,8 +26,8 @@ Eseményt küld a kliensnek.
 - ...: `any` – További paraméterek, amelyeket az eseménynek átadunk
 
 ```lua copy
-player:Event('Core:Client:Clipboard', 'Tevepata')
-player:Event('Core:Client:PlayerDataChanged', 'points', 100)
+player:Event('LS:Client:Clipboard', 'Tevepata')
+player:Event('LS:Client:PlayerDataChanged', 'points', 100)
 ```
 
 ## PlayerClass:SetAsLoggedIn
@@ -154,32 +158,60 @@ player:RemovePoints(25)
 Létrehoz egy új karaktert a játékoshoz.
 
 **Paraméterek**
-- characterData: `table` – Karakter adatok
+- `characterData: table` – Karakter adatok
+  - `first_name: string` – Keresztnév
+  - `last_name: string` – Vezetéknév
+  - `birth_date: string` – Születési dátum (formátum: `YYYY-MM-DD`)
+  - `gender: string` – Nem (`male` | `female`)
+  - `nationality: string` – Nemzetiség
+  - `pathType: string` – Karakter út típusa (pl.: `citizen`, `criminal`)
 
 **Visszatérési érték**
 - `boolean, string` – Sikeresség és üzenet
+  - `true, 'success_create_character'` – Sikeres létrehozás
+  - `false, 'maximum_character'` – Elérte a maximum karakterszámot (3)
+  - `false, 'cannot_save_character'` – Nem sikerült menteni
 
 ```lua copy
 local success, msg = player:CreateCharacter({
-	first_name = 'John',
-	last_name = 'Doe',
-	birth_date = '1990-01-01',
-	gender = 'male',
-	nationality = 'Hungarian',
-	pathType = 'civilian'
+    first_name = 'John',
+    last_name = 'Doe',
+    birth_date = '1990-01-01',
+    gender = 'male',
+    nationality = 'Hungarian',
+    pathType = 'citizen'
 })
 print(success, msg)
 ```
+
 ## PlayerClass:SetActiveCharacter
-Beállítja a játékos aktív karakterét.
+Beállítja és betölti a játékos aktív karakterét.
 
 **Paraméterek**
-- characterId: `number` – Karakter azonosító
+- `characterId: number` – Karakter azonosító
 
 **Visszatérési érték**
 - `boolean` – Sikeres beállítás
 
+**Megjegyzés**
+- Csak akkor használható, ha a játékos még nincs bejelentkezve karakterbe
+- Automatikusan létrehozza a karakter objektumot és triggereli a betöltési eventeket
+
 ```lua copy
 local success = player:SetActiveCharacter(42)
-print(success)
+if success then
+    print('Karakter sikeresen betöltve')
+end
+```
+## PlayerClass:GetActiveCharacter
+Visszaadja a játékos aktív karakterét.
+
+**Visszatérési érték**
+- `Character|nil` – A karakter objektum, vagy `nil` ha nincs bejelentkezve
+
+```lua copy
+local character = player:GetActiveCharacter()
+if character then
+    print('Karakter neve:', character.fullName)
+end
 ```

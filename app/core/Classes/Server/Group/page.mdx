@@ -4,12 +4,16 @@ title: GroupClass
 
 ## GroupClass
 
-- id: `string` - Csoport azonosító, pl: `lspd`
-- label: `string` - Csoport megjelenítési neve, pl: `Los Santos Police Department`
-- type: `string` - Csoport típusa, pl: `legal`, `illegal`
-- limit: `number` - Maximális létszám (-1 = korlátlan)
-- ranks: `table` - Rangok táblája
-- interactions: `table` - Interakciók táblája
+A `GroupClass` egy csoport (pl. munka, banda) összes adatát és funkcióit kezeli. Csoportok közé tartoznak például az LSPD, EMS, különböző bandák, stb.
+
+### Tulajdonságok
+
+- `id: string` – Csoport egyedi azonosító (pl.: `lspd`, `bloods`)
+- `label: string` – Csoport megjelenítési neve (pl.: `Los Santos Police Department`)
+- `type: string` – Csoport típusa (pl.: `legal`, `illegal`, `state`, `mechanic`, `eatery`)
+- `limit: number` – Maximális létszám (`-1` = korlátlan)
+- `ranks: table` – Rangok táblája `{ [rankId] = { label, salary, permissions, protected? } }`
+- `interactions: table` – Interakciók táblája (pl.: fegyvertár, garázs helyszínek)
 
 ## GroupClass:AddRank
 Rang hozzáadása a csoporthoz.
@@ -165,12 +169,25 @@ end
 Tag hozzáadása a csoporthoz.
 
 **Paraméterek**
-- identifier: `number|string` – Karakter ID vagy PlayerSrc
-- rank?: `string` – Rang azonosító (alapértelmezett: `default`)
-- silent?: `boolean` – Ne triggerelj eventeket
+- `identifier: number|string` – Karakter ID vagy PlayerSrc
+- `rank?: string` – Rang azonosító (alapértelmezett: `default`)
+- `silent?: boolean` – Ne triggerelj eventeket (alapértelmezett: `false`)
 
 **Visszatérési érték**
 - `boolean, string?` – Sikeresség és esetleges hibaüzenet
+
+**Lehetséges hibaüzenetek**
+- `'Érvénytelen azonosító'` – Nincs megadva identifier
+- `'Rang nem található'` – A megadott rang nem létezik
+- `'A csoport megtelt'` – Elérte a létszámkorlátot
+- `'Nem található karakter'` – Karakter nem létezik (offline esetén)
+- `'A karakter elérte a csoport típus limitjét'` – Túl sok azonos típusú csoportban van
+- `'A karakter már tagja a csoportnak'` – Már tag
+
+**Megjegyzés**
+- Offline karaktereket is lehet hozzáadni charId alapján
+- Automatikusan hívja a `CharacterClass:SetGroupInternal()` metódust
+- Ellenőrzi a csoport létszámkorlátot és a típus limiteket
 
 **Példa 1:** Tag hozzáadása alapértelmezett ranggal
 ```lua copy
@@ -193,15 +210,30 @@ local group = LS:GetGroup('lspd')
 group:AddMember(42, 'default', true)
 ```
 
+**Példa 4:** Offline karakter hozzáadása charId alapján
+```lua copy
+local group = LS:GetGroup('lspd')
+local success, msg = group:AddMember(12345, 'officer')
+```
+
 ## GroupClass:RemoveMember
 Tag eltávolítása a csoportból.
 
 **Paraméterek**
-- identifier: `number|string` – Karakter ID vagy PlayerSrc
-- silent?: `boolean` – Ne triggerelj eventeket
+- `identifier: number|string` – Karakter ID vagy PlayerSrc
+- `silent?: boolean` – Ne triggerelj eventeket (alapértelmezett: `false`)
 
 **Visszatérési érték**
-- `boolean, string?` – Sikeresség és esetleges hibaüzenet
+- `boolean, string?` – Sikeresság és esetleges hibaüzenet
+
+**Lehetséges hibaüzenetek**
+- `'Érvénytelen azonosító'` – Nincs megadva identifier
+- `'Nem található karakter'` – Karakter nem létezik (offline esetén)
+- `'A karakter nem tagja a csoportnak'` – Nincs a csoportban
+
+**Megjegyzés**
+- Offline karaktereket is lehet eltávolítani charId alapján
+- Automatikusan hívja a `CharacterClass:SetGroupInternal()` metódust `nil` ranggal
 
 ```lua copy
 local group = LS:GetGroup('lspd')
@@ -215,11 +247,21 @@ end
 Tag rangjának módosítása.
 
 **Paraméterek**
-- identifier: `number|string` – Karakter ID vagy PlayerSrc
-- rank: `string` – Új rang azonosító
+- `identifier: number|string` – Karakter ID vagy PlayerSrc
+- `rank: string` – Új rang azonosító (alapértelmezett: `default` ha nincs megadva)
 
 **Visszatérési érték**
 - `boolean, string?` – Sikeresség és esetleges hibaüzenet
+
+**Lehetséges hibaüzenetek**
+- `'Érvénytelen azonosító'` – Nincs megadva identifier
+- `'Rang nem található'` – A megadott rang nem létezik
+- `'Nem található karakter'` – Karakter nem létezik (offline esetén)
+- `'A karakter nem tagja a csoportnak'` – Nincs a csoportban
+
+**Megjegyzés**
+- Offline karakterek rangjait is lehet módosítani charId alapján
+- Átirányít a `CharacterClass:SetGroup()` metódushoz online karaktereknél
 
 ```lua copy
 local group = LS:GetGroup('lspd')
