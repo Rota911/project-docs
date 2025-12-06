@@ -13,7 +13,7 @@ local soundId = Audio:PlayAudio(soundName)
 ```
 
 **Paraméterek:**
-- `soundName` (string) - A lejátszandó hang neve (pl. `"beep_sp"`)
+- `soundName` (string) - A lejátszandó hang neve (pl. `"beep"`)
 
 **Visszatérési érték:**
 - `soundId` (number) - A hang egyedi azonosítója, amivel később leállítható
@@ -23,10 +23,10 @@ local soundId = Audio:PlayAudio(soundName)
 local Audio = LS:ImportModule('Audio')
 
 -- Sípoló hang lejátszása
-local soundId = Audio:PlayAudio('beep_sp')
+local soundId = Audio:PlayAudio('beep')
 
 -- Telefon csengőhang
-local phoneSound = Audio:PlayAudio('phone_ring0_sp')
+local phoneSound = Audio:PlayAudio('phone_ring0')
 ```
 
 ---
@@ -52,11 +52,11 @@ local Audio = LS:ImportModule('Audio')
 
 -- Ajtó kinyitás hang egy pozícióról
 local doorCoords = vector3(123.45, 456.78, 28.5)
-local soundId = Audio:PlaySoundFromCoord('unlock_door_sp', doorCoords)
+local soundId = Audio:PlaySoundFromCoord('unlock_door', doorCoords)
 
 -- Csengő hang az aktuális pozícióról
 local myPos = GetEntityCoords(PlayerPedId())
-Audio:PlaySoundFromCoord('doorbell_sp', myPos)
+Audio:PlaySoundFromCoord('doorbell', myPos)
 ```
 
 ---
@@ -82,12 +82,12 @@ local Audio = LS:ImportModule('Audio')
 
 -- Bilincs hang a playeren
 local playerPed = PlayerPedId()
-Audio:PlaySoundFromEntity('metal_cuff_on_sp', playerPed)
+Audio:PlaySoundFromEntity('metal_cuff_on', playerPed)
 
 -- Motor hang járművön
 local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
 if vehicle ~= 0 then
-    Audio:PlaySoundFromEntity('anchor_drop_sp', vehicle)
+    Audio:PlaySoundFromEntity('anchor_drop', vehicle)
 end
 ```
 
@@ -112,7 +112,7 @@ local success = Audio:StopAudio(soundId)
 local Audio = LS:ImportModule('Audio')
 
 -- Hang lejátszása
-local soundId = Audio:PlayAudio('phone_ring0_sp')
+local soundId = Audio:PlayAudio('phone_ring0')
 
 -- 5 másodperc után leállítás
 Wait(5000)
@@ -137,12 +137,12 @@ A modul automatikusan figyeli a lejátszott hangokat és felszabadítja azokat, 
 local Audio = LS:ImportModule('Audio')
 
 -- Telefon csengés indítása
-local ringingSound = Audio:PlayAudio('phone_ring1_sp')
+local ringingSound = Audio:PlayAudio('phone_ring1')
 
 -- Felvétel után leállítás
 RegisterCommand('pickup', function()
     Audio:StopAudio(ringingSound)
-    Audio:PlayAudio('calling_sp')
+    Audio:PlayAudio('calling')
 end)
 ```
 
@@ -154,7 +154,7 @@ local Audio = LS:ImportModule('Audio')
 function PlayLockpickSounds()
     CreateThread(function()
         for i = 1, 4 do
-            Audio:PlayAudio('pick' .. i .. '_sp')
+            Audio:PlayAudio('pick' .. i .. '')
             Wait(500)
         end
     end)
@@ -171,7 +171,7 @@ local Audio = LS:ImportModule('Audio')
 
 -- Esemény fogadása serverről
 RegisterNetEvent('myresource:playDoorbell', function(coords)
-    Audio:PlaySoundFromCoord('doorbell_sp', coords)
+    Audio:PlaySoundFromCoord('doorbell', coords)
 end)
 ```
 
@@ -185,7 +185,7 @@ RegisterCommand('anchor', function()
     local vehicle = GetVehiclePedIsIn(ped, false)
     
     if vehicle ~= 0 then
-        Audio:PlaySoundFromEntity('anchor_drop_sp', vehicle)
+        Audio:PlaySoundFromEntity('anchor_drop', vehicle)
     end
 end)
 ```

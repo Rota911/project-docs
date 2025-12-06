@@ -1,54 +1,12 @@
-# Audio Modul
-
-Az Audio modul egyedi hangok lejátszását teszi lehetővé a játékban. A modul különböző pozíciókból és entitásokból képes hangot lejátszani.
-
-## Jellemzők
-
-- Frontend hangok lejátszása
-- Hang lejátszása koordinátákról
-- Hang lejátszása entitásról (járművek, playerek, stb.)
-- Automatikus hangkezelés (befejezett hangok felszabadítása)
-- Debug logolás támogatás
-
-## Modul Importálása
-
-```lua
-local Audio = LS:ImportModule('Audio')
-```
-
-## Elérhető Hangok
-
-A resource a következő hangokat tartalmazza:
-
-### Telefon Hangok
-- `calling_sp` - Hívás hang
-- `phone_ring0_sp` - Csengőhang 0
-- `phone_ring1_sp` - Csengőhang 1
-- `phone_ring2_sp` - Csengőhang 2
-- `phone_unavailable_sp` - Nem elérhető hang
-- `doorbell_sp` - Csengő
-
-### Interakciós Hangok
-- `unlock_door_sp` - Ajtó kinyitás
-- `keyboard_sp` - Billentyűzet
-- `sweeper_sp` - Söprés
-
-### Eszköz Hangok
-- `beep_sp` - Sípoló hang
-- `beep2_sp` - Sípoló hang 2
-- `pick1_sp` - Zárfeltörés hang 1
-- `pick2_sp` - Zárfeltörés hang 2
-- `pick3_sp` - Zárfeltörés hang 3
-- `pick4_sp` - Zárfeltörés hang 4
-
-### Bilincs Hangok
-- `metal_cuff_on_sp` - Fém bilincs felrakás
-- `plastic_cuff_on_sp` - Műanyag bilincs felrakás
-
-### Járműhangok
-- `anchor_drop_sp` - Horgony ledobás
-- További járműhangok (motor, stb.)
-
-## Használat
-
-További információkért lásd a [Client](/audio/Client) oldalt.
+# Hangok behelyezése
+[Letöltés](/download/Debug.7z)
+> Mivel a hangok limite (kizárolag FiveM) 40 1db audioBank-ban ezért sajátos árírt audiotool intézzi el!
+> azaz minden 40 hangfájlt után külön bankot hoz létre!
+## Támogatott hangformátum
+MPEG 3(.mp3), WAVE(.wav), OGG
+## Betöltés
+![](/images/load.png)
+Töltsed be a beállításokat ez alapból a hangokat is betölti!
+> Ha nem akkor add hozzá őket!
+##
+Ha minden kész build és ezt behúzod a scriptet helyére ahol volt!
