@@ -1,0 +1,267 @@
+import { Callout } from 'nextra/components'
+
+# Gyors kezdés
+
+Ez az útmutató végigvezet az LS Core telepítésén és alapvető használatán.
+
+## Telepítés
+
+### 1. Letöltés és elhelyezés
+
+Másold az `ls_core` mappát a szerver `resources` könyvtárába:
+
+```
+server/
+  resources/
+    ls_core/
+      fxmanifest.lua
+      init.lua
+      core/
+      modules/
+```
+
+### 2. Server.cfg konfiguráció
+
+Add hozzá az ls_core-t a `server.cfg` fájlhoz:
+
+```cfg
+ensure ls_core
+```
+
+<Callout type="info">
+Az ls_core-t **minden más resource előtt** kell betölteni, amely használni fogja!
+</Callout>
+
+### 3. Ellenőrzés
+
+Indítsd el a szervert és ellenőrizd a konzolban:
+
+```
+[LS Core] Module 'Callback' loaded
+[LS Core] Module 'WaitFor' loaded
+[LS Core] Module 'Table' loaded
+...
+```
+
+## Resource konfiguráció
+
+### fxmanifest.lua beállítása
+
+Minden resource-ban, amely az ls_core-t használja, add hozzá:
+
+```lua
+fx_version 'cerulean'
+game 'gta5'
+
+-- FONTOS: Lua 5.4 kötelező!
+lua54 'yes'
+
+-- Dependency megadása
+dependency 'ls_core'
+
+-- LS Core betöltése
+shared_script '@ls_core/init.lua'
+
+-- A többi script
+client_scripts {
+    'client/**/*.lua'
+}
+
+server_scripts {
+    'server/**/*.lua'
+}
+```
+
+<Callout type="warning">
+A `lua54 'yes'` KÖTELEZŐ! Az LS Core Lua 5.4 funkciókat használ.
+</Callout>
+
+## Első lépések
+
+### Callback használata
+
+**Szerver oldal:**
+
+```lua
+-- server.lua
+LS.Callback:Register('banking:getBalance', function(source)
+    local player = GetPlayer(source)
+    return player.getBalance()
+end)
+```
+
+**Kliens oldal:**
+
+```lua
+-- client.lua
+local balance = LS.Callback:Await('banking:getBalance', false)
+print('Egyenlegem:', balance)
+```
+
+### WaitFor használata
+
+```lua
+-- Várakozás egy entitásra
+local vehicle = LS:WaitFor(function()
+    local veh = GetClosestVehicle(coords.x, coords.y, coords.z, 10.0)
+    if veh and veh ~= 0 then
+        return veh
+    end
+end, 'Nem található jármű', 5000)
+
+print('Jármű ID:', vehicle)
+```
+
+### Entity kezelés
+
+```lua
+-- Legközelebbi játékos
+local playerId, ped, coords = LS:GetClosestPlayer(myCoords, 10.0)
+
+-- Közeli járművek
+local vehicles = LS:GetNearbyVehicles(myCoords, 50.0)
+for _, vehicleData in ipairs(vehicles) do
+    print('Jármű:', vehicleData.vehicle, 'Távolság:', vehicleData.distance)
+end
+```
+
+### Model betöltés
+
+```lua
+-- Model betöltése automatikus várakozással
+local modelHash = LS:RequestModel('adder', 10000)
+
+-- Jármű létrehozása
+local vehicle = CreateVehicle(modelHash, x, y, z, heading, true, false)
+
+-- Model felszabadítása
+SetModelAsNoLongerNeeded(modelHash)
+```
+
+### Zone létrehozása
+
+```lua
+-- Sphere zone
+local shopZone = LS.Zones:Sphere({
+    coords = vector3(25.7, -1347.3, 29.5),
+    radius = 3.0,
+    onEnter = function(self)
+        print('Beléptél az üzletbe')
+    end,
+    onExit = function(self)
+        print('Kiléptél az üzletből')
+    end
+})
+```
+
+## Modul regisztrálása
+
+Ha saját modult szeretnél létrehozni és globálisan elérhetővé tenni:
+
+```lua
+-- myresource/modules/myutils/shared.lua
+local MyUtils = {}
+
+function MyUtils:DoSomething()
+    return 'Valami'
+end
+
+return MyUtils
+```
+
+```lua
+-- myresource/init.lua
+LS:RegisterModule('MyUtils', GetCurrentResourceName(), 'modules/myutils')
+```
+
+```lua
+-- otherresource/client.lua
+local result = LS.MyUtils:DoSomething()
+print(result) -- 'Valami'
+```
+
+<Callout type="info">
+Részletes információ: [LS:RegisterModule](/ls_core/registry/registermodule)
+</Callout>
+
+## Gyakori hibák
+
+### "ls_core must be started before this resource"
+
+**Ok:** Az ls_core nincs elindítva vagy később indul, mint a resource.
+
+**Megoldás:**
+```cfg
+ensure ls_core
+ensure myresource
+```
+
+### "Lua 5.4 must be enabled in the resource manifest"
+
+**Ok:** Nincs engedélyezve a Lua 5.4.
+
+**Megoldás:**
+```lua
+lua54 'yes'
+```
+
+### "callback 'eventName' does not exist"
+
+**Ok:** A callback nincs regisztrálva, vagy a resource nem indult el.
+
+**Megoldás:** Ellenőrizd, hogy a `LS.Callback:Register()` lefutott-e.
+
+### "cannot load ls_core more than once"
+
+**Ok:** Többször töltötted be az ls_core-t ugyanabban a resource-ban.
+
+**Megoldás:** Használd csak egyszer: `shared_script '@ls_core/init.lua'`
+
+## Következő lépések
+
+- [Registry & Modulok](/ls_core/registry) - Saját modulok létrehozása
+- [LS:RegisterModule](/ls_core/registry/registermodule) - Részletes dokumentáció
+- [Modulok áttekintése](/ls_core/modules) - Összes elérhető modul
+
+## Példa resource
+
+```lua
+-- fxmanifest.lua
+fx_version 'cerulean'
+game 'gta5'
+lua54 'yes'
+
+dependency 'ls_core'
+shared_script '@ls_core/init.lua'
+
+client_script 'client.lua'
+server_script 'server.lua'
+```
+
+```lua
+-- server.lua
+LS.Callback:Register('example:getData', function(source, arg1)
+    print('Kliens kérése:', source, arg1)
+    return {status = 'success', data = 'Hello'}
+end)
+```
+
+```lua
+-- client.lua
+CreateThread(function()
+    Wait(1000)
+    
+    local result = LS.Callback:Await('example:getData', false, 'test')
+    print(json.encode(result))
+    -- {status = 'success', data = 'Hello'}
+end)
+```
+
+## Hasznos linkek
+
+- [FiveM Documentation](https://docs.fivem.net/)
+- [Lua 5.4 Reference](https://www.lua.org/manual/5.4/)
+
+<Callout type="success">
+Most már készen állsz az LS Core használatára! Jó kódolást! 🚀
+</Callout>

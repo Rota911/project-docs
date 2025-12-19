@@ -1,0 +1,497 @@
+import { Callout } from 'nextra/components'
+
+# LS Blips
+
+Az ls_blips egy egyszerű, de hatékony blip (térkép jelölő) kezelő rendszer FiveM-hez. Objektum-orientált megközelítést használ, és automatikusan kezeli a resource életciklusát.
+
+## Főbb jellemzők
+
+- 🎯 **OOP alapú** - Blip objektumok metódusokkal
+- 🔄 **Automatikus cleanup** - Resource leállításkor törlődnek a blipek
+- 🌐 **Globális elérhetőség** - LS:RegisterModule integráció
+- 📍 **Dinamikus kezelés** - Show, Hide, Remove, UpdateLocation
+- 🛣️ **Útvonal funkciók** - SetRoute, SetWaypoint
+- 🎨 **Testreszabható** - Sprite, szín, méret, szöveg, stb.
+
+## Gyors kezdés
+
+### Telepítés
+
+```cfg
+ensure ls_core
+ensure ls_blips
+```
+
+### Alapvető használat
+
+```lua
+-- Egyszerű blip létrehozása
+local myBlip = LS.Blips:Create({
+    position = vector3(100.0, 200.0, 30.0),
+    settings = {
+        sprite = 1,
+        color = 2,
+        scale = 1.0,
+        text = 'Célpont',
+        short = true
+    }
+})
+
+-- Blip kezelése
+myBlip:Show()
+myBlip:Hide()
+myBlip:SetRoute(5)
+myBlip:UpdateLocation(vector3(150.0, 250.0, 30.0))
+myBlip:Remove()
+```
+
+## API Referencia
+
+### LS.Blips:Create()
+
+Új blip létrehozása.
+
+```lua
+local blip = LS.Blips:Create({
+    position = vector3(x, y, z),
+    settings = {
+        sprite = number,
+        color = number,
+        scale = number,
+        text = string,
+        short = boolean,
+        heading = boolean,
+        category = number,
+        tick = boolean
+    }
+})
+```
+
+#### Paraméterek
+
+| Paraméter | Típus | Leírás | Kötelező |
+|-----------|-------|---------|----------|
+| `position` | `vector3` | Blip koordinátái | ✅ |
+| `settings.sprite` | `number` | [Blip sprite ID](https://docs.fivem.net/docs/game-references/blips/) | ❌ |
+| `settings.color` | `number` | [Blip szín ID](https://docs.fivem.net/docs/game-references/blips/#blip-colors) | ❌ |
+| `settings.scale` | `number` | Blip mérete (0.0 - 2.0) | ❌ |
+| `settings.text` | `string` | Blip neve a térképen | ❌ |
+| `settings.short` | `boolean` | Csak közelről látható | ❌ |
+| `settings.heading` | `boolean` | Irány jelző megjelenítése | ❌ |
+| `settings.category` | `number` | Blip kategória | ❌ |
+| `settings.tick` | `boolean` | Pipa ikon megjelenítése | ❌ |
+
+#### Visszatérési érték
+
+`Blip` objektum az alábbi metódusokkal.
+
+## Blip Metódusok
+
+### blip:Show()
+
+Megjeleníti a blipet a térképen.
+
+```lua
+myBlip:Show()
+```
+
+### blip:Hide()
+
+Elrejti a blipet a térképről (de nem törli).
+
+```lua
+myBlip:Hide()
+```
+
+### blip:Remove()
+
+Véglegesen törli a blipet.
+
+```lua
+myBlip:Remove()
+```
+
+### blip:SetWayPoint()
+
+Waypoint-ot állít be a blip pozíciójára (GPS navigáció).
+
+```lua
+myBlip:SetWayPoint()
+```
+
+### blip:SetRoute()
+
+Útvonalat rajzol a bliphez.
+
+```lua
+blip:SetRoute(colorId)
+```
+
+**Paraméterek:**
+- `colorId` `number?` - Útvonal színe (opcionális)
+
+### blip:UpdateLocation()
+
+Frissíti a blip pozícióját.
+
+```lua
+blip:UpdateLocation(vector3(x, y, z))
+```
+
+**Paraméterek:**
+- `position` `vector3` - Új koordináták
+
+## Példák
+
+### Egyszerű marker
+
+```lua
+local shopBlip = LS.Blips:Create({
+    position = vector3(25.7, -1347.3, 29.5),
+    settings = {
+        sprite = 52,  -- Shop ikon
+        color = 2,    -- Zöld
+        scale = 0.8,
+        text = '24/7 Üzlet',
+        short = true
+    }
+})
+```
+
+### Játékos követése
+
+```lua
+local playerBlip = nil
+
+CreateThread(function()
+    while true do
+        local ped = PlayerPedId()
+        local coords = GetEntityCoords(ped)
+        
+        if not playerBlip then
+            playerBlip = LS.Blips:Create({
+                position = coords,
+                settings = {
+                    sprite = 1,
+                    color = 3,
+                    scale = 1.0,
+                    text = 'Te'
+                }
+            })
+        else
+            playerBlip:UpdateLocation(coords)
+        end
+        
+        Wait(1000)
+    end
+end)
+```
+
+### Jármű marker
+
+```lua
+local vehicleBlips = {}
+
+-- Jármű létrehozásakor
+RegisterNetEvent('vehicle:created', function(netId, vehicleData)
+    local vehicle = NetworkGetEntityFromNetworkId(netId)
+    local coords = GetEntityCoords(vehicle)
+    
+    vehicleBlips[netId] = LS.Blips:Create({
+        position = coords,
+        settings = {
+            sprite = 225,  -- Személygépkocsi
+            color = 4,     -- Fehér
+            scale = 0.7,
+            text = vehicleData.plate,
+            short = false
+        }
+    })
+end)
+
+-- Jármű törlésekor
+RegisterNetEvent('vehicle:deleted', function(netId)
+    if vehicleBlips[netId] then
+        vehicleBlips[netId]:Remove()
+        vehicleBlips[netId] = nil
+    end
+end)
+
+-- Pozíció frissítése
+CreateThread(function()
+    while true do
+        for netId, blip in pairs(vehicleBlips) do
+            local vehicle = NetworkGetEntityFromNetworkId(netId)
+            if DoesEntityExist(vehicle) then
+                local coords = GetEntityCoords(vehicle)
+                blip:UpdateLocation(coords)
+            end
+        end
+        Wait(5000)
+    end
+end)
+```
+
+### Dinamikus POI rendszer
+
+```lua
+local pois = {
+    {
+        name = 'Bank',
+        position = vector3(150.0, -1040.0, 29.0),
+        sprite = 108,
+        color = 2
+    },
+    {
+        name = 'Kórház',
+        position = vector3(298.0, -586.0, 43.0),
+        sprite = 61,
+        color = 1
+    },
+    {
+        name = 'Rendőrség',
+        position = vector3(428.0, -984.0, 30.0),
+        sprite = 60,
+        color = 29
+    }
+}
+
+local poiBlips = {}
+
+for i, poi in ipairs(pois) do
+    poiBlips[i] = LS.Blips:Create({
+        position = poi.position,
+        settings = {
+            sprite = poi.sprite,
+            color = poi.color,
+            scale = 0.9,
+            text = poi.name,
+            short = false
+        }
+    })
+end
+```
+
+### Misszió marker útvonallal
+
+```lua
+local missionBlip = LS.Blips:Create({
+    position = vector3(500.0, 600.0, 100.0),
+    settings = {
+        sprite = 1,
+        color = 5,    -- Sárga
+        scale = 1.2,
+        text = 'Misszió célpont',
+        short = false,
+        tick = true
+    }
+})
+
+-- Útvonal beállítása
+missionBlip:SetRoute(5) -- Sárga útvonal
+
+-- Vagy GPS waypoint
+missionBlip:SetWayPoint()
+
+-- Misszió befejezése után
+RegisterNetEvent('mission:completed', function()
+    missionBlip:Remove()
+end)
+```
+
+### Rejtett blip megjelenítés eseménykor
+
+```lua
+local hiddenBlip = LS.Blips:Create({
+    position = vector3(1000.0, 2000.0, 50.0),
+    settings = {
+        sprite = 305,
+        color = 1,
+        text = 'Titkos helyszín'
+    }
+})
+
+-- Alapból elrejtve
+hiddenBlip:Hide()
+
+-- Felfedezéskor megjelenítés
+RegisterNetEvent('location:discovered', function()
+    hiddenBlip:Show()
+    
+    -- Értesítés
+    lib.notify({
+        title = 'Új helyszín',
+        description = 'Felfedezted a titkos helyszínt!',
+        type = 'success'
+    })
+end)
+```
+
+### Több blip kezelése csoportban
+
+```lua
+local gangTerritories = {}
+
+RegisterNetEvent('gang:setupTerritories', function(territories)
+    -- Töröljük a régi blipeket
+    for _, blip in pairs(gangTerritories) do
+        blip:Remove()
+    end
+    gangTerritories = {}
+    
+    -- Létrehozzuk az újakat
+    for _, territory in ipairs(territories) do
+        local blip = LS.Blips:Create({
+            position = territory.center,
+            settings = {
+                sprite = 84,  -- Körzet
+                color = territory.gangColor,
+                scale = 1.0,
+                text = territory.gangName .. ' Területe',
+                short = false
+            }
+        })
+        
+        table.insert(gangTerritories, blip)
+    end
+end)
+```
+
+## Blip Sprite-ok és színek
+
+### Gyakori Sprite-ok
+
+| Sprite ID | Leírás |
+|-----------|---------|
+| 1 | Kör (alapértelmezett) |
+| 52 | Üzlet |
+| 60 | Rendőrség |
+| 61 | Kórház |
+| 108 | Bank |
+| 225 | Személygépkocsi |
+| 227 | Teherautó |
+| 226 | Motor |
+| 305 | Küldetés |
+| 484 | Fegyverbolt |
+
+[Teljes sprite lista](https://docs.fivem.net/docs/game-references/blips/)
+
+### Gyakori színek
+
+| Color ID | Szín |
+|----------|------|
+| 0 | Fehér |
+| 1 | Piros |
+| 2 | Zöld |
+| 3 | Kék |
+| 5 | Sárga |
+| 29 | Rendőrség kék |
+| 40 | Narancssárga |
+
+[Teljes szín lista](https://docs.fivem.net/docs/game-references/blips/#blip-colors)
+
+## Resource cleanup
+
+Az ls_blips automatikusan törli az összes blipet, amelyet egy resource létrehozott, amikor az leáll:
+
+```lua
+-- Ezek automatikusan törlődnek, amikor myresource leáll
+-- Nem kell manuálisan törölni
+```
+
+## Best Practices
+
+### 1. Használj beszédes neveket
+
+```lua
+-- ❌ Rossz
+local b1 = LS.Blips:Create({...})
+
+-- ✅ Jó
+local bankBlip = LS.Blips:Create({...})
+```
+
+### 2. Töröld a blipeket, amikor már nem kellenek
+
+```lua
+-- Misszió vége
+if missionBlip then
+    missionBlip:Remove()
+    missionBlip = nil
+end
+```
+
+### 3. Használj short = true közelség alapú bliṕekhez
+
+```lua
+local nearbyBlip = LS.Blips:Create({
+    position = coords,
+    settings = {
+        short = true  -- Csak közelről látható
+    }
+})
+```
+
+### 4. Optimalizáld a frissítési időket
+
+```lua
+-- ❌ Rossz - túl gyakori frissítés
+CreateThread(function()
+    while true do
+        blip:UpdateLocation(GetEntityCoords(vehicle))
+        Wait(0)  -- Minden frame
+    end
+end)
+
+-- ✅ Jó - optimalizált frissítés
+CreateThread(function()
+    while true do
+        blip:UpdateLocation(GetEntityCoords(vehicle))
+        Wait(1000)  -- Másodpercenként
+    end
+end)
+```
+
+## Hibaelhárítás
+
+### A blip nem jelenik meg
+
+- Ellenőrizd, hogy az ls_blips elindult-e: `ensure ls_blips`
+- Győződj meg róla, hogy az ls_core is fut
+- Ellenőrizd a koordinátákat
+
+### A blip nem frissül
+
+- Használd az `UpdateLocation()` metódust
+- Ellenőrizd, hogy a blip létezik-e még
+
+### A blip törölve lett, de még látszik
+
+- Használd a `Remove()` metódust a `Hide()` helyett
+- Ellenőrizd, hogy nincs-e duplikált blip
+
+## Összefoglalás
+
+Az ls_blips egy egyszerű, de hatékony blip kezelő rendszer:
+
+- ✅ **Könnyű használat** - Egyszerű API
+- ✅ **Automatikus cleanup** - Resource leállításkor törlődik
+- ✅ **OOP alapú** - Tiszta kód
+- ✅ **LS Core integráció** - `LS.Blips` elérhetőség
+- ✅ **Dinamikus kezelés** - Show, Hide, Update, Remove
+
+```lua
+-- Teljes példa
+local myBlip = LS.Blips:Create({
+    position = vector3(0, 0, 30),
+    settings = {
+        sprite = 1,
+        color = 2,
+        text = 'Célpont'
+    }
+})
+
+myBlip:Show()
+myBlip:SetRoute()
+myBlip:Remove()
+```
