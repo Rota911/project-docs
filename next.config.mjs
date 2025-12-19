@@ -2,24 +2,24 @@ import nextra from "nextra";
 
 // Set up Nextra with its configuration
 const withNextra = nextra({
-     // ... Add Nextra-specific options here
+	// ... Add Nextra-specific options here
 });
 
 // Export the final Next.js config with Nextra included
 export default withNextra({
-     output: 'export',
-     distDir: 'out',
-     images: {
-          unoptimized: true,
-     },
-     async redirects() {
-          return [
-               {
-                    source: "/",
-                    destination: "/core",
-                    permanent: true,
-               },
-          ];
-     },
-     devIndicators: false,
+	output: "export",
+	distDir: "out",
+	images: {
+		unoptimized: true,
+	},
+	async redirects() {
+		return [
+			{
+				source: "/",
+				destination: "/core",
+				permanent: true,
+			},
+		];
+	},
+	devIndicators: false,
 });
