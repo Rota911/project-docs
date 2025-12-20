@@ -7,7 +7,7 @@
           "build": "next build",
           "start": "next start",
           "lint": "eslint",
-          "postbuild": "pagefind --site out/server/app --output-path public/_pagefind"
+          "postbuild": "pagefind --site out/ --output-path public/_pagefind"
      },
      "dependencies": {
           "next": "^16.0.7",
