@@ -13,7 +13,6 @@ concurrency:
 jobs:
   build:
     runs-on: self-hosted
-
     steps:
       - uses: actions/checkout@v4
 
@@ -21,15 +20,27 @@ jobs:
         with:
           bun-version: latest
 
-      - run: bun install
+      - name: Install deps
+        shell: pwsh
+        run: bun install
 
-      - run: bun run build
+      - name: Build
+        shell: pwsh
+        run: bun run build
 
-      - run: |
-          if bun run | grep -q postbuild; then
+      - name: Run postbuild if present
+        shell: pwsh
+        run: |
+          $pkg = Get-Content package.json -Raw | ConvertFrom-Json
+          if ($pkg.scripts -and $pkg.scripts.PSObject.Properties.Name -contains "postbuild") {
             bun run postbuild
-          fi
+          } else {
+            Write-Host "No postbuild script, skipping."
+          }
 
-      - run: |
-          pm2 delete nextra-app || true
-          pm2 start bun --name "nextra-app" -- run start
+      - name: Restart app with pm2
+        shell: pwsh
+        run: |
+          try { pm2 delete nextra-app } catch { }
+          pm2 start "bun" --name "nextra-app" -- run start
+          pm2 save
