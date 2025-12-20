@@ -1,38 +1,35 @@
-name: Nextra CI
+name: Nextra Self Hosted CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
+
+concurrency:
+  group: nextra-prod
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: self-hosted
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v1
         with:
-          node-version: 18
-          cache: 'npm'
+          bun-version: latest
 
-      - name: Install dependencies
-        run: npm install
+      - run: bun install
 
-      - name: Build
-        run: npm run build
+      - run: bun run build
 
-      - name: Post build
-        run: |
-          if npm run | grep -q postbuild; then
-            npm run postbuild
+      - run: |
+          if bun run | grep -q postbuild; then
+            bun run postbuild
           fi
 
-      - name: Start app
-        run: |
-          npm run start &
-          sleep 10
+      - run: |
+          pm2 delete nextra-app || true
+          pm2 start bun --name "nextra-app" -- run start
