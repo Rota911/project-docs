@@ -13,6 +13,7 @@ concurrency:
 jobs:
   build:
     runs-on: self-hosted
+
     steps:
       - uses: actions/checkout@v4
 
@@ -20,27 +21,22 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install deps
-        shell: pwsh
-        run: bun install
+      - run: bun install
 
-      - name: Build
-        shell: pwsh
-        run: bun run build
+      - run: bun run build
 
+      # ✅ FIXED: Windows PowerShell way to run postbuild only if it exists
       - name: Run postbuild if present
-        shell: pwsh
+        shell: powershell
         run: |
           $pkg = Get-Content package.json -Raw | ConvertFrom-Json
           if ($pkg.scripts -and $pkg.scripts.PSObject.Properties.Name -contains "postbuild") {
+            Write-Host "postbuild script found, running..."
             bun run postbuild
           } else {
             Write-Host "No postbuild script, skipping."
           }
 
-      - name: Restart app with pm2
-        shell: pwsh
-        run: |
-          try { pm2 delete nextra-app } catch { }
-          pm2 start "bun" --name "nextra-app" -- run start
-          pm2 save
+      - run: |
+          pm2 delete nextra-app || true
+          pm2 start bun --name "nextra-app" -- run start
