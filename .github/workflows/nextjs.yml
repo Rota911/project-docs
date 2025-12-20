@@ -37,5 +37,5 @@ jobs:
         shell: powershell
         run: |
           try { pm2 delete nextra-app } catch { }
-          pm2 start bun --name "nextra-app" -- run start -- --hostname 0.0.0.0 --port 3000
+          pm2 start bun --name "nextra-app" -- run serve
 
