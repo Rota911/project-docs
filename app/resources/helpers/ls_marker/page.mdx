@@ -1,0 +1,359 @@
+# ls_marker
+
+Az **ls_marker** egy marker készítő és kezelő eszköz fejlesztéshez.
+
+## Áttekintés
+
+Vizuális marker editor koordináták és route-ok létrehozásához.
+
+### Főbb funkciók
+
+- 📍 **Mark készítés** - Egyedi marker pontok
+- 🗺️ **Ground route** - Földi útvonalak
+- ↗️ **Waypoint** - Waypoint koordináták
+- 💾 **Export** - JSON és Lua export
+- 🎨 **Vizualizáció** - DUI alapú megjelenítés
+- 📋 **Clipboard copy** - Gyors másolás
+
+## Telepítés
+
+### Függőségek
+
+```lua
+dependencies {
+    'ls_core'
+}
+```
+
+### server.cfg
+
+```cfg
+ensure ls_core
+ensure ls_marker
+```
+
+## Használat
+
+### Marker készítés
+
+```lua
+-- Parancs használat
+/marker open          -- Marker editor megnyitása
+/marker mark          -- Mark pont létrehozás
+/marker ground        -- Ground route készítés
+/marker waypoint      -- Waypoint használat
+/marker save          -- Mentés
+/marker export        -- Export
+/marker clear         -- Törlés
+```
+
+### UI kezelés
+
+1. **Editor megnyitása** - `/marker open`
+2. **Mód választása** - Mark, Ground, Waypoint
+3. **Pontok lehelyezése** - E gomb vagy kattintás
+4. **Export** - JSON vagy Lua formátumban
+5. **Clipboard** - Másolás vágólapra
+
+## Marker típusok
+
+### Mark (Egyedi pont)
+
+```lua
+-- Egy koordináta mentése
+{
+    type = 'mark',
+    coords = vector3(100.0, 200.0, 30.0),
+    heading = 90.0,
+    label = 'Custom Location'
+}
+```
+
+### Ground Route (Útvonal)
+
+```lua
+-- Több pont összekötése
+{
+    type = 'ground',
+    points = {
+        vector3(100.0, 200.0, 30.0),
+        vector3(110.0, 210.0, 30.0),
+        vector3(120.0, 220.0, 31.0)
+    },
+    label = 'Patrol Route'
+}
+```
+
+### Waypoint
+
+```lua
+-- Waypoint koordináta
+{
+    type = 'waypoint',
+    coords = vector3(100.0, 200.0, 30.0),
+    blip = true
+}
+```
+
+## Konfiguráció
+
+### shared/config.lua
+
+```lua
+Config = {}
+
+-- Marker stílus
+Config.MarkerStyle = {
+    type = 1,           -- Marker típus (1 = cylinder)
+    size = vector3(1.0, 1.0, 1.0),
+    color = {r = 255, g = 0, b = 0, a = 200},
+    bobUpAndDown = false,
+    faceCamera = false,
+    rotate = false
+}
+
+-- Ground route vonal
+Config.RouteLineStyle = {
+    thickness = 0.1,
+    color = {r = 0, g = 255, b = 255, a = 255}
+}
+
+-- DUI beállítások
+Config.DUI = {
+    url = 'https://marker-editor',
+    width = 512,
+    height = 512
+}
+
+-- Export formátum
+Config.ExportFormat = 'lua'  -- 'json' vagy 'lua'
+```
+
+## Export formátumok
+
+### JSON Export
+
+```json
+{
+    "marks": [
+        {
+            "coords": {"x": 100.0, "y": 200.0, "z": 30.0},
+            "heading": 90.0,
+            "label": "Location 1"
+        }
+    ],
+    "routes": [
+        {
+            "label": "Route 1",
+            "points": [
+                {"x": 100.0, "y": 200.0, "z": 30.0},
+                {"x": 110.0, "y": 210.0, "z": 30.0}
+            ]
+        }
+    ]
+}
+```
+
+### Lua Export
+
+```lua
+return {
+    marks = {
+        {
+            coords = vector3(100.0, 200.0, 30.0),
+            heading = 90.0,
+            label = 'Location 1'
+        }
+    },
+    
+    routes = {
+        {
+            label = 'Route 1',
+            points = {
+                vector3(100.0, 200.0, 30.0),
+                vector3(110.0, 210.0, 30.0)
+            }
+        }
+    }
+}
+```
+
+## API Export-ok
+
+### Client
+
+```lua
+-- Editor megnyitás
+exports.ls_marker:OpenEditor(mode)  -- 'mark', 'ground', 'waypoint'
+
+-- Editor bezárás
+exports.ls_marker:CloseEditor()
+
+-- Mark hozzáadás
+exports.ls_marker:AddMark(coords, heading, label)
+
+-- Route pont hozzáadás
+exports.ls_marker:AddRoutePoint(coords)
+
+-- Export
+local data = exports.ls_marker:ExportData(format)  -- 'json', 'lua'
+
+-- Törlés
+exports.ls_marker:Clear()
+
+-- Mentés
+exports.ls_marker:Save(filename)
+
+-- Betöltés
+exports.ls_marker:Load(filename)
+```
+
+## Gyakorlati példák
+
+### Patrol route készítés
+
+```lua
+-- 1. Nyisd meg a ground route mode-ot
+/marker ground
+
+-- 2. Járj végig az úton és rakj le pontokat (E gomb)
+
+-- 3. Export
+/marker export
+
+-- 4. Copy vágólapra és használd:
+local patrolRoute = {
+    vector3(441.0, -982.0, 30.7),
+    vector3(450.0, -990.0, 30.7),
+    vector3(460.0, -995.0, 30.7),
+    vector3(470.0, -988.0, 30.7)
+}
+
+-- AI patrol
+function StartPatrol(ped)
+    for i, point in ipairs(patrolRoute) do
+        TaskGoToCoordAnyMeans(ped, point.x, point.y, point.z, 1.0, 0, 0, 786603, 0.0)
+        
+        while GetScriptTaskStatus(ped, `SCRIPT_TASK_GO_TO_COORD_ANY_MEANS`) ~= 7 do
+            Wait(100)
+        end
+    end
+end
+```
+
+### Shop lokációk
+
+```lua
+-- 1. Mark mode
+/marker mark
+
+-- 2. Menj a shop-okhoz és mark-old
+
+-- 3. Export és használat:
+local shops = {
+    {coords = vector3(25.0, -1347.0, 29.5), label = '247 Supermarket'},
+    {coords = vector3(373.0, 325.0, 103.6), label = '247 Supermarket'},
+    {coords = vector3(2557.0, 382.0, 108.6), label = '247 Supermarket'}
+}
+
+for _, shop in ipairs(shops) do
+    -- Blip
+    local blip = AddBlipForCoord(shop.coords.x, shop.coords.y, shop.coords.z)
+    SetBlipSprite(blip, 52)
+    SetBlipDisplay(blip, 4)
+    SetBlipScale(blip, 0.7)
+    SetBlipColour(blip, 2)
+    SetBlipAsShortRange(blip, true)
+    BeginTextCommandSetBlipName('STRING')
+    AddTextComponentString(shop.label)
+    EndTextCommandSetBlipName(blip)
+    
+    -- Target zone
+    exports.ox_target:addBoxZone({
+        name = 'shop_' .. _,
+        coords = shop.coords,
+        size = vector3(2, 2, 2),
+        options = {{
+            name = 'open_shop',
+            icon = 'fas fa-shopping-cart',
+            label = 'Bolt',
+            onSelect = function()
+                TriggerEvent('shop:open')
+            end
+        }}
+    })
+end
+```
+
+### Delivery pontok
+
+```lua
+-- Ground route delivery útvonal
+local deliveryRoute = {
+    vector3(100.0, 200.0, 30.0),
+    vector3(150.0, 250.0, 31.0),
+    vector3(200.0, 300.0, 30.0),
+    vector3(250.0, 350.0, 32.0)
+}
+
+RegisterNetEvent('delivery:start')
+AddEventHandler('delivery:start', function()
+    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+    
+    for i, point in ipairs(deliveryRoute) do
+        -- Waypoint beállítás
+        SetNewWaypoint(point.x, point.y)
+        
+        -- Várj amíg odaér
+        while #(GetEntityCoords(PlayerPedId()) - point) > 10.0 do
+            Wait(1000)
+        end
+        
+        -- Delivery akció
+        LS.UI:Notify(('Delivery %d/%d kész'):format(i, #deliveryRoute), 'success')
+        TriggerServerEvent('delivery:complete', i)
+    end
+    
+    LS.UI:Notify('Összes delivery kész!', 'success')
+end)
+```
+
+## UI Hotkeys
+
+| Gomb | Funkció |
+|------|---------|
+| `E` | Mark/Point lehelyezés |
+| `Backspace` | Utolsó pont törlés |
+| `Enter` | Export/Mentés |
+| `ESC` | Bezárás |
+| `F5` | Mód váltás |
+| `←/→` | Heading forgatás |
+
+## Web UI
+
+A marker editor React + TypeScript + Vite stack-et használ.
+
+### Komponensek
+
+```
+src/
+├── pages/
+│   ├── MarkRoute.tsx
+│   ├── GroundRoute.tsx
+│   └── waypoint.tsx
+├── components/
+│   ├── Marker.tsx
+│   ├── DiamondMark.tsx
+│   └── GroundAreaMark.tsx
+└── store/
+    └── index.ts
+```
+
+## Következő lépések
+
+- 🏠 [LS Core](/core) - Core framework
+- 🎒 [Resources](/resources) - Többi resource
+
+---
+
+**Megjegyzés:** Az ls_marker csak fejlesztési célokra ajánlott! Production szervereken ne használd!

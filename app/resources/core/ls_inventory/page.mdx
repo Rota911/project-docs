@@ -1,0 +1,542 @@
+# ls_inventory
+
+Az **ls_inventory** egy teljes körű inventory rendszer item kezeléssel, tárolókkal és crafting rendszerrel.
+
+## Áttekintés
+
+Modern, UI-alapú inventory rendszer React frameworkkel.
+
+### Főbb funkciók
+
+- 🎒 **Player inventory** - Slot-alapú táska rendszer
+- 📦 **Tárolók** - Chest, vehicle trunk, stash
+- 🔄 **Item kezelés** - Használat, drop, give
+- 🔨 **Crafting** - Item craftolás receptek alapján
+- ⚖️ **Súly rendszer** - Max súly korlát
+- 🔒 **Item metadata** - Egyedi item tulajdonságok
+- 🎯 **Gyors használat** - Hotbar rendszer
+
+## Telepítés
+
+### Függőségek
+
+```lua
+dependencies {
+    'ls_core',
+    'ox_target'  -- Opcionális, tárolókhoz
+}
+```
+
+### server.cfg
+
+```cfg
+ensure ls_core
+ensure ls_inventory
+```
+
+## Konfiguráció
+
+### Item definíciók
+
+```lua
+-- shared/items.lua
+return {
+    -- Használható itemek
+    {
+        name = 'water',
+        label = 'Víz',
+        weight = 500,  -- gramm
+        type = 'item',
+        usable = true,
+        shouldClose = true,
+        description = 'Üdítő friss víz',
+        image = 'water.png'
+    },
+    
+    -- Fegyverek
+    {
+        name = 'weapon_pistol',
+        label = 'Pisztoly',
+        weight = 1000,
+        type = 'weapon',
+        usable = true,
+        weapon = `WEAPON_PISTOL`,
+        ammo = 'ammo_pistol',
+        description = '9mm pisztoly',
+        image = 'weapon_pistol.png'
+    },
+    
+    -- Lőszer
+    {
+        name = 'ammo_pistol',
+        label = '9mm Lőszer',
+        weight = 10,
+        type = 'ammo',
+        ammo_type = 'AMMO_PISTOL',
+        description = '9mm lőszer',
+        image = 'ammo_pistol.png'
+    },
+    
+    -- Metadata item
+    {
+        name = 'phone',
+        label = 'Telefon',
+        weight = 200,
+        type = 'item',
+        usable = true,
+        unique = true,  -- Minden telefon egyedi
+        description = 'Okostelefon',
+        image = 'phone.png'
+    }
+}
+```
+
+### Inventory konfig
+
+```lua
+Config = {}
+
+-- Slot-ok száma
+Config.MaxSlots = 40
+
+-- Maximum súly (gramm)
+Config.MaxWeight = 50000  -- 50 kg
+
+-- Hotbar slot-ok
+Config.HotbarSlots = 5
+
+-- Drop timeout (másodperc)
+Config.DropTimeout = 600  -- 10 perc
+
+-- Stash rendszer
+Config.Stashes = {
+    -- Rendőrségi tároló
+    {
+        name = 'police_armory',
+        label = 'Fegyvertár',
+        slots = 100,
+        weight = 500000,  -- 500 kg
+        owner = nil,      -- Megosztott
+        groups = {'police'}  -- Csak police job
+    },
+    
+    -- Személyes tároló
+    {
+        name = 'personal_stash',
+        label = 'Személyes Tároló',
+        slots = 50,
+        weight = 100000,  -- 100 kg
+        owner = true      -- Character alapú
+    }
+}
+
+-- Crafting receptek
+Config.Crafting = {
+    -- Lockpick craftolás
+    {
+        result = 'lockpick',
+        amount = 1,
+        ingredients = {
+            {item = 'metalscrap', amount = 2},
+            {item = 'plastic', amount = 1}
+        },
+        time = 5000  -- 5 másodperc
+    },
+    
+    -- Repair kit
+    {
+        result = 'repairkit',
+        amount = 1,
+        ingredients = {
+            {item = 'metalscrap', amount = 5},
+            {item = 'plastic', amount = 3},
+            {item = 'rubber', amount = 2}
+        },
+        time = 10000
+    }
+}
+```
+
+## Item használat
+
+### Kliens oldali használat
+
+```lua
+-- client/items/water.lua
+RegisterNetEvent('ls_inventory:client:useWater')
+AddEventHandler('ls_inventory:client:useWater', function()
+    local ped = PlayerPedId()
+    
+    -- Animáció
+    LS:PlayAnim(ped, 'mp_player_intdrink', 'loop_bottle', {
+        flags = 49,
+        duration = 3000
+    })
+    
+    Wait(3000)
+    
+    -- Szerver értesítés
+    TriggerServerEvent('ls_inventory:server:useWater')
+end)
+```
+
+### Szerver oldali használat
+
+```lua
+-- server/items/water.lua
+LS:RegisterItem('water', function(source)
+    local character = GetCharacter(source)
+    
+    if not character then return end
+    
+    -- Item eltávolítás
+    exports.ls_inventory:RemoveItem(character.id, 'water', 1)
+    
+    -- Éhség/szomjúság csökkentése (ha van ilyen rendszer)
+    character:SetData('thirst', math.min(100, (character:GetData('thirst') or 0) + 30))
+    
+    -- Notifikáció
+    LS.UI:Notify(source, 'Ittál egy kis vizet', 'success')
+end)
+```
+
+## API Export-ok
+
+### Server
+
+#### Add Item
+
+Item hozzáadása inventoryhoz:
+
+```lua
+local success = exports.ls_inventory:AddItem(ownerId, itemName, amount, metadata, slot)
+
+-- Példa:
+exports.ls_inventory:AddItem(character.id, 'water', 5)
+
+-- Metadata-val:
+exports.ls_inventory:AddItem(character.id, 'phone', 1, {
+    number = '555-1234',
+    battery = 100
+})
+```
+
+#### Remove Item
+
+Item eltávolítása:
+
+```lua
+local success = exports.ls_inventory:RemoveItem(ownerId, itemName, amount, slot)
+
+-- Példa:
+exports.ls_inventory:RemoveItem(character.id, 'water', 1)
+```
+
+#### Get Item
+
+Item lekérése:
+
+```lua
+local item = exports.ls_inventory:GetItem(ownerId, itemName, metadata)
+
+-- Példa:
+local phone = exports.ls_inventory:GetItem(character.id, 'phone')
+if phone then
+    print('Telefonszám:', phone.metadata.number)
+end
+```
+
+#### Has Item
+
+Item ellenőrzés:
+
+```lua
+local has, item = exports.ls_inventory:HasItem(ownerId, itemName, amount)
+
+-- Példa:
+if exports.ls_inventory:HasItem(character.id, 'lockpick', 1) then
+    print('Van lockpick')
+end
+```
+
+#### Get Inventory
+
+Teljes inventory lekérése:
+
+```lua
+local inventory = exports.ls_inventory:GetInventory(ownerId)
+
+-- Példa:
+local inv = exports.ls_inventory:GetInventory(character.id)
+print('Slot-ok száma:', #inv.slots)
+print('Jelenlegi súly:', inv.weight, '/', inv.maxWeight)
+```
+
+#### Create Stash
+
+Tároló létrehozása:
+
+```lua
+exports.ls_inventory:CreateStash(stashId, slots, maxWeight, owner)
+
+-- Példa:
+exports.ls_inventory:CreateStash('vehicle_' .. plate, 50, 100000)
+```
+
+#### Give Item
+
+Item áta dása játékosnak:
+
+```lua
+local success = exports.ls_inventory:GiveItem(fromId, toId, itemName, amount, slot)
+```
+
+### Client
+
+#### Open Inventory
+
+Inventory megnyitása:
+
+```lua
+exports.ls_inventory:OpenInventory()
+```
+
+#### Open Stash
+
+Tároló megnyitása:
+
+```lua
+exports.ls_inventory:OpenStash(stashId, stashData)
+
+-- Példa:
+exports.ls_inventory:OpenStash('police_armory', {
+    label = 'Fegyvertár',
+    slots = 100,
+    weight = 500000
+})
+```
+
+#### Open Target Inventory
+
+Másik játékos inventoryjának megnyitása:
+
+```lua
+exports.ls_inventory:OpenTargetInventory(targetId)
+```
+
+## Gyakorlati példák
+
+### Bolt rendszer
+
+```lua
+-- Server side shop
+RegisterNetEvent('shop:buyItem')
+AddEventHandler('shop:buyItem', function(itemName, amount)
+    local source = source
+    local character = GetCharacter(source)
+    
+    if not character then return end
+    
+    -- Item ár lekérése
+    local item = exports.ls_inventory:GetItemData(itemName)
+    local price = item.price * amount
+    
+    -- Pénz ellenőrzés
+    if character.money < price then
+        return LS.UI:Notify(source, 'Nincs elég pénzed!', 'error')
+    end
+    
+    -- Item hozzáadás
+    local success = exports.ls_inventory:AddItem(character.id, itemName, amount)
+    
+    if success then
+        character:SetData('money', character.money - price)
+        LS.UI:Notify(source, ('Vásároltál %dx %s'):format(amount, item.label), 'success')
+    else
+        LS.UI:Notify(source, 'Nincs elég hely az inventoryban!', 'error')
+    end
+end)
+```
+
+### Vehicle trunk
+
+```lua
+-- Client side
+RegisterNetEvent('vehicle:openTrunk')
+AddEventHandler('vehicle:openTrunk', function(vehicle)
+    local plate = GetVehicleNumberPlateText(vehicle)
+    
+    -- Trunk megnyitása
+    exports.ls_inventory:OpenStash('vehicle_' .. plate, {
+        label = 'Csomagtartó: ' .. plate,
+        slots = 50,
+        weight = 100000
+    })
+end)
+
+-- ox_target integráció
+exports.ox_target:addGlobalVehicle({
+    {
+        name = 'vehicle_trunk',
+        icon = 'fas fa-box-open',
+        label = 'Csomagtartó',
+        bones = {'boot'},
+        canInteract = function(entity)
+            return GetVehicleDoorAngleRatio(entity, 5) > 0.1
+        end,
+        onSelect = function(data)
+            local vehicle = data.entity
+            TriggerEvent('vehicle:openTrunk', vehicle)
+        end
+    }
+})
+```
+
+### Crafting rendszer
+
+```lua
+-- Client side
+RegisterNetEvent('crafting:open')
+AddEventHandler('crafting:open', function()
+    -- Crafting UI megnyitása
+    SendNUIMessage({
+        action = 'openCrafting',
+        recipes = Config.Crafting
+    })
+    
+    SetNuiFocus(true, true)
+end)
+
+RegisterNUICallback('craftItem', function(data, cb)
+    TriggerServerEvent('crafting:craftItem', data.recipe)
+    cb('ok')
+end)
+
+-- Server side
+RegisterNetEvent('crafting:craftItem')
+AddEventHandler('crafting:craftItem', function(recipeIndex)
+    local source = source
+    local character = GetCharacter(source)
+    local recipe = Config.Crafting[recipeIndex]
+    
+    if not character or not recipe then return end
+    
+    -- Hozzávalók ellenőrzése
+    for _, ingredient in ipairs(recipe.ingredients) do
+        if not exports.ls_inventory:HasItem(character.id, ingredient.item, ingredient.amount) then
+            return LS.UI:Notify(source, 'Nincs elég hozzávalód!', 'error')
+        end
+    end
+    
+    -- Hozzávalók eltávolítása
+    for _, ingredient in ipairs(recipe.ingredients) do
+        exports.ls_inventory:RemoveItem(character.id, ingredient.item, ingredient.amount)
+    end
+    
+    -- Crafting time
+    Wait(recipe.time)
+    
+    -- Eredmény hozzáadása
+    exports.ls_inventory:AddItem(character.id, recipe.result, recipe.amount)
+    
+    LS.UI:Notify(source, 'Sikeres craftolás!', 'success')
+end)
+```
+
+### Drop system
+
+```lua
+-- Client side - Drop item
+RegisterNetEvent('ls_inventory:client:dropItem')
+AddEventHandler('ls_inventory:client:dropItem', function(itemName, amount, slot)
+    local ped = PlayerPedId()
+    local coords = GetEntityCoords(ped)
+    
+    TriggerServerEvent('ls_inventory:server:dropItem', itemName, amount, slot, coords)
+end)
+
+-- Server side - Create drop
+RegisterNetEvent('ls_inventory:server:dropItem')
+AddEventHandler('ls_inventory:server:dropItem', function(itemName, amount, slot, coords)
+    local source = source
+    local character = GetCharacter(source)
+    
+    -- Item eltávolítás inventory-ból
+    local item = exports.ls_inventory:RemoveItem(character.id, itemName, amount, slot)
+    
+    if item then
+        -- Drop object létrehozása
+        local dropId = 'drop_' .. math.random(100000, 999999)
+        
+        -- Drop tárolása
+        exports.ls_inventory:CreateDrop(dropId, coords, {
+            {item = itemName, amount = amount, metadata = item.metadata}
+        })
+        
+        -- Kliens értesítés (object spawn)
+        TriggerClientEvent('ls_inventory:client:createDrop', -1, dropId, coords, itemName)
+    end
+end)
+
+-- Client side - Pickup drop
+RegisterNetEvent('ls_inventory:client:pickupDrop')
+AddEventHandler('ls_inventory:client:pickupDrop', function(dropId)
+    TriggerServerEvent('ls_inventory:server:pickupDrop', dropId)
+end)
+```
+
+### Fegyver rendszer
+
+```lua
+-- Server side - Fegyver használat
+LS:RegisterItem('weapon_pistol', function(source, item)
+    local character = GetCharacter(source)
+    
+    if not character then return end
+    
+    -- Fegyver adása
+    TriggerClientEvent('ls_inventory:client:giveWeapon', source, item.weapon, item.metadata.ammo or 0)
+end)
+
+-- Client side - Fegyver equipálás
+RegisterNetEvent('ls_inventory:client:giveWeapon')
+AddEventHandler('ls_inventory:client:giveWeapon', function(weaponHash, ammo)
+    local ped = PlayerPedId()
+    
+    GiveWeaponToPed(ped, weaponHash, ammo, false, true)
+    SetCurrentPedWeapon(ped, weaponHash, true)
+    
+    LS.UI:Notify('Fegyver equipálva', 'success')
+end)
+```
+
+## Troubleshooting
+
+### Item nem adódik hozzá
+
+```lua
+-- Ellenőrizd a súly limitet
+local inv = exports.ls_inventory:GetInventory(character.id)
+print('Jelenlegi súly:', inv.weight, '/', inv.maxWeight)
+
+-- Ellenőrizd a slot limitet
+print('Szabad slot-ok:', inv.maxSlots - #inv.slots)
+```
+
+### Metadata nem mentődik
+
+```lua
+-- Győződj meg róla, hogy az item unique
+local itemData = exports.ls_inventory:GetItemData('phone')
+print('Unique:', itemData.unique)
+```
+
+## Következő lépések
+
+- 🏠 [LS Core](/core) - Core framework
+- 🎯 [ox_target](/resources/core/ox_target) - Interakciók
+- 🎒 [Resources](/resources) - Többi resource
+
+---
+
+**Megjegyzés:** Az ls_inventory web UI-t használ. A `web/` mappában található a React frontend!

@@ -1,0 +1,92 @@
+# ls_objects
+
+Az **ls_objects** egy object spawn és kezelő rendszer perzisztens tárolással.
+
+## Áttekintés
+
+Object-ek létrehozása, szerkesztése és törlése admin eszközökkel.
+
+### Főbb funkciók
+
+- 📦 **Object spawn** - Model alapú object létrehozás
+- 💾 **Perzisztens** - Database tárolás
+- ✏️ **Szerkesztés** - Pozíció, rotáció módosítás
+- 🔒 **Jogosultságok** - Admin szintű hozzáférés
+- 🎯 **Placement tool** - Vizuális elhelyezés
+- 🗑️ **Törlés** - Object eltávolítás
+
+## Telepítés
+
+### Függőségek
+
+```lua
+dependencies {
+    'ls_core'
+}
+```
+
+### server.cfg
+
+```cfg
+ensure ls_core
+ensure ls_objects
+```
+
+## Használat
+
+### Object spawn
+
+```lua
+-- Export használat
+local objectId = exports.ls_objects:CreateObject({
+    model = 'prop_bin_01a',
+    coords = vector3(100.0, 200.0, 30.0),
+    rotation = vector3(0.0, 0.0, 90.0),
+    frozen = true
+})
+```
+
+### Object törlés
+
+```lua
+exports.ls_objects:DeleteObject(objectId)
+```
+
+### Object lekérése
+
+```lua
+local object = exports.ls_objects:GetObject(objectId)
+```
+
+## API Export-ok
+
+### Server
+
+```lua
+-- Object létrehozás
+exports.ls_objects:CreateObject(data)
+
+-- Object törlés
+exports.ls_objects:DeleteObject(objectId)
+
+-- Object lista
+local objects = exports.ls_objects:GetAllObjects()
+
+-- Object frissítés
+exports.ls_objects:UpdateObject(objectId, data)
+```
+
+### Client
+
+```lua
+-- Placement mode
+exports.ls_objects:StartPlacement(model)
+
+-- Object info
+local info = exports.ls_objects:GetObjectInfo(objectId)
+```
+
+## Következő lépések
+
+- 🏠 [LS Core](/core) - Core framework
+- 🛡️ [ls_admin](/resources/core/ls_admin) - Admin eszközök

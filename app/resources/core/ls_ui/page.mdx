@@ -1,0 +1,149 @@
+# ls_ui
+
+Az **ls_ui** egy UI komponens könyvtár notifikációkkal, progress bar-okkal és menükkel.
+
+## Áttekintés
+
+Egységes UI rendszer a szerver összes resource-ának.
+
+### Főbb funkciók
+
+- 🔔 **Notifikációk** - Success, error, info, warning
+- 📊 **Progress bar** - Időzített műveletek jelzése
+- 📋 **Input dialógusok** - Szöveg, szám bemenet
+- ✅ **Confirm dialógus** - Megerősítés kérése
+- 🎨 **Testreszabható** - CSS változók
+
+## Telepítés
+
+### Függőségek
+
+```lua
+dependencies {
+    'ls_core'
+}
+```
+
+### server.cfg
+
+```cfg
+ensure ls_core
+ensure ls_ui
+```
+
+## Használat
+
+### Notifikációk
+
+```lua
+-- Client side
+LS.UI:Notify('Üzenet szövege', 'success')
+LS.UI:Notify('Hiba történt', 'error')
+LS.UI:Notify('Információ', 'info')
+LS.UI:Notify('Figyelmeztetés', 'warning')
+
+-- Server side
+LS.UI:Notify(source, 'Üzenet', 'success')
+```
+
+### Progress bar
+
+```lua
+-- Client side
+LS.UI:Progress({
+    duration = 5000,  -- 5 másodperc
+    label = 'Ajtó feltörése...',
+    useWhileDead = false,
+    canCancel = true,
+    disable = {
+        move = true,
+        car = true,
+        combat = true
+    },
+    anim = {
+        dict = 'anim@amb@clubhouse@tutorial@bkr_tut_ig3@',
+        clip = 'machinic_loop_mechandplayer'
+    }
+}, function(cancelled)
+    if not cancelled then
+        print('Progress befejezve')
+    else
+        print('Megszakítva')
+    end
+end)
+```
+
+### Input dialógus
+
+```lua
+-- Client side
+LS.UI:Input({
+    title = 'Játékos ID',
+    placeholder = 'Írd be az ID-t...',
+    type = 'number'  -- 'text', 'number', 'password'
+}, function(input)
+    if input then
+        print('Beírt érték:', input)
+    end
+end)
+```
+
+### Confirm dialógus
+
+```lua
+-- Client side
+LS.UI:Confirm({
+    title = 'Megerősítés',
+    message = 'Biztosan törölni szeretnéd?'
+}, function(confirmed)
+    if confirmed then
+        print('Megerősítve')
+    else
+        print('Megszakítva')
+    end
+end)
+```
+
+## API Export-ok
+
+### Client
+
+```lua
+-- Notifikáció
+exports.ls_ui:Notify(message, type, duration)
+
+-- Progress bar
+exports.ls_ui:Progress(options, callback)
+
+-- Input
+exports.ls_ui:Input(options, callback)
+
+-- Confirm
+exports.ls_ui:Confirm(options, callback)
+```
+
+### Server
+
+```lua
+-- Notifikáció (player-nek)
+exports.ls_ui:Notify(source, message, type)
+```
+
+## Testreszabás
+
+### CSS változók
+
+```css
+:root {
+    --primary-color: #00ff88;
+    --success-color: #00ff88;
+    --error-color: #ff4444;
+    --warning-color: #ffaa00;
+    --info-color: #00aaff;
+}
+```
+
+## Következő lépések
+
+- 🏠 [LS Core](/core) - Core framework
+- 🎒 [Resources](/resources) - Többi resource

@@ -1,0 +1,585 @@
+# ls_appearance
+
+Az **ls_appearance** egy modern és teljes körű karakter megjelenés szerkesztő resource FiveM szerverekhez.
+
+## Áttekintés
+
+Részletes karakter testreszabási lehetőségek web-based UI-val.
+
+### Főbb funkciók
+
+- 👤 **Ped modellek** - Férfi és női modellek támogatása
+- 🎨 **Testreszabás** - Arc, haj, ruházat, tetovázások
+- 💾 **Mentés/Betöltés** - Karakter megjelenés perzisztens tárolása
+- 🏪 **Boltok** - Ruha és tetovázás üzletek
+- 🎭 **Addon support** - Custom clothing és feature-ök
+- 🔒 **Blacklist** - Tiltott clothing itemek
+
+## Telepítés
+
+### Függőségek
+
+```lua
+dependencies {
+    'ls_core'
+}
+```
+
+### server.cfg
+
+```cfg
+ensure ls_core
+ensure ls_appearance
+```
+
+## Konfiguráció
+
+### shared/config.lua
+
+```lua
+Config = {}
+
+-- Ped modellek
+Config.DefaultModels = {
+    male = 'mp_m_freemode_01',
+    female = 'mp_f_freemode_01'
+}
+
+-- Kezdő pénz clothing-ra
+Config.StartingMoney = 0
+
+-- Clothing ár szorzó
+Config.ClothingPriceMultiplier = 1.0
+
+-- Tattoo ár
+Config.TattooPrice = 1000
+```
+
+### shared/shops.lua
+
+Clothing és tattoo shopok definiálása:
+
+```lua
+return {
+    -- Clothing shopok
+    {
+        type = 'clothing',
+        coords = vector3(72.3, -1399.1, 29.4),
+        blip = {
+            sprite = 73,
+            color = 0,
+            label = 'Ruhabolt'
+        }
+    },
+    
+    -- Tattoo shopok
+    {
+        type = 'tattoo',
+        coords = vector3(1322.6, -1651.9, 52.3),
+        blip = {
+            sprite = 75,
+            color = 0,
+            label = 'Tetováló'
+        }
+    },
+    
+    -- Barber shopok
+    {
+        type = 'barber',
+        coords = vector3(-814.3, -183.8, 37.6),
+        blip = {
+            sprite = 71,
+            color = 0,
+            label = 'Fodrászat'
+        }
+    }
+}
+```
+
+### shared/blacklist.lua
+
+Tiltott clothing itemek:
+
+```lua
+return {
+    -- Tiltott drawable-k ped szerint
+    ['mp_m_freemode_01'] = {
+        [3] = {0, 15}, -- Torso: 0 és 15 index tiltva
+        [4] = {1, 2}   -- Legs: 1 és 2 index tiltva
+    },
+    
+    ['mp_f_freemode_01'] = {
+        [3] = {0, 14},
+        [4] = {1, 2}
+    }
+}
+```
+
+## Használat
+
+### Megjelenés szerkesztő megnyitása
+
+```lua
+-- Export használat
+exports.ls_appearance:Open({
+    type = 'character',           -- 'character', 'clothing', 'tattoo', 'barber'
+    ped = PlayerPedId(),          -- Target ped
+    allowModelChange = true,      -- Model váltás engedélyezése
+    allowSave = true,             -- Mentés engedélyezése
+    price = 0                     -- Költség (0 = ingyenes)
+})
+```
+
+### Típusok
+
+#### Character Creation
+
+Teljes karakter létrehozás (model + megjelenés):
+
+```lua
+exports.ls_appearance:Open({
+    type = 'character',
+    allowModelChange = true,
+    allowSave = true
+})
+```
+
+#### Clothing Shop
+
+Csak ruházat szerkesztés:
+
+```lua
+exports.ls_appearance:Open({
+    type = 'clothing',
+    price = 1000,  -- 1000$ a megváltozott itemekért
+    allowSave = true
+})
+```
+
+#### Tattoo Shop
+
+Tetovázás szerkesztő:
+
+```lua
+exports.ls_appearance:Open({
+    type = 'tattoo',
+    price = 500,
+    allowSave = true
+})
+```
+
+#### Barber Shop
+
+Haj és arc szerkesztés:
+
+```lua
+exports.ls_appearance:Open({
+    type = 'barber',
+    price = 100,
+    allowSave = true
+})
+```
+
+## Megjelenés struktúra
+
+### Appearance data formátum
+
+```lua
+{
+    model = 'mp_m_freemode_01',
+    
+    -- Heritage (szülők)
+    heritage = {
+        mother = 21,      -- Anya arc index (0-45)
+        father = 0,       -- Apa arc index (0-45)
+        similarity = 0.5, -- Hasonlóság (0.0-1.0)
+        skinSimilarity = 0.5
+    },
+    
+    -- Face features
+    faceFeatures = {
+        noseWidth = 0.0,         -- -1.0 - 1.0
+        nosePeak = 0.0,
+        noseLength = 0.0,
+        noseBone = 0.0,
+        nosePeakLower = 0.0,
+        noseTwist = 0.0,
+        eyebrowHeight = 0.0,
+        eyebrowForward = 0.0,
+        cheeksHeight = 0.0,
+        cheeksWidth = 0.0,
+        cheeksDepth = 0.0,
+        eyesOpening = 0.0,
+        lipsThickness = 0.0,
+        jawWidth = 0.0,
+        jawHeight = 0.0,
+        chinLength = 0.0,
+        chinPosition = 0.0,
+        chinWidth = 0.0,
+        chinShape = 0.0,
+        neckWidth = 0.0
+    },
+    
+    -- Head overlays
+    headOverlays = {
+        {id = 0, index = 0, opacity = 0.0, color = 0},  -- Blemishes
+        {id = 1, index = 0, opacity = 0.0, color = 0},  -- Facial Hair
+        {id = 2, index = 0, opacity = 0.0, color = 0},  -- Eyebrows
+        {id = 3, index = 0, opacity = 0.0, color = 0},  -- Ageing
+        {id = 4, index = 0, opacity = 0.0, color = 0},  -- Makeup
+        {id = 5, index = 0, opacity = 0.0, color = 0},  -- Blush
+        {id = 6, index = 0, opacity = 0.0, color = 0},  -- Complexion
+        {id = 7, index = 0, opacity = 0.0, color = 0},  -- Sun Damage
+        {id = 8, index = 0, opacity = 0.0, color = 0},  -- Lipstick
+        {id = 9, index = 0, opacity = 0.0, color = 0},  -- Moles/Freckles
+        {id = 10, index = 0, opacity = 0.0, color = 0}  -- Chest Hair
+    },
+    
+    -- Hair
+    hair = {
+        style = 0,       -- Hair drawable
+        color = 0,       -- Primary color
+        highlight = 0    -- Secondary color
+    },
+    
+    -- Eyes
+    eyes = 0,            -- Eye color
+    
+    -- Clothing
+    components = {
+        {drawable = 0, texture = 0, component = 0},  -- Face
+        {drawable = 0, texture = 0, component = 1},  -- Mask
+        {drawable = 0, texture = 0, component = 2},  -- Hair
+        {drawable = 0, texture = 0, component = 3},  -- Torso/Upper Body
+        {drawable = 0, texture = 0, component = 4},  -- Legs
+        {drawable = 0, texture = 0, component = 5},  -- Bags/Parachute
+        {drawable = 0, texture = 0, component = 6},  -- Shoes
+        {drawable = 0, texture = 0, component = 7},  -- Accessories
+        {drawable = 0, texture = 0, component = 8},  -- Undershirt
+        {drawable = 0, texture = 0, component = 9},  -- Body Armor
+        {drawable = 0, texture = 0, component = 10}, -- Decals
+        {drawable = 0, texture = 0, component = 11}  -- Tops
+    },
+    
+    -- Props
+    props = {
+        {drawable = -1, texture = 0, prop = 0},  -- Hats
+        {drawable = -1, texture = 0, prop = 1},  -- Glasses
+        {drawable = -1, texture = 0, prop = 2},  -- Ears
+        {drawable = -1, texture = 0, prop = 6},  -- Watches
+        {drawable = -1, texture = 0, prop = 7}   -- Bracelets
+    },
+    
+    -- Tattoos
+    tattoos = {
+        {collection = 'mpbeach_overlays', name = 'MP_Bea_M_Back_000'},
+        -- ... további tetovázások
+    }
+}
+```
+
+## API Export-ok
+
+### Client
+
+#### Open
+
+Megjelenés szerkesztő megnyitása:
+
+```lua
+exports.ls_appearance:Open(options)
+```
+
+**Options:**
+- `type` (string) - 'character', 'clothing', 'tattoo', 'barber'
+- `ped` (number, optional) - Target ped (default: PlayerPedId())
+- `allowModelChange` (boolean, optional) - Model váltás
+- `allowSave` (boolean, optional) - Mentés engedélyezése
+- `price` (number, optional) - Költség
+- `onSave` (function, optional) - Callback mentéskor
+
+#### Get Appearance
+
+Jelenlegi ped megjelenésének lekérése:
+
+```lua
+local appearance = exports.ls_appearance:GetAppearance(ped)
+```
+
+#### Set Appearance
+
+Megjelenés alkalmazása ped-re:
+
+```lua
+exports.ls_appearance:SetAppearance(ped, appearance)
+```
+
+#### Save Appearance
+
+Megjelenés mentése database-be:
+
+```lua
+exports.ls_appearance:SaveAppearance(characterId, appearance)
+```
+
+#### Load Appearance
+
+Megjelenés betöltése database-ből:
+
+```lua
+local appearance = exports.ls_appearance:LoadAppearance(characterId)
+```
+
+### Server
+
+#### Get Appearance (Server)
+
+```lua
+local appearance = exports.ls_appearance:GetAppearance(characterId)
+```
+
+#### Save Appearance (Server)
+
+```lua
+exports.ls_appearance:SaveAppearance(characterId, appearance)
+```
+
+## Események
+
+### Client események
+
+```lua
+-- Megjelenés szerkesztő megnyílt
+AddEventHandler('ls_appearance:opened', function(type)
+    print('Szerkesztő típus:', type)
+end)
+
+-- Megjelenés szerkesztő bezárult
+AddEventHandler('ls_appearance:closed', function(saved)
+    if saved then
+        print('Változások mentve')
+    else
+        print('Megszakítva')
+    end
+end)
+
+-- Megjelenés alkalmazva
+AddEventHandler('ls_appearance:applied', function(appearance)
+    print('Új megjelenés alkalmazva')
+end)
+```
+
+### Server események
+
+```lua
+-- Megjelenés mentve
+AddEventHandler('ls_appearance:saved', function(source, characterId, appearance)
+    print(('Karakter %d megjelenése mentve'):format(characterId))
+end)
+```
+
+## Integrációk
+
+### ls_characters integráció
+
+```lua
+-- Karakter létrehozásnál
+RegisterNetEvent('ls_characters:createCharacter')
+AddEventHandler('ls_characters:createCharacter', function(data)
+    -- ... karakter létrehozás
+    
+    -- Appearance szerkesztő megnyitása
+    exports.ls_appearance:Open({
+        type = 'character',
+        allowModelChange = true,
+        allowSave = true,
+        onSave = function(appearance)
+            TriggerServerEvent('ls_characters:saveAppearance', characterId, appearance)
+        end
+    })
+end)
+```
+
+### Clothing shop példa
+
+```lua
+-- Clothing shop marker
+local shops = require('shared.shops')
+
+for _, shop in ipairs(shops) do
+    if shop.type == 'clothing' then
+        -- Target integráció
+        exports.ox_target:addBoxZone({
+            coords = shop.coords,
+            size = vector3(2, 2, 2),
+            options = {
+                {
+                    name = 'clothing_shop',
+                    icon = 'fas fa-tshirt',
+                    label = 'Ruhabolt',
+                    onSelect = function()
+                        exports.ls_appearance:Open({
+                            type = 'clothing',
+                            price = 100,
+                            allowSave = true
+                        })
+                    end
+                }
+            }
+        })
+    end
+end
+```
+
+## Gyakorlati példák
+
+### Karakter creator
+
+```lua
+RegisterNetEvent('myResource:createCharacter')
+AddEventHandler('myResource:createCharacter', function()
+    exports.ls_appearance:Open({
+        type = 'character',
+        allowModelChange = true,
+        allowSave = true,
+        onSave = function(appearance)
+            TriggerServerEvent('myResource:saveCharacter', appearance)
+        end
+    })
+end)
+```
+
+### Plastic surgery
+
+```lua
+-- Plasztikai sebészet (arc features módosítás)
+RegisterNetEvent('hospital:plasticSurgery')
+AddEventHandler('hospital:plasticSurgery', function()
+    local character = GetCharacter(source)
+    
+    if character.money < 5000 then
+        return LS.UI:Notify('Nincs elég pénzed!', 'error')
+    end
+    
+    exports.ls_appearance:Open({
+        type = 'character',
+        allowModelChange = false,  -- Model váltás tiltva
+        price = 5000,
+        allowSave = true
+    })
+end)
+```
+
+### Uniform rendszer
+
+```lua
+-- Munkaruha felöltése
+RegisterNetEvent('job:setUniform')
+AddEventHandler('job:setUniform', function(uniformType)
+    local uniforms = {
+        police = {
+            male = {
+                components = {
+                    {component = 3, drawable = 55, texture = 0},  -- Torso
+                    {component = 4, drawable = 35, texture = 0},  -- Legs
+                    {component = 6, drawable = 25, texture = 0},  -- Shoes
+                    {component = 8, drawable = 58, texture = 0},  -- Undershirt
+                    {component = 11, drawable = 55, texture = 0}  -- Top
+                },
+                props = {
+                    {prop = 0, drawable = 46, texture = 0}  -- Hat
+                }
+            }
+        }
+    }
+    
+    local ped = PlayerPedId()
+    local model = GetEntityModel(ped)
+    local gender = model == GetHashKey('mp_m_freemode_01') and 'male' or 'female'
+    
+    local uniform = uniforms[uniformType][gender]
+    
+    if uniform then
+        for _, component in ipairs(uniform.components) do
+            SetPedComponentVariation(ped, component.component, component.drawable, component.texture, 0)
+        end
+        
+        for _, prop in ipairs(uniform.props) do
+            SetPedPropIndex(ped, prop.prop, prop.drawable, prop.texture, true)
+        end
+    end
+end)
+```
+
+### Appearance visszaállítás
+
+```lua
+-- Civilian ruha visszaállítása (mentett megjelenés)
+RegisterNetEvent('job:removeDuty')
+AddEventHandler('job:removeDuty', function()
+    local character = GetCharacter(source)
+    
+    if character and character.appearance then
+        exports.ls_appearance:SetAppearance(PlayerPedId(), character.appearance)
+    end
+end)
+```
+
+## Addon rendszer
+
+### Custom clothing addon
+
+```lua
+-- client/addons/custom_clothing.lua
+return {
+    name = 'Custom Clothing Pack',
+    author = 'Your Name',
+    version = '1.0.0',
+    
+    -- Custom drawables
+    drawables = {
+        male = {
+            [3] = {  -- Torso
+                {drawable = 100, texture = 0, label = 'Custom Shirt'},
+                {drawable = 101, texture = 0, label = 'Custom Jacket'}
+            }
+        },
+        female = {
+            [3] = {
+                {drawable = 100, texture = 0, label = 'Custom Dress'}
+            }
+        }
+    }
+}
+```
+
+## Troubleshooting
+
+### Megjelenés nem töltődik be
+
+```lua
+-- Ellenőrizd a database kapcsolatot
+local appearance = exports.ls_appearance:LoadAppearance(characterId)
+if not appearance then
+    print('Nincs mentett megjelenés')
+    -- Használj default appearance-t
+end
+```
+
+### Blacklist nem működik
+
+```lua
+-- Ellenőrizd a blacklist config-ot
+local blacklist = require('shared.blacklist')
+print(json.encode(blacklist))
+```
+
+## Következő lépések
+
+- 🎭 [ls_characters](/resources/core/ls_characters) - Karakter választó rendszer
+- 🏠 [LS Core](/core) - Core framework
+- 🎯 [ox_target](/resources/core/ox_target) - Shop interakciók
+
+---
+
+**Megjegyzés:** Az ls_appearance web-based UI-t használ React + Vite stack-kel. A `web/` mappában található a frontend kód!

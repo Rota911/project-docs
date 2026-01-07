@@ -1,4 +1,6 @@
 export default {
   index: 'Kezdőlap',
-  core: 'Core'
+  core: 'Core',
+  resources: 'Resources'
 }
+
