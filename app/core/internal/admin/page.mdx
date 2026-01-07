@@ -1,0 +1,597 @@
+# Admin rendszer
+
+Az **Admin rendszer** parancsokat és funkciókat biztosít a szerver adminisztrálásához. Tartalmaz ACL integrációt, jogosultság kezelést és admin eszközöket.
+
+## Admin csoportok
+
+Az admin csoportok hierarchikusan épülnek fel:
+
+```lua
+-- core/configs/sv_adminGroups.lua
+{
+    ['owner'] = {
+        label = 'Tulajdonos',
+        child = 'dev'
+    },
+    ['dev'] = {
+        label = 'Fejlesztő',
+        child = 'headadmin'
+    },
+    ['headadmin'] = {
+        label = 'Főadmin',
+        child = 'admin'
+    },
+    ['admin'] = {
+        label = 'Admin',
+        child = 'moderator'
+    },
+    ['moderator'] = {
+        label = 'Moderátor',
+        child = 'user'
+    }
+}
+```
+
+**Hierarchia:**
+- Minden csoport örökli az alatta lévő csoport jogosultságait
+- `owner` → `dev` → `headadmin` → `admin` → `moderator` → `user`
+
+## Parancs rendszer
+
+### LS:Command
+
+Admin parancs regisztrálása.
+
+```lua
+LS:Command(command, permissions, callback, arguments, helpText)
+```
+
+**Paraméterek:**
+- `command` (string|table) - Parancs neve vagy nevek (alias-ok)
+- `permissions` (string|table|nil) - Szükséges jogosultságok
+- `callback` (function|string) - Végrehajtási funkció vagy regisztrált funkció neve
+- `arguments` (table|nil) - Argumentum definíciók
+- `helpText` (string|nil) - Súgó szöveg
+
+**Példa:**
+
+```lua
+-- Egyszerű parancs
+LS:Command('heal', 'admin', function(source, args)
+    local ped = GetPlayerPed(source)
+    SetEntityHealth(ped, 200)
+    print('Játékos meggyógyítva')
+end, nil, 'Meggyógyítja a játékost')
+
+-- Több alias
+LS:Command({'tp', 'teleport'}, 'moderator', function(source, args)
+    -- Teleport logika
+end, nil, 'Teleportálás')
+
+-- Argumentumokkal
+LS:Command('give', 'admin', function(source, args)
+    print('Item:', args.item)
+    print('Mennyiség:', args.amount)
+end, {
+    {name = 'item', help = 'Item neve', type = 'string'},
+    {name = 'amount', help = 'Mennyiség', type = 'number', optional = true}
+}, 'Item adása')
+```
+
+### Argumentum típusok
+
+```lua
+{
+    {
+        name = 'player',      -- Argumentum neve
+        help = 'Játékos ID',  -- Súgó szöveg
+        type = 'playerId',    -- Típus
+        optional = false      -- Kötelező-e
+    }
+}
+```
+
+**Típusok:**
+- `'number'` - Szám (automatikus tonumber)
+- `'string'` - Szöveg (nem lehet szám)
+- `'playerId'` - Játékos ID (ellenőrzi létezését, 'me' = saját)
+- `'any'` - Bármilyen típus
+
+**Példák:**
+
+```lua
+-- Szám argumentum
+LS:Command('setmoney', 'admin', function(source, args)
+    print('Összeg:', args.amount)  -- number
+end, {
+    {name = 'amount', type = 'number'}
+})
+
+-- Játékos ID (me = saját)
+LS:Command('freeze', 'moderator', function(source, args)
+    print('Célpont:', args.target)  -- source vagy más player ID
+end, {
+    {name = 'target', type = 'playerId'}
+})
+
+-- Opcionális argumentum
+LS:Command('message', 'admin', function(source, args)
+    local target = args.target or source
+    local msg = args.message
+end, {
+    {name = 'target', type = 'playerId', optional = true},
+    {name = 'message', type = 'string'}
+})
+```
+
+## Funkció rendszer
+
+### LS:RegisterFunction
+
+Funkció regisztrálása jogosultság ellenőrzéssel.
+
+```lua
+LS:RegisterFunction(name, permissions, callback, arguments)
+```
+
+**Paraméterek:**
+- `name` (string) - Funkció neve
+- `permissions` (string|table|nil) - Jogosultságok
+- `callback` (function) - Végrehajtási funkció
+- `arguments` (table|nil) - Argumentum definíciók
+
+**Visszatérés a callback-ben:**
+- `success` (boolean) - Sikeres-e
+- `message` (string|nil) - Üzenet vagy hibaüzenet
+
+**Példa:**
+
+```lua
+-- Funkció regisztrálása
+LS:RegisterFunction('healPlayer', 'admin', function(source, args)
+    local target = args.target
+    local ped = GetPlayerPed(target)
+    
+    if not DoesEntityExist(ped) then
+        return false, 'Játékos nem található'
+    end
+    
+    SetEntityHealth(ped, 200)
+    return true, 'Játékos meggyógyítva'
+end, {
+    {name = 'target', type = 'playerId'}
+})
+
+-- Használat parancsban (string formátum)
+LS:Command('heal', 'admin', 'healPlayer', {
+    {name = 'target', type = 'playerId'}
+}, 'Játékos gyógyítása')
+```
+
+### LS:ExecuteFunction
+
+Regisztrált funkció végrehajtása.
+
+```lua
+local success, message = LS:ExecuteFunction(source, functionName, args)
+```
+
+**Paraméterek:**
+- `source` (number) - Hívó source (0 = konzol)
+- `functionName` (string) - Funkció neve
+- `args` (table|nil) - Argumentumok
+
+**Visszatérés:**
+- `success` (boolean) - Sikeres-e
+- `message` (string|nil) - Üzenet
+
+**Példa:**
+
+```lua
+-- Funkció végrehajtása
+local success, msg = LS:ExecuteFunction(source, 'healPlayer', {
+    target = 1
+})
+
+if success then
+    print('Siker:', msg)
+else
+    print('Hiba:', msg)
+end
+```
+
+## Jogosultságok
+
+### Konzol jogosultság
+
+A konzol (source = 0) mindig rendelkezik teljes jogosultsággal:
+
+```lua
+if source == 0 then
+    -- Konzol - minden megengedett
+end
+```
+
+### Csoport ellenőrzés
+
+```lua
+-- Parancsokban automatikus
+LS:Command('kick', 'moderator', function(source, args)
+    -- Csak moderator+ futtathatja
+end)
+
+-- Funkciókban automatikus
+LS:RegisterFunction('banPlayer', 'admin', function(source, args)
+    -- Csak admin+ futtathatja
+end)
+
+-- Több csoport
+LS:Command('special', {'admin', 'moderator'}, function(source, args)
+    -- Admin VAGY moderator futtathatja
+end)
+```
+
+## Gyakorlati példák
+
+### Teleport rendszer
+
+```lua
+-- Teleport koordinátákhoz
+LS:Command('tp', 'moderator', function(source, args)
+    local character = GetCharacter(source)
+    if not character then return end
+    
+    character:SetCoords(vector3(args.x, args.y, args.z))
+    print('Teleportálva')
+end, {
+    {name = 'x', type = 'number'},
+    {name = 'y', type = 'number'},
+    {name = 'z', type = 'number'}
+}, 'Teleportálás koordinátákhoz')
+
+-- Teleport játékoshoz
+LS:Command('tpto', 'moderator', function(source, args)
+    local character = GetCharacter(source)
+    local target = GetCharacter(args.target)
+    
+    if not character or not target then
+        return print('Karakter nem található')
+    end
+    
+    local targetCoords = target:GetCoords()
+    character:SetCoords(targetCoords)
+    
+    print('Teleportálva:', target.fullName)
+end, {
+    {name = 'target', type = 'playerId'}
+}, 'Teleportálás játékoshoz')
+
+-- Játékos magadhoz hozása
+LS:Command('bring', 'moderator', function(source, args)
+    local character = GetCharacter(source)
+    local target = GetCharacter(args.target)
+    
+    if not character or not target then return end
+    
+    local myCoords = character:GetCoords()
+    target:SetCoords(myCoords)
+    
+    print('Játékos behozva')
+end, {
+    {name = 'target', type = 'playerId'}
+}, 'Játékos magadhoz hozása')
+```
+
+### Játékos kezelés
+
+```lua
+-- Kick parancs
+LS:Command('kick', 'moderator', function(source, args)
+    local target = args.target
+    local reason = args.reason or 'Nincs indok megadva'
+    
+    DropPlayer(target, 'Kirúgva: ' .. reason)
+    
+    print(('Játékos kirúgva: %s (Indok: %s)'):format(
+        GetPlayerName(target),
+        reason
+    ))
+end, {
+    {name = 'target', type = 'playerId'},
+    {name = 'reason', type = 'string', optional = true}
+}, 'Játékos kirúgása')
+
+-- Freeze parancs
+LS:Command('freeze', 'moderator', function(source, args)
+    local target = args.target
+    local ped = GetPlayerPed(target)
+    
+    FreezeEntityPosition(ped, true)
+    
+    TriggerClientEvent('chat:addMessage', target, {
+        args = {'Rendszer', 'Le lettél fagyasztva'}
+    })
+    
+    print('Játékos lefagyasztva')
+end, {
+    {name = 'target', type = 'playerId'}
+}, 'Játékos lefagyasztása')
+
+-- Unfreeze parancs
+LS:Command('unfreeze', 'moderator', function(source, args)
+    local target = args.target
+    local ped = GetPlayerPed(target)
+    
+    FreezeEntityPosition(ped, false)
+    
+    TriggerClientEvent('chat:addMessage', target, {
+        args = {'Rendszer', 'Feloldva'}
+    })
+    
+    print('Játékos feloldva')
+end, {
+    {name = 'target', type = 'playerId'}
+}, 'Játékos feloldása')
+```
+
+### Admin eszközök
+
+```lua
+-- Gyógyítás
+LS:Command('heal', 'admin', function(source, args)
+    local target = args.target or source
+    local ped = GetPlayerPed(target)
+    
+    SetEntityHealth(ped, 200)
+    SetPedArmour(ped, 100)
+    
+    if target ~= source then
+        print('Játékos gyógyítva:', GetPlayerName(target))
+    end
+end, {
+    {name = 'target', type = 'playerId', optional = true}
+}, 'Játékos gyógyítása (me = saját)')
+
+-- Páncél adása
+LS:Command('armor', 'admin', function(source, args)
+    local target = args.target or source
+    local ped = GetPlayerPed(target)
+    
+    SetPedArmour(ped, 100)
+    print('Páncél adva')
+end, {
+    {name = 'target', type = 'playerId', optional = true}
+}, 'Páncél adása')
+
+-- Láthatóság toggle
+LS:Command('invisible', 'admin', function(source, args)
+    local ped = GetPlayerPed(source)
+    local isVisible = IsEntityVisible(ped)
+    
+    SetEntityVisible(ped, not isVisible, false)
+    
+    print(isVisible and 'Láthatatlan' or 'Látható')
+end, nil, 'Láthatóság kapcsolása')
+```
+
+### Jármű parancsok
+
+```lua
+-- Jármű spawn
+LS:Command('car', 'admin', function(source, args)
+    local character = GetCharacter(source)
+    if not character then return end
+    
+    local model = args.model
+    local coords = character:GetCoords()
+    
+    -- Model hash ellenőrzés
+    if not IsModelValid(model) then
+        return print('Érvénytelen jármű model')
+    end
+    
+    -- Jármű létrehozása
+    local vehicle = CreateVehicle(
+        GetHashKey(model),
+        coords.x, coords.y, coords.z, coords.w,
+        true, false
+    )
+    
+    -- Játékos beleültetése
+    TaskWarpPedIntoVehicle(character:GetPed(), vehicle, -1)
+    
+    print('Jármű spawnolva:', model)
+end, {
+    {name = 'model', type = 'string'}
+}, 'Jármű spawn')
+
+-- Jármű törlése
+LS:Command('dv', 'admin', function(source, args)
+    local character = GetCharacter(source)
+    if not character then return end
+    
+    local ped = character:GetPed()
+    local vehicle = GetVehiclePedIsIn(ped, false)
+    
+    if vehicle == 0 then
+        return print('Nincs járműben')
+    end
+    
+    DeleteEntity(vehicle)
+    print('Jármű törölve')
+end, nil, 'Aktuális jármű törlése')
+
+-- Jármű javítása
+LS:Command('fix', 'admin', function(source, args)
+    local target = args.target or source
+    local ped = GetPlayerPed(target)
+    local vehicle = GetVehiclePedIsIn(ped, false)
+    
+    if vehicle == 0 then
+        return print('Nincs járműben')
+    end
+    
+    SetVehicleFixed(vehicle)
+    SetVehicleDeformationFixed(vehicle)
+    SetVehicleUndriveable(vehicle, false)
+    
+    print('Jármű megjavítva')
+end, {
+    {name = 'target', type = 'playerId', optional = true}
+}, 'Jármű javítása')
+```
+
+### Csoport kezelés
+
+```lua
+-- Job adása
+LS:Command('setjob', 'admin', function(source, args)
+    local character = GetCharacter(args.target)
+    if not character then
+        return print('Karakter nem található')
+    end
+    
+    local group = Private.Groups[args.job]
+    if not group then
+        return print('Csoport nem létezik')
+    end
+    
+    local success, msg = character:SetGroup(args.job, args.rank or 'default')
+    
+    print(success and 'Job beállítva' or msg)
+end, {
+    {name = 'target', type = 'playerId'},
+    {name = 'job', type = 'string'},
+    {name = 'rank', type = 'string', optional = true}
+}, 'Job beállítása')
+
+-- Admin csoport beállítása
+LS:Command('setadmin', 'owner', function(source, args)
+    local player = GetPlayer(args.target)
+    if not player then
+        return print('Player nem található')
+    end
+    
+    local success, msg = player:SetGroup(args.group)
+    
+    print(success and 'Admin csoport beállítva' or msg)
+end, {
+    {name = 'target', type = 'playerId'},
+    {name = 'group', type = 'string'}
+}, 'Admin csoport beállítása')
+```
+
+### Szerver információk
+
+```lua
+-- Online játékosok
+LS:Command('players', 'moderator', function(source)
+    local players = GetPlayers()
+    
+    print(('Online játékosok (%d):'):format(#players))
+    for _, playerId in ipairs(players) do
+        local player = GetPlayer(playerId)
+        if player then
+            print(('  [%d] %s'):format(playerId, GetPlayerName(playerId)))
+        end
+    end
+end, nil, 'Online játékosok listája')
+
+-- Szerver státusz
+LS:Command('status', 'admin', function(source)
+    local players = GetPlayers()
+    local maxPlayers = GetConvarInt('sv_maxclients', 32)
+    
+    print('=== Szerver státusz ===')
+    print(('Játékosok: %d / %d'):format(#players, maxPlayers))
+    print(('Memória: %.2f MB'):format(collectgarbage('count') / 1024))
+end, nil, 'Szerver státusz')
+```
+
+### Funkció példák
+
+```lua
+-- Több funkció regisztrálása
+LS:RegisterFunction('teleportPlayer', 'moderator', function(source, args)
+    local character = GetCharacter(args.target)
+    if not character then
+        return false, 'Karakter nem található'
+    end
+    
+    character:SetCoords(vector3(args.x, args.y, args.z))
+    return true, 'Teleportálva'
+end, {
+    {name = 'target', type = 'playerId'},
+    {name = 'x', type = 'number'},
+    {name = 'y', type = 'number'},
+    {name = 'z', type = 'number'}
+})
+
+LS:RegisterFunction('giveItem', 'admin', function(source, args)
+    -- Item adás logika
+    return true, ('Item adva: %s x%d'):format(args.item, args.amount)
+end, {
+    {name = 'target', type = 'playerId'},
+    {name = 'item', type = 'string'},
+    {name = 'amount', type = 'number'}
+})
+
+-- Parancs funkció hívással
+LS:Command('tpplayer', 'moderator', 'teleportPlayer', {
+    {name = 'target', type = 'playerId'},
+    {name = 'x', type = 'number'},
+    {name = 'y', type = 'number'},
+    {name = 'z', type = 'number'}
+}, 'Játékos teleportálása')
+
+LS:Command('giveitem', 'admin', 'giveItem', {
+    {name = 'target', type = 'playerId'},
+    {name = 'item', type = 'string'},
+    {name = 'amount', type = 'number'}
+}, 'Item adása')
+```
+
+## ACL integráció
+
+Az admin rendszer automatikusan beállítja az ACL-t:
+
+```lua
+-- Hierarchia beállítása
+owner → dev → headadmin → admin → moderator → user
+
+-- Principal hozzáadás
+LS:AddPrincipal('player.1', 'admin')
+
+-- ACE hozzáadás
+LS:AddAce('admin', 'command.kick')
+LS:AddAce('headadmin', 'command')  -- Minden parancs
+```
+
+## Szolgálat rendszer
+
+```lua
+-- Duty be/ki (Player metódus)
+local player = GetPlayer(source)
+player:SetDuty(true)   -- Szolgálatba lépés
+player:SetDuty(false)  -- Kilépés
+
+-- Szolgálat ellenőrzése
+if player:GetDuty() then
+    print('Szolgálatban')
+end
+
+-- Admins tábla
+if Admins[player.playerId] then
+    print('Admin szolgálatban:', Admins[player.playerId].label)
+end
+```
+
+## Következő lépések
+
+- 👤 [Player osztály](/core/internal/player) - SetDuty, GetDuty metódusok
+- 🔒 [ACL rendszer](/core/internal#acl-rendszer) - Jogosultság kezelés
+- 🏠 [Core áttekintés](/core/internal) - Belső rendszerek
+
+---
+
+**Tipp:** Használj beszédes parancsneveket és alias-okat a könnyebb használathoz!

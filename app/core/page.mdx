@@ -1,0 +1,410 @@
+# LS Core - Kezdő lépések
+
+Üdvözöllek az LS Core dokumentációjában! Ez az útmutató segít megérteni és használni az LS Core inicializációs rendszerét.
+
+## Mi az LS Core?
+
+Az **LS Core** egy modern, moduláris FiveM framework, amely:
+- 🚀 **Gyors és hatékony** - Lazy loading, csak a használt modulok töltődnek be
+- 🔧 **Moduláris** - 30+ beépített modul (animáció, blipek, kamera, UI, stb.)
+- 💡 **Egyszerű használat** - Intuitív API, magyar dokumentáció
+- 🔌 **Bővíthető** - Saját modulok regisztrálása
+- 📚 **Típusbiztos** - LuaLS típus annotációk IDE támogatáshoz
+
+## Gyors kezdés
+
+### 1. Resource manifest beállítása
+
+```lua
+-- fxmanifest.lua
+fx_version 'cerulean'
+game 'gta5'
+lua54 'yes'  -- Kötelező!
+
+-- LS Core inicializálása
+shared_script '@ls_core/init.lua'
+
+-- Saját fájlok
+client_scripts {
+    'client.lua'
+}
+
+server_scripts {
+    'server.lua'
+}
+```
+
+### 2. Első script
+
+```lua
+-- client.lua
+CreateThread(function()
+    -- Logger használata
+    LS.Logger:Info('Script elindult!')
+    
+    -- Blip létrehozása
+    local blip = LS.Blips:Create({
+        position = vector3(0.0, 0.0, 72.0),
+        settings = {
+            sprite = 1,
+            text = 'Fontos hely'
+        }
+    })
+    
+    -- Cache objektum használata
+    while true do
+        Wait(1000)
+        print('Játékos ID:', cache.serverId)
+        print('Ped ID:', cache.ped)
+    end
+end)
+```
+
+### 3. Server.cfg beállítása
+
+```cfg
+# LS Core-t először kell indítani!
+ensure ls_core
+ensure my_resource
+```
+
+## Alapfogalmak
+
+### LS objektum
+
+Az **LS objektum** biztosítja a hozzáférést az összes modulhoz:
+
+```lua
+-- Modulok automatikusan betöltődnek első használatkor
+LS.Logger:Info('Üzenet')           -- Logger modul
+LS.Blips:Create({...})             -- Blips modul
+LS.Callback:Register(...)          -- Callback modul
+LS.Anim:Play(...)                  -- Animation modul
+```
+
+**Előnyök:**
+- ✅ Lazy loading - csak a használt modulok töltődnek be
+- ✅ Kisebb memóriahasználat
+- ✅ Gyorsabb inicializálás
+
+### Cache objektum
+
+A **cache objektum** gyorsítótárazást biztosít:
+
+```lua
+-- Beépített értékek (automatikusan frissülnek)
+cache.playerId      -- PlayerId()
+cache.serverId      -- GetPlayerServerId()
+cache.ped          -- PlayerPedId()
+cache.vehicle      -- GetVehiclePedIsIn()
+cache.resource     -- GetCurrentResourceName()
+cache.game         -- GetGameName()
+
+-- Saját értékek cache-elése
+local result = cache('myKey', function()
+    return ExpensiveCalculation()
+end)
+
+-- Timeout-tal (5 másodperc után törlődik)
+local temp = cache('tempKey', function()
+    return GetValue()
+end, 5000)
+```
+
+### Utility funkciók
+
+```lua
+-- SetInterval / ClearInterval (JavaScript-szerű)
+local intervalId = SetInterval(function()
+    print('5 másodpercenként fut')
+end, 5000)
+
+ClearInterval(intervalId)
+```
+
+## LS Core modulok
+
+Az LS Core 30+ modult tartalmaz különböző kategóriákban:
+
+### 🎭 Animációk és effektek
+- **Anim** - Animációk és scenariók lejátszása
+- **Camera** - Scriptes kamera rendszer
+- **Blips** - Térkép blipek kezelése
+
+### 💬 Kommunikáció
+- **Callback** - Kliens-szerver callback rendszer
+- **UI** - Értesítések, TextUI, dialógusok
+
+### 🌍 Játék rendszerek
+- **Zones** - Zóna rendszer (sphere, box, poly)
+- **Raycast** - Célzó sugár
+- **Keybinds** - Billentyű kötések
+- **Cron** - Időzített feladatok
+
+### 🔧 Utility
+- **Logger** - Logolás (Info, Warn, Error, Debug)
+- **Math** - Matematikai segédfunkciók
+- **Table** - Tábla műveletek
+- **Streaming** - Asset betöltés (modellek, animációk)
+
+### 📍 Proximity
+- **GetClosest** - Legközelebbi entitás keresése
+- **GetNearby** - Közeli entitások listázása
+
+[Teljes modul lista →](/core/modules)
+
+## Init.lua rendszer részletesen
+
+Az `init.lua` az LS Core inicializációs rendszere, amely lehetővé teszi más resource-ok számára az LS Core használatát.
+
+### Hogyan működik a modul betöltés?
+
+```lua
+-- 1. Ellenőrzi a külső modult registry-ben
+local moduleInfo = exports.ls_core:GetModule('MyModule')
+
+-- 2. Ha megtalálta, külső resource-ból tölti
+if moduleInfo then
+    resourceToLoad = moduleInfo.resource
+    dir = moduleInfo.path
+else
+    -- 3. Különben ls_core/modules-ból tölti
+    resourceToLoad = 'ls_core'
+    dir = 'modules/MyModule'
+end
+
+-- 4. Megpróbálja betölteni a megfelelő fájlokat
+```
+
+**Keresési minta (kliens):**
+1. `modules/MyModule/client.lua`
+2. `modules/MyModule/client/init.lua`
+3. `modules/MyModule/shared.lua`
+4. `modules/MyModule/shared/init.lua`
+
+### Külső modulok regisztrálása
+
+Saját resource modulként regisztrálható:
+
+```lua
+-- my_module/fxmanifest.lua
+fx_version 'cerulean'
+game 'gta5'
+lua54 'yes'
+
+shared_script '@ls_core/init.lua'
+server_script 'server.lua'
+
+-- my_module/server.lua
+local MyModule = {}
+
+function MyModule:DoSomething(data)
+    LS.Logger:Info('Működik!')
+    return true
+end
+
+-- Modul regisztrálása
+LS:RegisterModule('MyModule', 'my_module')
+
+return MyModule
+```
+
+**Használat más resource-ban:**
+
+```lua
+-- Bármely más resource
+LS.MyModule:DoSomething({key = 'value'})
+```
+
+## Context specifikus funkciók
+
+### Kliens oldal
+
+```lua
+-- Játékos adatok
+LS.PlayerData = {
+    identifier = 'license:xxx',
+    discord = 'discord:xxx',
+    adminGroup = 'user'
+}
+
+-- Karakter adatok
+LS.CharacterData = {
+    charId = 1,
+    firstName = 'John',
+    lastName = 'Doe',
+    fullName = 'John Doe'
+}
+
+-- Események
+RegisterNetEvent('Core:Client:CharacterLoaded', function(characterData)
+    print('Karakter betöltve:', characterData.fullName)
+end)
+
+RegisterNetEvent('Core:Client:CharacterLogout', function()
+    print('Karakter kijelentkezett')
+end)
+```
+
+### Szerver oldal
+
+```lua
+-- Game pool
+local peds = GetGamePool('CPed')
+local vehicles = GetGamePool('CVehicle')
+local objects = GetGamePool('CObject')
+
+-- Aktív játékosok
+local players = GetActivePlayers()
+for _, playerId in ipairs(players) do
+    print('Játékos:', GetPlayerName(playerId))
+end
+```
+
+## Gyakorlati példák
+
+### Callback rendszer
+
+```lua
+-- Szerver
+LS.Callback:Register('getPlayerMoney', function(source)
+    local player = GetPlayer(source)
+    return player.money
+end)
+
+-- Kliens
+local money = LS.Callback:Await('getPlayerMoney', false)
+print('Pénzem:', money)
+```
+
+### Animáció lejátszás
+
+```lua
+-- Egyszerű animáció
+LS.Anim:Play('smoke', false, false)  -- Dohányzás
+
+-- Custom animáció
+LS.Anim:Play({
+    dict = 'mp_player_inteat@burger',
+    name = 'mp_player_int_eat_burger',
+    duration = 5000,
+    flag = 'freezeLastFrame'
+})
+```
+
+### Blip létrehozás
+
+```lua
+local blip = LS.Blips:Create({
+    position = vector3(123.0, 456.0, 28.0),
+    settings = {
+        sprite = 108,
+        color = 3,
+        text = 'Bank',
+        scale = 0.8
+    }
+})
+```
+
+### UI használat
+
+```lua
+-- Értesítés
+LS.UI:Notification({
+    title = 'Siker',
+    description = 'Művelet sikeres!',
+    type = 'success'
+})
+
+-- TextUI
+LS.UI:ShowTextUI('[E] Interakció')
+Wait(5000)
+LS.UI:HideTextUI()
+
+-- Progress bar
+LS.UI:Progressbar({
+    label = 'Javítás folyamatban...',
+    duration = 10000
+})
+```
+
+## Hibakezelés
+
+### Gyakori hibák
+
+**1. Lua 5.4 hiányzik**
+```
+Error: Lua 5.4 must be enabled in the resource manifest!
+```
+**Megoldás:** Add hozzá `lua54 'yes'` a fxmanifest.lua-hoz
+
+**2. LS Core nincs indítva**
+```
+Error: ls_core must be started before this resource.
+```
+**Megoldás:** A server.cfg-ben indítsd az ls_core-t előbb
+
+**3. Dupla betöltés**
+```
+Error: Cannot load ls_core more than once.
+```
+**Megoldás:** Távolítsd el a duplikált `shared_script '@ls_core/init.lua'` sorokat
+
+## Teljesítmény optimalizálás
+
+### Lazy loading használata
+
+```lua
+-- Ez NEM tölti be a Logger modult azonnal
+local MyScript = {}
+
+function MyScript.init()
+    LS.Logger:Info('Init')  -- Itt töltődik be
+end
+```
+
+### Cache használata
+
+```lua
+-- ❌ Rossz - natív hívás minden frame-ben
+CreateThread(function()
+    while true do
+        Wait(0)
+        local ped = PlayerPedId()  -- Natív hívás
+    end
+end)
+
+-- ✅ Jó - cache használata
+CreateThread(function()
+    while true do
+        Wait(0)
+        local ped = cache.ped  -- Cache-ből
+    end
+end)
+```
+
+## Fejlesztési tippek
+
+1. ✅ **Mindig használd a `lua54 'yes'`-t** - Az LS Core Lua 5.4-et igényel
+2. ✅ **Indítsd az ls_core-t először** - Server.cfg-ben legyen előbb
+3. ✅ **Használj cache-t** - Teljesítmény optimalizáláshoz
+4. ✅ **Lazy loading** - A modulok automatikusan betöltődnek
+5. ✅ **Típus annotációk** - Használd a LuaLS típusokat az IDE-ben
+
+## Következő lépések
+
+- 📖 [Modulok dokumentáció](/core/modules) - Összes modul részletesen
+- 🔤 [Típusok](/core/types) - LuaLS típus definíciók
+- 💡 Példák böngészése a modul oldalakon
+
+## Jó tudni
+
+- Az `init.lua` nem töltődik be az ls_core resource-ban (ott a `core/init.lua` használatos)
+- A msgpack automatikusan ignorálja az invalid típusokat (userdata)
+- A cache automatikusan frissül események útján
+- A modulok újratölthetők cache clearelésével
+- Támogatja a külső modulok regisztrálását
+
+---
+
+**Kérdésed van?** Nézd meg a modulok dokumentációját vagy vess egy pillantást a példákra!

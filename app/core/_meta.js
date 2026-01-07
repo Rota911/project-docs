@@ -1,3 +1,5 @@
 export default {
-  modules: 'Modulok'
+  modules: 'Modulok',
+  types: 'Típusok',
+  internal: 'Belső rendszerek'
 }

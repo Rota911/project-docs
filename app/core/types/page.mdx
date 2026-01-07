@@ -1,0 +1,372 @@
+# Típus definíciók
+
+Az LS Core LuaLS típusdefiníciókat használ a jobb kódkiegészítéshez és típusellenőrzéshez.
+
+## Animáció típusok
+
+### AnimationFlags
+
+Animáció flag értékek, amelyek kombinálhatók (bitwise OR).
+
+```lua
+---@alias AnimationFlags number
+```
+
+**Gyakori értékek:**
+
+| Flag | Érték | Leírás |
+|------|-------|--------|
+| DEFAULT | 0 | Alapértelmezett |
+| LOOPING | 1 | Ismétlődő animáció |
+| HOLD_LAST_FRAME | 2 | Utolsó frame tartása |
+| NOT_INTERRUPTABLE | 8 | Nem szakítható meg |
+| UPPERBODY | 16 | Csak felső test |
+| SECONDARY | 32 | Másodlagos animáció |
+| ABORT_ON_PED_MOVEMENT | 128 | Megszakítás mozgáskor |
+| HIDE_WEAPON | 1048576 | Fegyver elrejtése |
+
+**Példa:**
+
+```lua
+-- Loop + megszakítható
+local flags = 1 | 8  -- LOOPING + NOT_INTERRUPTABLE = 9
+
+LS.Anim:Play(cache.ped, 'anim_dict', 'anim_name', {
+    animFlags = flags
+})
+```
+
+### AnimPlayOptions
+
+```lua
+---@class AnimPlayOptions
+---@field reverse? boolean Animáció visszafelé
+---@field blendInSpeed? number Belépési sebesség (alapértelmezett: 8.0)
+---@field blendOutSpeed? number Kilépési sebesség (alapértelmezett: -8.0)
+---@field duration? integer Időtartam ms-ban (alapértelmezett: -1)
+---@field animFlags? AnimationFlags Flag értékek
+---@field startPhase? number Kezdő fázis (alapértelmezett: 0.0)
+---@field phaseControlled? boolean Fázis kontrollált
+---@field controlledPhase? boolean Kontrollált fázis
+---@field overrideCloneUpdate? boolean Clone update felülírása
+---@field prop? AnimPropOptions | AnimPropOptions[] Prop beállítások
+```
+
+### AnimPropOptions
+
+```lua
+---@class AnimPropOptions
+---@field model? number Model hash
+---@field bone? number Bone index
+---@field offset? vector3 Pozíció eltolás
+---@field rot? vector3 Forgatás
+---@field rotationOrder? number Forgatási sorrend (alapértelmezett: 2)
+```
+
+**Példa:**
+
+```lua
+LS.Anim:Play(cache.ped, 'anim_dict', 'anim_name', {
+    duration = 5000,
+    animFlags = 49,
+    prop = {
+        model = `prop_phone_01`,
+        bone = 57005,
+        offset = vector3(0.14, 0.01, -0.02),
+        rot = vector3(110.0, 120.0, -15.0),
+        rotationOrder = 2
+    }
+})
+```
+
+## UI típusok
+
+### Notification
+
+```lua
+---@class Notification
+---@field title string? Értesítés címe
+---@field message string? Fő üzenet
+---@field color string? Szín téma (Mantine UI szín)
+---@field icon string? Ikon neve
+---@field type "info"|"error"|"warning"|"success"? Értesítés típusa
+---@field duration number? Időtartam ms-ban (auto-close előtt)
+---@field badges table? Badge-ek tömbje
+---@field startTime number? Kezdési időbélyeg
+---@field progressType "hexagon"|"circle"? Progress jelző alakja
+---@field hideProgress boolean? Progress elrejtése
+---@field position "top-right"|"top-left"|"top-center"|"bottom-right"|"bottom-left"? Képernyő pozíció
+```
+
+**Példa:**
+
+```lua
+LS.UI:Notification({
+    title = 'Siker',
+    message = 'Művelet sikeresen végrehajtva',
+    type = 'success',
+    duration = 5000,
+    position = 'top-right',
+    icon = 'check'
+})
+```
+
+### TextUI
+
+```lua
+---@class TextUI
+---@field id string Egyedi azonosító
+---@field keyText string? Billentyű szöveg
+---@field text string Megjelenítendő szöveg
+---@field color string? Szín
+---@field keyStyle "square" | "hexagon" | "circle"? Billentyű stílusa
+---@field position "left-center" | "right-center" | "bottom-center"? Pozíció
+```
+
+**Példa:**
+
+```lua
+LS.UI:TextUI({
+    id = 'interact',
+    keyText = 'E',
+    text = 'Használat',
+    keyStyle = 'square',
+    position = 'bottom-center'
+})
+```
+
+### ProgressbarData
+
+```lua
+---@class ProgressbarData
+---@field label string? Progress bar címkéje
+---@field icon string? Ikon
+---@field color string? Szín
+---@field duration number Időtartam ms-ban
+---@field timerType "seconds"|"percentage"? Timer típusa
+---@field progressType "hexagon"|"circle"? Progress alakja
+---@field anim ProgressbarAnimData? Animáció adatok
+---@field prop ProgressbarPropData | ProgressbarPropData[]? Prop adat(ok)
+---@field disable ProgressbarDisableData? Vezérlők letiltása
+```
+
+**Részletes típusok:**
+
+```lua
+---@class ProgressbarAnimData
+---@field dict string? Animáció dictionary
+---@field clip string? Animáció clip neve
+---@field scenario string? Scenario név
+---@field blendIn number? Blend in sebesség (alapértelmezett: 3.0)
+---@field blendOut number? Blend out sebesség (alapértelmezett: 1.0)
+---@field duration number? Animáció időtartam (alapértelmezett: -1)
+---@field flag number? Animáció flag (alapértelmezett: 49)
+---@field playbackRate number? Lejátszási sebesség (alapértelmezett: 0)
+---@field lockX boolean? X tengely zárolása
+---@field lockY boolean? Y tengely zárolása
+---@field lockZ boolean? Z tengely zárolása
+---@field playEnter boolean? Enter animáció lejátszása (alapértelmezett: true)
+
+---@class ProgressbarPropData
+---@field model string|number Prop model hash vagy név
+---@field bone number? Bone ID (alapértelmezett: 60309)
+---@field pos vector3 Pozíció eltolás
+---@field rot vector3 Forgatás eltolás
+---@field rotOrder number? Forgatási sorrend (alapértelmezett: 0)
+
+---@class ProgressbarDisableData
+---@field mouse boolean? Egér tiltása
+---@field move boolean? Mozgás tiltása
+---@field sprint boolean? Futás tiltása
+---@field car boolean? Jármű vezérlés tiltása
+---@field combat boolean? Harc tiltása
+```
+
+## Player és Character típusok
+
+### Player
+
+```lua
+---@class Player
+---@field source number Játékos source ID
+---@field identifier string Játékos license2
+---@field discord string Discord ID
+---@field playerId number Játékos ID
+---@field adminGroup string Admin csoport
+---@field points number Premium pontok
+---@field duty boolean Szolgálatban van-e
+---@field characters table<number> Karakterek listája
+---@field selectedCharacter number|nil Aktív karakter ID
+---@field isLoggedIn boolean Be van-e jelentkezve karakterbe
+```
+
+**Példa:**
+
+```lua
+-- Szerver oldal
+local player = GetPlayer(source)
+print('Játékos:', player.identifier)
+print('Discord:', player.discord)
+print('Admin csoport:', player.adminGroup)
+```
+
+### Character
+
+```lua
+---@class Character
+---@field source number Player source ID
+---@field charId number Karakter azonosító
+---@field playerId number Játékos azonosító
+---@field stateId number Állapot azonosító
+---@field firstName string Keresztnév
+---@field middleName string|nil Második keresztnév
+---@field lastName string Vezetéknév
+---@field fullName string Teljes név
+---@field dateOfBirth string Születési dátum
+---@field nationality string Nemzetiség
+---@field gender string Nem
+---@field groups table Csoportok és rangok
+---@field specialization string Karakter út típusa (citizen, criminal, stb.)
+---@field positions table Karakter pozíciók
+---@field statuses table Karakter státuszok
+```
+
+**Példa:**
+
+```lua
+-- Szerver oldal
+local character = GetCharacter(source)
+print('Karakter:', character.fullName)
+print('Születési dátum:', character.dateOfBirth)
+print('Specializáció:', character.specialization)
+```
+
+## Group típusok
+
+### Group
+
+```lua
+---@class Group
+---@field id string Csoport azonosító
+---@field label string Csoport neve
+---@field type string Csoport típusa (illegal, legal, state, mechanic, eatery)
+---@field limit number Maximális tagok száma
+---@field ranks table Csoport rangjai
+---@field interactions table Csoport interakciói
+```
+
+### GroupData
+
+```lua
+---@class GroupData
+---@field id string Csoport azonosító
+---@field label string Csoport megjelenítendő név
+---@field type string Csoport típusa
+---@field limit number Létszám korlát
+```
+
+**Példa:**
+
+```lua
+local group = {
+    id = 'police',
+    label = 'Los Santos Police Department',
+    type = 'state',
+    limit = 50,
+    ranks = {
+        {id = 1, label = 'Cadet'},
+        {id = 2, label = 'Officer'},
+        {id = 3, label = 'Sergeant'}
+    }
+}
+```
+
+## Logger típusok
+
+### LoggerLSettings
+
+```lua
+---@class LoggerLSettings
+---@field prefixes string[]? Prefix-ek
+---@field subPrefix string? Al-prefix
+---@field id string? Egyedi log ID (elnyomáshoz)
+```
+
+### LoggerResourceConfig
+
+```lua
+---@class LoggerResourceConfig
+---@field enabled boolean Logging engedélyezve
+---@field prefixes string[]? Resource szintű prefixek
+```
+
+### logLevel
+
+```lua
+---@alias logLevel "info"|"error"|"success"|"warn"|"debug"
+```
+
+**Példa:**
+
+```lua
+local settings = {
+    settings = {
+        prefixes = {'MyScript', 'Module'},
+        subPrefix = 'Function',
+        id = 'unique_log_id'
+    }
+}
+
+LS.Logger:Info('Ez egy info üzenet', settings)
+LS.Logger:Debug('Debug információ', settings)
+```
+
+## Típusok használata a kódban
+
+### LuaLS annotációk
+
+A típusdefiníciók LuaLS annotációkat használnak automatikus kódkiegészítéshez:
+
+```lua
+---@param ped number
+---@param animDict string
+---@param animName string
+---@param options? AnimPlayOptions
+---@return boolean
+function PlayAnimation(ped, animDict, animName, options)
+    return LS.Anim:Play(ped, animDict, animName, options)
+end
+```
+
+### IDE támogatás
+
+Ha Visual Studio Code-ot használsz a LuaLS extension-nel:
+
+1. Telepítsd a **Lua Language Server** extension-t
+2. A típusok automatikusan elérhetők lesznek
+3. IntelliSense támogatás paraméterekhez és visszatérési értékekhez
+
+### Egyéni típusok létrehozása
+
+```lua
+---@class MyCustomType
+---@field name string
+---@field value number
+---@field options table?
+
+---@param data MyCustomType
+---@return boolean
+function ProcessData(data)
+    print(data.name, data.value)
+    return true
+end
+```
+
+## Jó tudni
+
+- A típusdefiníciók csak fejlesztési időben aktívak, futásidőben nincs hatásuk
+- Segítenek elkerülni a típushibákat
+- Javítják az IDE kódkiegészítését
+- Dokumentációként is szolgálnak
+- A `?` opcionális mezőt jelöl
+- A `|` alternatív típusokat jelöl (union types)

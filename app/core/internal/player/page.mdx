@@ -1,0 +1,864 @@
+# Player osztály
+
+A **Player osztály** a játékos alapadatait és funkcióit kezeli. Minden csatlakozott játékoshoz tartozik egy Player objektum, amely tartalmazza az accounthoz kapcsolódó adatokat.
+
+## Player lekérése
+
+```lua
+-- Source alapján
+local player = GetPlayer(source)
+
+-- Player ID alapján
+local player = GetPlayer(123)
+
+-- License alapján
+local player = GetPlayer('license2:xxxxx')
+
+-- Discord ID alapján
+local player = GetPlayer(123456789012345678)
+
+-- LS objektum használata
+local player = LS:GetPlayer(source)
+```
+
+### GetIdentifierType
+
+A rendszer automatikusan felismeri az identifier típusát:
+
+```lua
+-- Source (1-4 számjegy)
+GetPlayer(1)       -- Source
+
+-- Player ID (>4 számjegy, nem 18)
+GetPlayer(12345)   -- Player ID
+
+-- Discord (18 számjegy)
+GetPlayer(123456789012345678)  -- Discord ID
+
+-- License (string)
+GetPlayer('license2:xxxxx')    -- License
+```
+
+## Player tulajdonságok
+
+```lua
+local player = GetPlayer(source)
+
+-- Alapadatok
+player.source          -- number - Játékos source
+player.playerId        -- number - Adatbázis ID
+player.identifier      -- string - License2 azonosító
+player.discord         -- string - Discord azonosító
+
+-- Jogosultságok
+player.adminGroup      -- string - Admin csoport ('user', 'admin', stb.)
+player.duty            -- boolean - Szolgálatban van-e
+
+-- Karakter adatok
+player.characters      -- table - Karakter ID-k listája
+player.selectedCharacter  -- number|nil - Aktív karakter ID
+player.isLoggedIn      -- boolean - Be van-e jelentkezve karakterbe
+
+-- Pontok
+player.points          -- number - Játékos pontjai
+```
+
+## Player metódusok
+
+### Event küldése
+
+Esemény küldése a játékos kliensének.
+
+```lua
+player:Event(eventName, ...)
+```
+
+**Paraméterek:**
+- `eventName` (string) - Event neve
+- `...` - Event paraméterei
+
+**Példa:**
+
+```lua
+local player = GetPlayer(source)
+
+-- Egyszerű event
+player:Event('myResource:notify', 'Hello!')
+
+-- Több paraméterrel
+player:Event('myResource:updateData', {
+    money = 5000,
+    level = 10
+})
+
+-- Belső események
+player:Event('Core:Client:PlayerDataChanged', 'points', 100)
+```
+
+### SetAsLoggedIn
+
+Bejelentkezési státusz beállítása.
+
+```lua
+player:SetAsLoggedIn(state)
+```
+
+**Paraméterek:**
+- `state` (boolean) - Be van-e jelentkezve
+
+**Példa:**
+
+```lua
+local player = GetPlayer(source)
+
+-- Bejelentkeztetés
+player:SetAsLoggedIn(true)
+
+-- Kijelentkeztetés
+player:SetAsLoggedIn(false)
+```
+
+**Működés:**
+- Beállítja a `player.isLoggedIn` értékét
+- Frissíti a player state `isLoggedIn` értékét
+- Logger üzenetet ír
+
+### SetGroup
+
+Admin csoport beállítása.
+
+```lua
+player:SetGroup(group, temporary)
+```
+
+**Paraméterek:**
+- `group` (string) - Csoport neve ('user', 'moderator', 'admin', 'superadmin')
+- `temporary` (boolean|nil) - Ideiglenes-e (alapértelmezett: false)
+
+**Visszatérés:**
+- `success` (boolean) - Sikeres volt-e
+- `message` (string) - Üzenet
+
+**Példa:**
+
+```lua
+local player = GetPlayer(source)
+
+-- Állandó csoport beállítása
+local success, msg = player:SetGroup('admin')
+if success then
+    print('Admin csoport beállítva')
+end
+
+-- Ideiglenes csoport
+player:SetGroup('moderator', true)
+
+-- Vissza user-re
+player:SetGroup('user')
+```
+
+**Működés:**
+- Ellenőrzi a csoport létezését
+- Frissíti az adatbázisban (ha nem temporary)
+- Értesítést küld a játékosnak
+- Triggere eseményt a kliensnek
+
+### GetGroup
+
+Admin csoport lekérdezése.
+
+```lua
+local group = player:GetGroup()
+```
+
+**Visszatérés:**
+- `group` (string) - Admin csoport neve
+
+**Példa:**
+
+```lua
+local player = GetPlayer(source)
+local group = player:GetGroup()
+
+if group == 'admin' then
+    print('Admin jogosultság')
+elseif group == 'moderator' then
+    print('Moderator jogosultság')
+else
+    print('Normál felhasználó')
+end
+```
+
+### SetDuty
+
+Szolgálat be-/kikapcsolása (admin duty).
+
+```lua
+player:SetDuty(state)
+```
+
+**Paraméterek:**
+- `state` (boolean|nil) - Be/ki (nil esetén toggle)
+
+**Példa:**
+
+```lua
+local player = GetPlayer(source)
+
+-- Szolgálatba lépés
+player:SetDuty(true)
+
+-- Kilépés a szolgálatból
+player:SetDuty(false)
+
+-- Toggle (váltás)
+player:SetDuty()
+```
+
+**Működés:**
+- Ellenőrzi az admin jogosultságot
+- Beállítja a `duty` értékét
+- ACL principal kezelés (user ↔ admin group)
+- Player state `isAdmin` frissítése
+- `Admins` táblába való felvétel/törlés
+- Értesítés küldése
+
+**Admins tábla:**
+
+```lua
+-- Szolgálatban lévő adminok
+if Admins[player.playerId] then
+    print('Admin szolgálatban:', Admins[player.playerId].label)
+    print('Rang:', Admins[player.playerId].rank)
+end
+```
+
+### GetDuty
+
+Szolgálat státusz lekérdezése.
+
+```lua
+local isDuty = player:GetDuty()
+```
+
+**Visszatérés:**
+- `duty` (boolean) - Szolgálatban van-e
+
+**Példa:**
+
+```lua
+local player = GetPlayer(source)
+
+if player:GetDuty() then
+    print('Admin szolgálatban')
+else
+    print('Nem szolgálatban')
+end
+```
+
+### Pont kezelés
+
+#### GetPoints
+
+Pontok lekérdezése.
+
+```lua
+local points = player:GetPoints()
+```
+
+**Példa:**
+
+```lua
+local player = GetPlayer(source)
+local points = player:GetPoints()
+
+print('Játékos pontjai:', points)
+```
+
+#### SetPoints
+
+Pontok beállítása (abszolút érték).
+
+```lua
+player:SetPoints(value)
+```
+
+**Paraméterek:**
+- `value` (number) - Új pont érték
+
+**Példa:**
+
+```lua
+local player = GetPlayer(source)
+
+-- Pontok beállítása 1000-re
+player:SetPoints(1000)
+
+-- Nullázás
+player:SetPoints(0)
+```
+
+**Működés:**
+- Validálja a number típust
+- Frissíti az adatbázisban
+- Küld értesítést a játékosnak
+- Triggere eseményt
+
+#### AddPoints
+
+Pontok hozzáadása.
+
+```lua
+player:AddPoints(value)
+```
+
+**Paraméterek:**
+- `value` (number) - Hozzáadandó pontok (lehet negatív is)
+
+**Példa:**
+
+```lua
+local player = GetPlayer(source)
+
+-- 100 pont hozzáadása
+player:AddPoints(100)
+
+-- 50 pont levonása (negatív)
+player:AddPoints(-50)
+```
+
+**Működés:**
+- Validálja a number típust
+- Hozzáadja az értéket a jelenlegi pontokhoz
+- Frissíti az adatbázisban
+- Logger üzenet (régi és új érték)
+- Értesítés küldése
+
+#### RemovePoints
+
+Pontok levonása.
+
+```lua
+player:RemovePoints(value)
+```
+
+**Paraméterek:**
+- `value` (number) - Levonandó pontok
+
+**Példa:**
+
+```lua
+local player = GetPlayer(source)
+
+-- 50 pont levonása
+player:RemovePoints(50)
+
+-- A pontok nem mehetnek 0 alá
+player:RemovePoints(99999)  -- Max 0-ig megy
+```
+
+**Működés:**
+- Validálja a number típust
+- Levonja az értéket (minimum 0)
+- `math.max(0, current - value)` használata
+- Frissíti az adatbázisban
+- Logger üzenet
+- Értesítés küldése
+
+### CreateCharacter
+
+Új karakter létrehozása.
+
+```lua
+player:CreateCharacter(characterData)
+```
+
+**Paraméterek:**
+- `characterData` (table) - Karakter adatok
+
+**characterData struktúra:**
+
+```lua
+{
+    first_name = 'John',
+    middle_name = 'William',  -- Opcionális
+    last_name = 'Doe',
+    birth_date = '1990-05-15',
+    gender = 1,  -- 0: nő, 1: férfi
+    nationality = 'USA',
+    specialization = 'medic',
+    appearance = {...}  -- ls_appearance data
+}
+```
+
+**Visszatérés:**
+- `success` (boolean) - Sikeres volt-e
+- `code` (string) - Eredmény kód
+
+**Eredmény kódok:**
+- `'success_create_character'` - Sikeres
+- `'maximum_character'` - Max 3 karakter létezik
+- `'cannot_save_character'` - Adatbázis hiba
+- `'cannot_save_appearance'` - Appearance mentési hiba
+
+**Példa:**
+
+```lua
+local player = GetPlayer(source)
+
+local success, code = player:CreateCharacter({
+    first_name = 'John',
+    middle_name = 'William',
+    last_name = 'Doe',
+    birth_date = '1990-05-15',
+    gender = 1,
+    nationality = 'Hungarian',
+    specialization = 'civilian',
+    appearance = appearanceData
+})
+
+if success then
+    print('Karakter sikeresen létrehozva!')
+else
+    print('Hiba:', code)
+end
+```
+
+**Működés:**
+1. Ellenőrzi a max karakterszámot (3)
+2. Generál egy egyedi State ID-t
+3. Menti az adatbázisba
+4. Menti az appearance-t
+5. Automatikusan bejelentkezteti a karakterbe
+6. Triggere eseményeket
+
+### SetActiveCharacter
+
+Aktív karakter beállítása (bejelentkezés karakterbe).
+
+```lua
+player:SetActiveCharacter(characterId)
+```
+
+**Paraméterek:**
+- `characterId` (number) - Karakter ID
+
+**Visszatérés:**
+- `success` (boolean) - Sikeres volt-e
+
+**Példa:**
+
+```lua
+local player = GetPlayer(source)
+
+-- Bejelentkezés karakterbe
+local success = player:SetActiveCharacter(123)
+
+if success then
+    print('Karakter betöltve')
+else
+    print('Hiba a karakter betöltésekor')
+end
+```
+
+**Működés:**
+1. Ellenőrzi, hogy nincs-e már bejelentkezve
+2. Lekéri a karakter adatokat
+3. Létrehozza a Character objektumot
+4. Beállítja a `selectedCharacter` értékét
+5. Bejelentkezteti (`SetAsLoggedIn(true)`)
+6. Triggere eseményeket (szerver és kliens)
+
+**Biztonsági ellenőrzés:**
+- Ha már be van jelentkezve → false
+- Ha nem létezik a karakter → false
+
+### GetActiveCharacter
+
+Aktív karakter lekérése.
+
+```lua
+local character = player:GetActiveCharacter()
+```
+
+**Visszatérés:**
+- `character` (Character|nil) - Character objektum vagy nil
+
+**Példa:**
+
+```lua
+local player = GetPlayer(source)
+local character = player:GetActiveCharacter()
+
+if character then
+    print('Karakter neve:', character.fullName)
+    print('Pozíció:', character.position)
+else
+    print('Nincs bejelentkezve karakterbe')
+end
+```
+
+**Használat:**
+
+```lua
+RegisterNetEvent('myResource:doSomething', function()
+    local player = GetPlayer(source)
+    local character = player:GetActiveCharacter()
+    
+    if not character then
+        return print('Nincs aktív karakter')
+    end
+    
+    -- Character metódusok használata
+    character:SetCoords(vector3(0, 0, 72))
+    character:Save()
+end)
+```
+
+### UpdateSource
+
+Source frissítése (reconnect esetén).
+
+```lua
+player:UpdateSource(newSource)
+```
+
+**Paraméterek:**
+- `newSource` (number) - Új source
+
+**Példa:**
+
+```lua
+-- Reconnect kezelése
+local player = GetPlayer(oldIdentifier)
+if player then
+    player:UpdateSource(newSource)
+end
+```
+
+## Player konstruktor
+
+Új Player objektum létrehozása (automatikus).
+
+```lua
+-- Belső használat
+local player = require 'core.server.player.modules.playerClass'(playerSrc, identifiers)
+```
+
+**Működés:**
+1. Validálja a source-t
+2. Lekéri a playerId-t az adatbázisból
+3. Ha nem létezik → létrehozza
+4. Betölti a karaktereket, pontokat, csoportot
+5. Beállítja a player state-et
+6. Hozzáadja az alapértelmezett ACL principal-t
+
+## Gyakorlati példák
+
+### Pont rendszer
+
+```lua
+RegisterCommand('addpoints', function(source, args)
+    local player = GetPlayer(source)
+    local amount = tonumber(args[1])
+    
+    if not amount then
+        return print('Hibás összeg')
+    end
+    
+    player:AddPoints(amount)
+    print(('Pontok hozzáadva: %d (Új egyenleg: %d)'):format(
+        amount, 
+        player:GetPoints()
+    ))
+end)
+
+RegisterCommand('mypoints', function(source)
+    local player = GetPlayer(source)
+    local points = player:GetPoints()
+    
+    TriggerClientEvent('chat:addMessage', source, {
+        args = {'Pontjaid: ' .. points}
+    })
+end)
+```
+
+### Admin duty kezelés
+
+```lua
+RegisterCommand('duty', function(source)
+    local player = GetPlayer(source)
+    
+    if player:GetGroup() == 'user' then
+        return print('Nincs admin jogosultságod')
+    end
+    
+    player:SetDuty()  -- Toggle
+    
+    local isDuty = player:GetDuty()
+    print(isDuty and 'Szolgálatba léptél' or 'Kiléptél a szolgálatból')
+end)
+
+-- Admin lista
+RegisterCommand('admins', function(source)
+    local list = {}
+    
+    for playerId, data in pairs(Admins) do
+        local player = GetPlayer(playerId)
+        if player then
+            table.insert(list, {
+                name = GetPlayerName(player.source),
+                rank = data.label
+            })
+        end
+    end
+    
+    print('Szolgálatban lévő adminok:', json.encode(list, {indent=true}))
+end)
+```
+
+### Karakter választó
+
+```lua
+RegisterNetEvent('characterSelector:selectCharacter', function(characterId)
+    local source = source
+    local player = GetPlayer(source)
+    
+    if not player then
+        return print('Player nem található')
+    end
+    
+    -- Ellenőrizzük, hogy a játékosé-e a karakter
+    if not player.characters or not table.contains(player.characters, characterId) then
+        return print('Ez a karakter nem a tied')
+    end
+    
+    -- Bejelentkezés karakterbe
+    local success = player:SetActiveCharacter(characterId)
+    
+    if success then
+        print('Karakter sikeresen betöltve:', characterId)
+    else
+        print('Hiba a karakter betöltésekor')
+    end
+end)
+```
+
+### Karakter létrehozás
+
+```lua
+RegisterNetEvent('characterCreator:createCharacter', function(data)
+    local source = source
+    local player = GetPlayer(source)
+    
+    if not player then
+        return print('Player nem található')
+    end
+    
+    -- Validáció
+    if not data.first_name or not data.last_name then
+        return TriggerClientEvent('characterCreator:error', source, 'Hiányos adatok')
+    end
+    
+    -- Karakter létrehozása
+    local success, code = player:CreateCharacter({
+        first_name = data.first_name,
+        middle_name = data.middle_name,
+        last_name = data.last_name,
+        birth_date = data.birth_date,
+        gender = data.gender,
+        nationality = data.nationality,
+        specialization = data.specialization,
+        appearance = data.appearance
+    })
+    
+    if success then
+        TriggerClientEvent('characterCreator:success', source)
+        print('Új karakter létrehozva:', data.first_name, data.last_name)
+    else
+        local errorMessages = {
+            maximum_character = 'Maximum 3 karaktered lehet',
+            cannot_save_character = 'Adatbázis hiba',
+            cannot_save_appearance = 'Kinézet mentési hiba'
+        }
+        
+        TriggerClientEvent('characterCreator:error', source, errorMessages[code])
+    end
+end)
+```
+
+### Multi-identifier keresés
+
+```lua
+-- Source alapján
+local player1 = GetPlayer(1)
+
+-- Player ID alapján
+local player2 = GetPlayer(12345)
+
+-- License alapján
+local player3 = GetPlayer('license2:xxxxx')
+
+-- Discord alapján
+local player4 = GetPlayer(123456789012345678)
+
+-- Mind ugyanaz a játékos lehet
+if player1.playerId == player2.playerId then
+    print('Ugyanaz a játékos')
+end
+```
+
+### Admin rendszer
+
+```lua
+-- Admin csoport beállítása
+RegisterCommand('setadmin', function(source, args)
+    local targetSrc = tonumber(args[1])
+    local group = args[2] or 'admin'
+    
+    local player = GetPlayer(targetSrc)
+    if not player then
+        return print('Játékos nem található')
+    end
+    
+    local success, msg = player:SetGroup(group)
+    print(success and 'Admin csoport beállítva' or msg)
+end)
+
+-- Ideiglenes admin
+RegisterCommand('tempadmin', function(source, args)
+    local targetSrc = tonumber(args[1])
+    local player = GetPlayer(targetSrc)
+    
+    if not player then
+        return print('Játékos nem található')
+    end
+    
+    -- Ideiglenes admin - nem menti az adatbázisban
+    player:SetGroup('admin', true)
+    print('Ideiglenes admin beállítva (resource restart után törlődik)')
+end)
+```
+
+## Események
+
+### Szerver események
+
+```lua
+-- Player létrehozva
+AddEventHandler('Core:Server:PlayerCreated', function(source, player)
+    print('Új player:', player.playerId)
+end)
+
+-- Karakter létrehozva
+AddEventHandler('Core:Server:CharacterCreated', function(source, character)
+    print('Új karakter:', character.charId)
+end)
+
+-- Karakter betöltve
+AddEventHandler('Core:Server:CharacterLoaded', function(source, charId)
+    local character = GetCharacter(charId)
+    print('Karakter betöltve:', character.fullName)
+end)
+
+-- Karakter kijelentkezve
+AddEventHandler('Core:Server:CharacterLogout', function(source, charId)
+    print('Karakter kijelentkezett:', charId)
+end)
+```
+
+### Kliens események
+
+```lua
+-- Automatikusan triggerelődnek a Player metódusok által
+
+-- Player adat változás
+RegisterNetEvent('Core:Client:PlayerDataChanged', function(key, value)
+    print('Player adat változott:', key, value)
+end)
+
+-- Karakter betöltve
+RegisterNetEvent('Core:Client:CharacterLoaded', function(characterData)
+    print('Karakter betöltve:', characterData.fullName)
+end)
+
+-- Karakter létrehozva
+RegisterNetEvent('Core:Client:CharacterCreated', function(characterData)
+    print('Új karakter:', characterData.fullName)
+end)
+
+-- Karakter kijelentkezve
+RegisterNetEvent('Core:Client:CharacterLogout', function(charId)
+    print('Kijelentkezve')
+end)
+```
+
+## Private.Players tábla
+
+```lua
+-- Belső adatok tárolása
+Private.Players = {
+    [playerId] = {
+        source = 1,
+        playerId = 123,
+        identifier = 'license2:xxxxx',
+        discord = 'discord:xxxxx',
+        adminGroup = 'user',
+        duty = false,
+        characters = {1, 2, 3},
+        selectedCharacter = 1,
+        isLoggedIn = true,
+        points = 1000
+    }
+}
+
+-- Közvetlen hozzáférés (csak olvasásra!)
+local playerData = Private.Players[playerId]
+print('Source:', playerData.source)
+```
+
+**Figyelem:** Ne módosítsd közvetlenül a Private.Players táblát! Mindig használd a Player metódusokat.
+
+## State változók
+
+```lua
+-- Player state
+Player(source).state:get('playerId')     -- Player ID
+Player(source).state:get('isLoggedIn')   -- Be van-e jelentkezve
+Player(source).state:get('isAdmin')      -- Szolgálatban van-e
+
+-- Kliens oldalon
+LocalPlayer.state.isLoggedIn  -- boolean
+LocalPlayer.state.isAdmin     -- boolean|nil
+```
+
+## Típus annotációk
+
+```lua
+---@class Player
+---@field source number
+---@field playerId number
+---@field identifier string
+---@field discord string
+---@field adminGroup string
+---@field duty boolean
+---@field characters table
+---@field selectedCharacter number|nil
+---@field isLoggedIn boolean
+---@field points number
+
+---@param source number
+---@return Player|nil
+local player = GetPlayer(source)
+```
+
+## Következő lépések
+
+- 👤 [Character osztály](/core/internal/character) - Karakter kezelés
+- 🔒 [ACL rendszer](/core/internal#acl-rendszer) - Jogosultságok
+- 👥 [Group rendszer](/core/internal#group-rendszer) - Csoportok
+- 🏠 [Core áttekintés](/core/internal) - Belső rendszerek
+
+---
+
+**Fontos:** A Player objektumok az LS Core belső működéséhez tartoznak. Módosításuk előtt mindig gondold át a következményeket!

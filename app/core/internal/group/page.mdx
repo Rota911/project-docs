@@ -1,0 +1,825 @@
+# Group osztály
+
+A **Group osztály** a csoportok (job/gang) kezelését végzi. Minden regisztrált csoporthoz tartozik egy Group objektum, amely tartalmazza a csoport adatait és metódusait.
+
+## Group lekérése
+
+```lua
+-- Csoport ID alapján
+local group = Private.Groups['police']
+
+-- Példa csoportok
+local police = Private.Groups['police']
+local ambulance = Private.Groups['ambulance']
+local mechanic = Private.Groups['mechanic']
+```
+
+## Group tulajdonságok
+
+```lua
+local group = Private.Groups['police']
+
+-- Alapadatok
+group.id            -- string - Csoport azonosító (pl: 'police')
+group.label         -- string - Megjelenített név
+group.type          -- string - Típus ('job', 'gang', stb.)
+group.limit         -- number - Max tagszám (-1 = korlátlan)
+
+-- Struktúrák
+group.ranks         -- table - Rangok táblázata
+group.interactions  -- table - Interakciók
+group.garage        -- table|nil - Garázs koordináták
+```
+
+## Rang kezelés
+
+### AddRank
+
+Új rang hozzáadása a csoporthoz.
+
+```lua
+local success, message = group:AddRank(rank, rankData)
+```
+
+**Paraméterek:**
+- `rank` (string) - Rang azonosító
+- `rankData` (table) - Rang adatok
+
+**rankData struktúra:**
+```lua
+{
+    label = 'Gyakornok',
+    salary = 1000,
+    permissions = {'access.armory', 'use.vehicle'}
+}
+```
+
+**Visszatérés:**
+- `success` (boolean) - Sikeres volt-e
+- `message` (string|nil) - Hibaüzenet
+
+**Példa:**
+
+```lua
+local group = Private.Groups['police']
+
+local success, msg = group:AddRank('recruit', {
+    label = 'Újonc',
+    salary = 800,
+    permissions = {'access.station'}
+})
+
+if success then
+    print('Rang létrehozva')
+else
+    print('Hiba:', msg)
+end
+```
+
+### RemoveRank
+
+Rang eltávolítása a csoportból.
+
+```lua
+local success, message = group:RemoveRank(rank)
+```
+
+**Paraméterek:**
+- `rank` (string) - Rang azonosító
+
+**Visszatérés:**
+- `success` (boolean)
+- `message` (string|nil)
+
+**Példa:**
+
+```lua
+local group = Private.Groups['police']
+
+local success, msg = group:RemoveRank('recruit')
+
+if success then
+    print('Rang törölve')
+else
+    print('Hiba:', msg)
+end
+```
+
+**Működés:**
+- Ellenőrzi, hogy létezik-e a rang
+- Védett rangokat nem lehet törölni
+- Az érintett tagokat átrakja 'default' rangra
+- Frissíti az adatbázisban
+
+### UpdateRank
+
+Rang adatainak módosítása.
+
+```lua
+local success, message = group:UpdateRank(rank, data)
+```
+
+**Paraméterek:**
+- `rank` (string) - Rang azonosító
+- `data` (table) - Módosítandó adatok
+
+**data opciók:**
+```lua
+{
+    label = 'Új név',        -- Megjelenített név
+    salary = 1500,           -- Fizetés
+    permissions = {...}      -- Jogosultságok (csak nem védett rangokhoz)
+}
+```
+
+**Példa:**
+
+```lua
+local group = Private.Groups['police']
+
+group:UpdateRank('officer', {
+    label = 'Rendőr tiszt',
+    salary = 1200
+})
+```
+
+### SetRanks
+
+Összes rang beállítása (felülírás).
+
+```lua
+local success, message = group:SetRanks(ranks)
+```
+
+**Paraméterek:**
+- `ranks` (table) - Teljes rang struktúra
+
+**Példa:**
+
+```lua
+local group = Private.Groups['police']
+
+group:SetRanks({
+    ['1'] = {label = 'Gyakornok', salary = 800, permissions = {}},
+    ['2'] = {label = 'Őrmester', salary = 1200, permissions = {}},
+    ['3'] = {label = 'Főnök', salary = 2000, permissions = {}}
+})
+```
+
+### GetRanks
+
+Összes rang lekérése.
+
+```lua
+local ranks = group:GetRanks()
+```
+
+**Visszatérés:**
+- `ranks` (table) - Rangok táblázata
+
+**Példa:**
+
+```lua
+local group = Private.Groups['police']
+local ranks = group:GetRanks()
+
+for rankId, rankData in pairs(ranks) do
+    print(rankId, rankData.label, rankData.salary)
+end
+```
+
+### GetRank
+
+Egy adott rang lekérése.
+
+```lua
+local rankData = group:GetRank(rank)
+```
+
+**Paraméterek:**
+- `rank` (string) - Rang azonosító
+
+**Visszatérés:**
+- `rankData` (table|nil) - Rang adatok vagy nil
+
+**Példa:**
+
+```lua
+local group = Private.Groups['police']
+local rank = group:GetRank('officer')
+
+if rank then
+    print('Rang:', rank.label)
+    print('Fizetés:', rank.salary)
+end
+```
+
+## Tag kezelés
+
+### GetMembers
+
+Csoport tagjainak lekérése.
+
+```lua
+local members = group:GetMembers(rank)
+```
+
+**Paraméterek:**
+- `rank` (string|nil) - Rang szűrő (nil = minden tag)
+
+**Visszatérés:**
+- `members` (table) - Tagok listája
+
+**Member struktúra:**
+```lua
+{
+    charId = 123,
+    name = 'John Doe',
+    rank = 'officer',
+    rankLabel = 'Rendőr',
+    source = 1
+}
+```
+
+**Példa:**
+
+```lua
+local group = Private.Groups['police']
+
+-- Minden tag
+local allMembers = group:GetMembers()
+for _, member in ipairs(allMembers) do
+    print(member.name, member.rankLabel)
+end
+
+-- Csak egy rang
+local officers = group:GetMembers('officer')
+print('Rendőrök száma:', #officers)
+```
+
+### GetMemberData
+
+Egy tag adatainak lekérése.
+
+```lua
+local memberData = group:GetMemberData(identifier)
+```
+
+**Paraméterek:**
+- `identifier` (number|string) - Character ID vagy source
+
+**Visszatérés:**
+- `memberData` (table|nil) - Tag adatok vagy nil
+
+**Példa:**
+
+```lua
+local group = Private.Groups['police']
+local member = group:GetMemberData(source)
+
+if member then
+    print('Név:', member.name)
+    print('Rang:', member.rankLabel)
+end
+```
+
+### AddMember
+
+Tag hozzáadása a csoporthoz.
+
+```lua
+local success, message = group:AddMember(identifier, rank, silent)
+```
+
+**Paraméterek:**
+- `identifier` (number|string) - Character ID vagy source
+- `rank` (string|nil) - Kezdő rang (alapértelmezett: 'default')
+- `silent` (boolean|nil) - Ne küldjön értesítést
+
+**Visszatérés:**
+- `success` (boolean)
+- `message` (string|nil)
+
+**Példa:**
+
+```lua
+local group = Private.Groups['police']
+
+-- Online játékos
+local success, msg = group:AddMember(source, 'recruit')
+
+-- Offline karakter (charId)
+local success, msg = group:AddMember(12345, 'recruit')
+
+-- Csendes hozzáadás
+local success, msg = group:AddMember(source, 'recruit', true)
+```
+
+**Működés:**
+- Ellenőrzi a csoport limit-et
+- Ellenőrzi a csoport típus limitjét
+- Online karaktereknél Character:SetGroupInternal használata
+- Offline karaktereknél adatbázis módosítás
+- Triggere eseményeket (ha nem silent)
+
+### RemoveMember
+
+Tag eltávolítása a csoportból.
+
+```lua
+local success, message = group:RemoveMember(identifier, silent)
+```
+
+**Paraméterek:**
+- `identifier` (number|string) - Character ID vagy source
+- `silent` (boolean|nil) - Ne küldjön értesítést
+
+**Visszatérés:**
+- `success` (boolean)
+- `message` (string|nil)
+
+**Példa:**
+
+```lua
+local group = Private.Groups['police']
+
+-- Online játékos
+local success, msg = group:RemoveMember(source)
+
+-- Offline karakter
+local success, msg = group:RemoveMember(12345)
+```
+
+### SetRank
+
+Tag rangjának módosítása.
+
+```lua
+local success, message = group:SetRank(identifier, rank)
+```
+
+**Paraméterek:**
+- `identifier` (number|string) - Character ID vagy source
+- `rank` (string) - Új rang
+
+**Visszatérés:**
+- `success` (boolean)
+- `message` (string|nil)
+
+**Példa:**
+
+```lua
+local group = Private.Groups['police']
+
+-- Előléptetés
+local success, msg = group:SetRank(source, 'sergeant')
+
+-- Offline karakter
+local success, msg = group:SetRank(12345, 'officer')
+```
+
+## Interakciók
+
+### GetInteractions
+
+Interakciók lekérése.
+
+```lua
+local interactions = group:GetInteractions(key)
+```
+
+**Paraméterek:**
+- `key` (string|nil) - Interakció kulcs (nil = minden)
+
+**Példa:**
+
+```lua
+local group = Private.Groups['police']
+
+-- Összes interakció
+local all = group:GetInteractions()
+
+-- Egy interakció
+local armory = group:GetInteractions('armory')
+if armory then
+    print('Fegyvertár:', armory.coords)
+end
+```
+
+### SetInteractions
+
+Interakciók beállítása.
+
+```lua
+local success, message = group:SetInteractions(data)
+```
+
+**Paraméterek:**
+- `data` (table) - Új interakciók
+
+**Példa:**
+
+```lua
+local group = Private.Groups['police']
+
+group:SetInteractions({
+    armory = {
+        coords = vector3(100, 200, 30),
+        label = 'Fegyvertár'
+    },
+    garage = {
+        coords = vector3(150, 250, 30),
+        label = 'Garázs'
+    }
+})
+```
+
+## Csoport információk
+
+### GetLabel
+
+Csoport címkéjének lekérése.
+
+```lua
+local label = group:GetLabel()
+```
+
+**Példa:**
+
+```lua
+local group = Private.Groups['police']
+print('Csoport név:', group:GetLabel())
+```
+
+### SetLabel
+
+Csoport címkéjének beállítása.
+
+```lua
+group:SetLabel(label)
+```
+
+**Példa:**
+
+```lua
+local group = Private.Groups['police']
+group:SetLabel('Los Santos Police Department')
+```
+
+### GetType
+
+Csoport típusának lekérése.
+
+```lua
+local type = group:GetType()
+```
+
+**Példa:**
+
+```lua
+local group = Private.Groups['police']
+print('Típus:', group:GetType())  -- 'job'
+```
+
+### SetType
+
+Csoport típusának beállítása.
+
+```lua
+group:SetType(type)
+```
+
+**Példa:**
+
+```lua
+local group = Private.Groups['mafia']
+group:SetType('gang')
+```
+
+### GetLimit
+
+Max tagszám lekérése.
+
+```lua
+local limit = group:GetLimit()
+```
+
+**Példa:**
+
+```lua
+local group = Private.Groups['police']
+local limit = group:GetLimit()
+print('Max tagszám:', limit == -1 and 'Korlátlan' or limit)
+```
+
+### SetLimit
+
+Max tagszám beállítása.
+
+```lua
+group:SetLimit(limit)
+```
+
+**Példa:**
+
+```lua
+local group = Private.Groups['police']
+group:SetLimit(50)  -- Max 50 rendőr
+
+-- Korlátlan
+group:SetLimit(-1)
+```
+
+### GetSize
+
+Jelenlegi tagszám lekérése.
+
+```lua
+local size = group:GetSize()
+```
+
+**Példa:**
+
+```lua
+local group = Private.Groups['police']
+local current = group:GetSize()
+local limit = group:GetLimit()
+
+print(('Tagok: %d / %s'):format(current, limit == -1 and '∞' or limit))
+```
+
+## Gyakorlati példák
+
+### Csoport kezelő rendszer
+
+```lua
+-- Új csoport létrehozása
+RegisterCommand('creategroup', function(source, args)
+    local groupId = args[1]
+    local label = table.concat(args, ' ', 2)
+    
+    if Private.Groups[groupId] then
+        return print('Csoport már létezik')
+    end
+    
+    -- Adatbázisban létrehozás után
+    Private.Groups[groupId] = require 'core.server.group.modules.class'({
+        id = groupId,
+        label = label,
+        type = 'job',
+        limit = -1,
+        ranks = {
+            ['default'] = {
+                label = 'Tag',
+                salary = 0,
+                permissions = {}
+            }
+        }
+    })
+    
+    print('Csoport létrehozva:', groupId)
+end)
+
+-- Rang hozzáadása
+RegisterCommand('addrank', function(source, args)
+    local groupId = args[1]
+    local rankId = args[2]
+    local label = args[3]
+    local salary = tonumber(args[4]) or 0
+    
+    local group = Private.Groups[groupId]
+    if not group then
+        return print('Csoport nem található')
+    end
+    
+    local success, msg = group:AddRank(rankId, {
+        label = label,
+        salary = salary,
+        permissions = {}
+    })
+    
+    print(success and 'Rang létrehozva' or msg)
+end)
+
+-- Tag hozzáadása
+RegisterCommand('addjob', function(source, args)
+    local targetSrc = tonumber(args[1])
+    local groupId = args[2]
+    local rankId = args[3] or 'default'
+    
+    local group = Private.Groups[groupId]
+    if not group then
+        return print('Csoport nem található')
+    end
+    
+    local success, msg = group:AddMember(targetSrc, rankId)
+    print(success and 'Tag hozzáadva' or msg)
+end)
+```
+
+### Ranglétra rendszer
+
+```lua
+-- Előléptetés
+RegisterCommand('promote', function(source, args)
+    local targetSrc = tonumber(args[1])
+    local character = GetCharacter(targetSrc)
+    
+    if not character then
+        return print('Karakter nem található')
+    end
+    
+    -- Első csoport (feltételezve 1 job van)
+    local jobId, currentRank
+    for groupId, rank in pairs(character.groups) do
+        jobId = groupId
+        currentRank = rank
+        break
+    end
+    
+    if not jobId then
+        return print('Nincs munkája')
+    end
+    
+    local group = Private.Groups[jobId]
+    local nextRank = tonumber(currentRank) + 1
+    
+    if not group:GetRank(tostring(nextRank)) then
+        return print('Nincs magasabb rang')
+    end
+    
+    group:SetRank(targetSrc, tostring(nextRank))
+    print('Előléptetve')
+end)
+
+-- Lefokozás
+RegisterCommand('demote', function(source, args)
+    local targetSrc = tonumber(args[1])
+    local character = GetCharacter(targetSrc)
+    
+    if not character then return end
+    
+    local jobId, currentRank
+    for groupId, rank in pairs(character.groups) do
+        jobId = groupId
+        currentRank = rank
+        break
+    end
+    
+    if not jobId then return end
+    
+    local group = Private.Groups[jobId]
+    local prevRank = tonumber(currentRank) - 1
+    
+    if prevRank < 1 then
+        prevRank = 1
+    end
+    
+    group:SetRank(targetSrc, tostring(prevRank))
+    print('Lefokozva')
+end)
+```
+
+### Online tagok listázása
+
+```lua
+RegisterCommand('onlinecops', function(source)
+    local group = Private.Groups['police']
+    
+    if not group then
+        return print('Rendőrség nem található')
+    end
+    
+    local members = group:GetMembers()
+    local online = {}
+    
+    for _, member in ipairs(members) do
+        if member.source and DoesPlayerExist(tostring(member.source)) then
+            table.insert(online, {
+                name = member.name,
+                rank = member.rankLabel
+            })
+        end
+    end
+    
+    print(('Online rendőrök (%d):'):format(#online))
+    for _, member in ipairs(online) do
+        print(('  - %s (%s)'):format(member.name, member.rank))
+    end
+end)
+```
+
+### Csoport limit kezelés
+
+```lua
+RegisterCommand('checkjobslots', function(source, args)
+    local groupId = args[1] or 'police'
+    local group = Private.Groups[groupId]
+    
+    if not group then
+        return print('Csoport nem található')
+    end
+    
+    local current = group:GetSize()
+    local limit = group:GetLimit()
+    local percentage = limit == -1 and 0 or (current / limit * 100)
+    
+    print(('Csoport: %s'):format(group:GetLabel()))
+    print(('Tagok: %d / %s (%.1f%%)'):format(
+        current,
+        limit == -1 and '∞' or limit,
+        percentage
+    ))
+    
+    if limit ~= -1 and current >= limit then
+        print('⚠️ A csoport megtelt!')
+    end
+end)
+```
+
+### Rang hierarchia
+
+```lua
+-- Rang lista rendezetten
+RegisterCommand('listranks', function(source, args)
+    local groupId = args[1] or 'police'
+    local group = Private.Groups[groupId]
+    
+    if not group then
+        return print('Csoport nem található')
+    end
+    
+    print(('Rangok - %s:'):format(group:GetLabel()))
+    
+    local ranks = group:GetRanks()
+    local sorted = {}
+    
+    for rankId, rankData in pairs(ranks) do
+        table.insert(sorted, {
+            id = rankId,
+            data = rankData
+        })
+    end
+    
+    table.sort(sorted, function(a, b)
+        return tonumber(a.id) < tonumber(b.id)
+    end)
+    
+    for _, rank in ipairs(sorted) do
+        print(('  %s. %s - $%d'):format(
+            rank.id,
+            rank.data.label,
+            rank.data.salary
+        ))
+    end
+end)
+```
+
+## Private.Groups tábla
+
+```lua
+-- Globális csoport adatok
+Private.Groups = {
+    ['police'] = {
+        id = 'police',
+        label = 'Rendőrség',
+        type = 'job',
+        limit = 50,
+        ranks = {
+            ['1'] = {label = 'Gyakornok', salary = 800},
+            ['2'] = {label = 'Őrmester', salary = 1200}
+        },
+        interactions = {...},
+        -- + metódusok
+    }
+}
+
+-- Hozzáférés
+local group = Private.Groups['police']
+```
+
+## Típus annotációk
+
+```lua
+---@class Group
+---@field id string
+---@field label string
+---@field type string
+---@field limit number
+---@field ranks table
+---@field interactions table
+
+---@param groupId string
+---@return Group|nil
+local group = Private.Groups[groupId]
+```
+
+## Következő lépések
+
+- 👤 [Player osztály](/core/internal/player) - Player kezelés
+- 🧑 [Character osztály](/core/internal/character) - Character kezelés
+- 🏠 [Core áttekintés](/core/internal) - Belső rendszerek
+
+---
+
+**Fontos:** A Group objektumok az LS Core belső működéséhez tartoznak. Mindig ellenőrizd a létezésüket használat előtt!

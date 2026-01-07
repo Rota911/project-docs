@@ -1,0 +1,632 @@
+# Routing rendszer
+
+A **Routing rendszer** lehetővé teszi a játékosok és entitások különböző instance-okba (routing bucket) való szétválasztását. A különböző routing bucket-ekben lévő játékosok nem látják egymást.
+
+## Mi az a Routing Bucket?
+
+A routing bucket egy izolált játéktér azonosító, amely lehetővé teszi:
+- 🔒 **Privát instance-ok** - Apartmanok, küldetések
+- 🎮 **Események izolálása** - PvP arénák, verseny pályák
+- 🏠 **Interior kezelés** - Láthatatlan játékosok interior-okban
+- 👥 **Csoport rendszerek** - Party system
+
+**Bucket rendszer:**
+- `0` = Globális bucket (mindenki látja egymást)
+- `1+` = Privát bucket-ek (csak azonos bucket-ben látják egymást)
+
+## Funkciók
+
+### GetPlayerRoute
+
+Karakter routing bucket lekérése.
+
+```lua
+local route = LS:GetPlayerRoute(identifier)
+```
+
+**Paraméterek:**
+- `identifier` (number|string) - Player ID, source, discord, vagy license
+
+**Visszatérés:**
+- `route` (number|nil) - Routing bucket ID vagy nil
+
+**Példa:**
+
+```lua
+-- Source alapján
+local route = LS:GetPlayerRoute(source)
+print('Játékos route:', route)
+
+-- Player ID alapján
+local route = LS:GetPlayerRoute(12345)
+
+-- Character objektumon keresztül
+local character = GetCharacter(source)
+local route = character:GetRoute()
+```
+
+### AddPlayerToRoute
+
+Karakter áthelyezése routing bucket-be.
+
+```lua
+local success = LS:AddPlayerToRoute(identifier, route, forced)
+```
+
+**Paraméterek:**
+- `identifier` (number|string) - Azonosító
+- `route` (number|nil) - Routing bucket ID (nil = globális)
+- `forced` (boolean|nil) - Kényszerített váltás
+
+**Visszatérés:**
+- `success` (boolean) - Sikeres volt-e
+
+**Példa:**
+
+```lua
+-- Áthelyezés privát bucket-be
+LS:AddPlayerToRoute(source, 123)
+
+-- Globális bucket
+LS:AddPlayerToRoute(source, 0)
+LS:AddPlayerToRoute(source, nil)
+
+-- Kényszerített váltás
+LS:AddPlayerToRoute(source, 123, true)
+```
+
+**Működés:**
+1. Lekéri a Character objektumot
+2. Meghívja a `character:SetRoute()` metódust
+3. Beállítja a player state-et
+4. SetPlayerRoutingBucket natív használata
+5. Attached objektumok áthelyezése
+
+### RoutePlayerToGlobalRoute
+
+Karakter visszahelyezése globális route-ba.
+
+```lua
+local success = LS:RoutePlayerToGlobalRoute(identifier)
+```
+
+**Paraméterek:**
+- `identifier` (number|string) - Azonosító
+
+**Visszatérés:**
+- `success` (boolean) - Sikeres volt-e
+
+**Példa:**
+
+```lua
+-- Vissza a globális bucket-be
+LS:RoutePlayerToGlobalRoute(source)
+
+-- Character metódus használata
+local character = GetCharacter(source)
+character:GlobalRoute()
+```
+
+### MoveEntityToRoute
+
+Entitás áthelyezése routing bucket-be.
+
+```lua
+local success = LS:MoveEntityToRoute(entity, route)
+```
+
+**Paraméterek:**
+- `entity` (number) - Entitás ID
+- `route` (number|nil) - Routing bucket ID (nil = globális)
+
+**Visszatérés:**
+- `success` (boolean) - Sikeres volt-e
+
+**Példa:**
+
+```lua
+-- Jármű áthelyezése
+local vehicle = GetVehiclePedIsIn(ped, false)
+LS:MoveEntityToRoute(vehicle, 123)
+
+-- Objektum áthelyezése
+local object = CreateObject(...)
+LS:MoveEntityToRoute(object, 123)
+
+-- Globális route
+LS:MoveEntityToRoute(entity, 0)
+```
+
+### MoveEntityToGlobalRoute
+
+Entitás visszahelyezése globális route-ba.
+
+```lua
+LS:MoveEntityToGlobalRoute(entity)
+```
+
+**Paraméterek:**
+- `entity` (number) - Entitás ID
+
+**Példa:**
+
+```lua
+-- Vissza a globális bucket-be
+LS:MoveEntityToGlobalRoute(vehicle)
+```
+
+### CreateRoute
+
+Új routing bucket létrehozása.
+
+```lua
+local routeId = LS:CreateRoute(name, populationEnabled)
+```
+
+**Paraméterek:**
+- `name` (string) - Route egyedi neve
+- `populationEnabled` (boolean) - NPC populáció engedélyezése
+
+**Visszatérés:**
+- `routeId` (number) - Létrehozott routing bucket ID
+
+**Példa:**
+
+```lua
+-- Route létrehozása NPC-kkel
+local apartmentRoute = LS:CreateRoute('apartment_123', true)
+
+-- Route NPC nélkül
+local arenaRoute = LS:CreateRoute('pvp_arena', false)
+
+-- Használat
+LS:AddPlayerToRoute(source, apartmentRoute)
+```
+
+**Működés:**
+1. Ellenőrzi, hogy létezik-e már ilyen nevű route
+2. Ha létezik → visszaadja a meglévő ID-t
+3. Ha nem → új ID generálása
+4. SetRoutingBucketPopulationEnabled beállítása
+5. Lockdown mode 'relaxed'-re állítása
+6. Tárolja a route-ot név szerint
+
+### GetRoute
+
+Route ID lekérése név alapján.
+
+```lua
+local routeId = LS:GetRoute(name)
+```
+
+**Paraméterek:**
+- `name` (string) - Route neve
+
+**Visszatérés:**
+- `routeId` (number|false) - Route ID vagy false
+
+**Példa:**
+
+```lua
+-- Route lekérése
+local apartmentRoute = LS:GetRoute('apartment_123')
+
+if apartmentRoute then
+    LS:AddPlayerToRoute(source, apartmentRoute)
+else
+    print('Route nem található')
+end
+```
+
+### DeleteRoute
+
+Route törlése.
+
+```lua
+local success = LS:DeleteRoute(name)
+```
+
+**Paraméterek:**
+- `name` (string) - Route neve
+
+**Visszatérés:**
+- `success` (boolean) - Sikeres volt-e
+
+**Példa:**
+
+```lua
+-- Route törlése
+local success = LS:DeleteRoute('apartment_123')
+
+if success then
+    print('Route törölve')
+end
+```
+
+## Gyakorlati példák
+
+### Apartman rendszer
+
+```lua
+-- Apartman instance-ok
+local apartments = {}
+
+-- Apartman belépés
+RegisterNetEvent('apartment:enter', function(apartmentId)
+    local source = source
+    local character = GetCharacter(source)
+    
+    if not character then return end
+    
+    -- Route létrehozása vagy lekérése
+    local routeName = 'apartment_' .. apartmentId
+    local routeId = LS:GetRoute(routeName)
+    
+    if not routeId then
+        routeId = LS:CreateRoute(routeName, false)
+        apartments[apartmentId] = {
+            route = routeId,
+            owner = character.charId,
+            guests = {}
+        }
+    end
+    
+    -- Játékos áthelyezése
+    character:SetRoute(routeId)
+    
+    -- Teleport az apartmanba
+    character:SetCoords(vector3(100, 200, 30))
+    
+    print('Belépés apartmanba:', apartmentId)
+end)
+
+-- Apartman elhagyása
+RegisterNetEvent('apartment:exit', function()
+    local source = source
+    local character = GetCharacter(source)
+    
+    if not character then return end
+    
+    -- Vissza a globális route-ba
+    character:GlobalRoute()
+    
+    -- Teleport ki
+    character:SetCoords(vector3(0, 0, 72))
+    
+    print('Kilépés apartmanból')
+end)
+```
+
+### PvP Aréna
+
+```lua
+-- Aréna rendszer
+local arenas = {}
+local nextArenaId = 1
+
+-- Aréna létrehozása
+RegisterCommand('createarena', function(source)
+    local arenaId = nextArenaId
+    nextArenaId = nextArenaId + 1
+    
+    local routeName = 'arena_' .. arenaId
+    local routeId = LS:CreateRoute(routeName, false)
+    
+    arenas[arenaId] = {
+        route = routeId,
+        players = {},
+        active = false
+    }
+    
+    print('Aréna létrehozva:', arenaId)
+    TriggerClientEvent('arena:created', source, arenaId)
+end)
+
+-- Csatlakozás arénához
+RegisterNetEvent('arena:join', function(arenaId)
+    local source = source
+    local character = GetCharacter(source)
+    
+    if not character or not arenas[arenaId] then return end
+    
+    -- Áthelyezés az aréna route-ba
+    character:SetRoute(arenas[arenaId].route)
+    
+    -- Hozzáadás a játékosokhoz
+    table.insert(arenas[arenaId].players, source)
+    
+    -- Teleport az arénába
+    character:SetCoords(vector3(500, 500, 100))
+    
+    print('Csatlakozás arénához:', arenaId)
+end)
+
+-- Aréna elhagyása
+RegisterNetEvent('arena:leave', function(arenaId)
+    local source = source
+    local character = GetCharacter(source)
+    
+    if not character then return end
+    
+    -- Vissza globális route-ba
+    character:GlobalRoute()
+    
+    -- Eltávolítás a listából
+    if arenas[arenaId] then
+        for i, playerId in ipairs(arenas[arenaId].players) do
+            if playerId == source then
+                table.remove(arenas[arenaId].players, i)
+                break
+            end
+        end
+    end
+    
+    -- Teleport vissza
+    character:SetCoords(vector3(0, 0, 72))
+end)
+```
+
+### Küldetés rendszer
+
+```lua
+-- Küldetés instance-ok
+local missions = {}
+
+-- Küldetés indítása
+RegisterNetEvent('mission:start', function(missionId)
+    local source = source
+    local character = GetCharacter(source)
+    
+    if not character then return end
+    
+    -- Egyedi route létrehozása a küldetéshez
+    local routeName = 'mission_' .. source .. '_' .. missionId
+    local routeId = LS:CreateRoute(routeName, true)
+    
+    missions[source] = {
+        route = routeId,
+        missionId = missionId,
+        startTime = os.time()
+    }
+    
+    -- Játékos áthelyezése
+    character:SetRoute(routeId)
+    
+    -- Küldetés helyszínre teleport
+    character:SetCoords(vector3(1000, 1000, 100))
+    
+    print('Küldetés indítva:', missionId)
+end)
+
+-- Küldetés befejezése
+RegisterNetEvent('mission:complete', function()
+    local source = source
+    local character = GetCharacter(source)
+    
+    if not character or not missions[source] then return end
+    
+    -- Vissza globális route-ba
+    character:GlobalRoute()
+    
+    -- Route törlése
+    local routeName = 'mission_' .. source .. '_' .. missions[source].missionId
+    LS:DeleteRoute(routeName)
+    
+    -- Küldetés adatok törlése
+    missions[source] = nil
+    
+    -- Teleport vissza
+    character:SetCoords(vector3(0, 0, 72))
+    
+    print('Küldetés befejezve')
+end)
+```
+
+### Party rendszer
+
+```lua
+-- Party rendszer route-okkal
+local parties = {}
+local nextPartyId = 1
+
+-- Party létrehozása
+RegisterCommand('createparty', function(source)
+    local character = GetCharacter(source)
+    if not character then return end
+    
+    local partyId = nextPartyId
+    nextPartyId = nextPartyId + 1
+    
+    local routeName = 'party_' .. partyId
+    local routeId = LS:CreateRoute(routeName, true)
+    
+    parties[partyId] = {
+        route = routeId,
+        leader = source,
+        members = {source}
+    }
+    
+    -- Leader áthelyezése
+    character:SetRoute(routeId)
+    
+    print('Party létrehozva:', partyId)
+    TriggerClientEvent('party:created', source, partyId)
+end)
+
+-- Csatlakozás party-hoz
+RegisterNetEvent('party:join', function(partyId)
+    local source = source
+    local character = GetCharacter(source)
+    
+    if not character or not parties[partyId] then return end
+    
+    -- Áthelyezés a party route-ba
+    character:SetRoute(parties[partyId].route)
+    
+    -- Hozzáadás a tagokhoz
+    table.insert(parties[partyId].members, source)
+    
+    print('Csatlakozás party-hoz:', partyId)
+    
+    -- Értesítés minden tagnak
+    for _, memberId in ipairs(parties[partyId].members) do
+        TriggerClientEvent('party:memberJoined', memberId, source)
+    end
+end)
+
+-- Kilépés party-ból
+RegisterCommand('leaveparty', function(source)
+    local character = GetCharacter(source)
+    if not character then return end
+    
+    -- Megkeressük melyik party-ban van
+    for partyId, party in pairs(parties) do
+        for i, memberId in ipairs(party.members) do
+            if memberId == source then
+                -- Eltávolítás
+                table.remove(party.members, i)
+                
+                -- Vissza globális route-ba
+                character:GlobalRoute()
+                
+                -- Ha ez volt a leader és vannak még tagok
+                if party.leader == source and #party.members > 0 then
+                    party.leader = party.members[1]
+                    TriggerClientEvent('party:newLeader', party.leader)
+                end
+                
+                -- Ha üres a party, törlés
+                if #party.members == 0 then
+                    LS:DeleteRoute('party_' .. partyId)
+                    parties[partyId] = nil
+                end
+                
+                return
+            end
+        end
+    end
+end)
+```
+
+### Interior rendszer
+
+```lua
+-- Interior belépés/kilépés automatikus route váltással
+local interiors = {
+    ['apartment_1'] = {
+        route = nil,
+        entry = vector3(100, 200, 30),
+        exit = vector3(110, 210, 40)
+    }
+}
+
+-- Interior route-ok létrehozása
+CreateThread(function()
+    Wait(1000)
+    for name, data in pairs(interiors) do
+        data.route = LS:CreateRoute('interior_' .. name, false)
+    end
+end)
+
+-- Belépés interior-ba
+RegisterNetEvent('interior:enter', function(interiorName)
+    local source = source
+    local character = GetCharacter(source)
+    
+    if not character or not interiors[interiorName] then return end
+    
+    local interior = interiors[interiorName]
+    
+    -- Áthelyezés interior route-ba
+    character:SetRoute(interior.route)
+    character:SetCoords(interior.entry)
+    
+    print('Interior belépés:', interiorName)
+end)
+
+-- Kilépés interior-ból
+RegisterNetEvent('interior:exit', function(interiorName)
+    local source = source
+    local character = GetCharacter(source)
+    
+    if not character or not interiors[interiorName] then return end
+    
+    local interior = interiors[interiorName]
+    
+    -- Vissza globális route-ba
+    character:GlobalRoute()
+    character:SetCoords(interior.exit)
+    
+    print('Interior kilépés:', interiorName)
+end)
+```
+
+### Jármű kezelés route-okban
+
+```lua
+-- Jármű route szinkronizálás
+AddEventHandler('baseevents:enteredVehicle', function(vehicle, seat, displayName, netId)
+    local source = source
+    local character = GetCharacter(source)
+    
+    if not character then return end
+    
+    local currentRoute = character:GetRoute()
+    
+    -- Ha nem globális route-ban van
+    if currentRoute ~= 0 then
+        -- Jármű áthelyezése a játékos route-jába
+        LS:MoveEntityToRoute(vehicle, currentRoute)
+        print('Jármű áthelyezve route-ba:', currentRoute)
+    end
+end)
+
+-- Jármű spawn route-ban
+RegisterNetEvent('vehicle:spawnInRoute', function(model, coords)
+    local source = source
+    local character = GetCharacter(source)
+    
+    if not character then return end
+    
+    local route = character:GetRoute()
+    
+    -- Jármű létrehozása
+    local vehicle = CreateVehicle(model, coords.x, coords.y, coords.z, coords.w, true, false)
+    
+    -- Áthelyezés a játékos route-jába
+    if route ~= 0 then
+        LS:MoveEntityToRoute(vehicle, route)
+    end
+    
+    TriggerClientEvent('vehicle:spawned', source, NetworkGetNetworkIdFromEntity(vehicle))
+end)
+```
+
+## Route state
+
+```lua
+-- Character route state
+local character = GetCharacter(source)
+local route = character:GetRoute()
+
+-- Player state
+local route = Player(source).state.currentRoute
+```
+
+## Jó tudni
+
+- ⚠️ **Route 0** = Globális bucket (alapértelmezett)
+- 🔒 **Attached objektumok** automatikusan követik a tulajdonos route-ját
+- 🚗 **Járművek** manuálisan kell áthelyezni
+- 👥 **NPC populáció** route-onként kapcsolható
+- 🔄 **Route váltás** azonnali hatályú
+
+## Következő lépések
+
+- 👤 [Player osztály](/core/internal/player) - Player kezelés
+- 🧑 [Character osztály](/core/internal/character) - Character metódusok
+- 🏠 [Core áttekintés](/core/internal) - Belső rendszerek
+
+---
+
+**Tipp:** Használj beszédes route neveket (pl: `apartment_123`, `arena_pvp`) a könnyebb debug-hoz!

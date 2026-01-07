@@ -1,0 +1,323 @@
+# Core belső rendszerek
+
+Az **LS Core** belső rendszerei biztosítják a framework alapvető működését. Ezek a rendszerek kezelik a játékosokat, karaktereket, csoportokat, jogosultságokat és egyéb alapvető funkciókat.
+
+## Architektúra
+
+```
+core/
+├── client/          # Kliens oldali rendszerek
+│   ├── cache/       # Cache rendszer (ped, vehicle, weapon)
+│   ├── keybinds/    # Billentyű kötések
+│   ├── threads/     # Háttér szálak
+│   └── player/      # Kliens játékos adatok
+│
+├── server/          # Szerver oldali rendszerek
+│   ├── player/      # Player osztály
+│   ├── character/   # Character osztály  
+│   ├── group/       # Group osztály
+│   ├── routing/     # Routing bucket rendszer
+│   ├── admin/       # Admin parancsok és funkciók
+│   └── acl/         # Jogosultság kezelés
+│
+├── shared/          # Megosztott rendszerek
+│   ├── callbacks/   # Callback validáció
+│   └── moduleRegistry/  # Modul regisztráció
+│
+└── configs/         # Konfigurációs fájlok
+```
+
+## Főbb rendszerek
+
+### 👤 Player osztály
+
+A **Player osztály** kezeli a játékos alapvető adatait és funkcióit:
+
+- Bejelentkezés kezelés
+- Admin csoport és duty rendszer
+- Point/currency rendszer
+- Karakter kezelés (létrehozás, váltás)
+- Multi-identifier support
+- State változók
+
+**Részletes dokumentáció:** [Player osztály](/core/internal/player)
+
+### 👥 Character osztály
+
+A **Character osztály** kezeli a karakter specifikus adatait:
+
+- Karakter tulajdonságok (név, születési dátum, stb.)
+- Pozíció mentés és töltés
+- Group/Job kezelés
+- Routing (instance) kezelés
+- Státusz szinkronizáció
+- Custom data tárolás
+
+**Részletes dokumentáció:** [Character osztály](/core/internal/character)
+
+### 👔 Group osztály
+
+A **Group osztály** kezeli a job-okat és gang-eket:
+
+- Rank rendszer (hozzáadás, törlés, módosítás)
+- Tag kezelés (hozzáadás, törlés, rang beállítás)
+- Online tag lista
+- Interaction kezelés
+- Tag limit kezelés
+- Rank hierarchia
+
+**Részletes dokumentáció:** [Group osztály](/core/internal/group)
+
+### 🌐 Routing rendszer
+
+A **Routing rendszer** instance kezelést biztosít:
+
+- Privát világok (apartment, arena, misszió)
+- Player routing kezelés
+- Entity mozgatás route-ok között
+- Global route (0) és privát route-ok (1+)
+- Automatic cleanup
+- Party rendszer support
+
+**Részletes dokumentáció:** [Routing rendszer](/core/internal/routing)
+
+### 🛡️ Admin rendszer
+
+Az **Admin rendszer** szerver adminisztrációs eszközöket biztosít:
+
+- LS:Command - Parancs regisztrálás
+- LS:RegisterFunction - Funkció regisztrálás
+- LS:ExecuteFunction - Funkció végrehajtás
+- Argument parsing (number, string, playerId, any)
+- Permission rendszer
+- ACL integráció
+
+**Részletes dokumentáció:** [Admin rendszer](/core/internal/admin)
+
+### ⚙️ Config fájlok
+
+A **Config fájlok** a framework beállításait tartalmazzák:
+
+- `sv_adminGroups.lua` - Admin csoport hierarchia
+- `sh_locations.lua` - Spawn és loading koordináták
+- `sv_database.lua` - Adatbázis kapcsolat
+- `sh_groups.lua` - Job/Gang definíciók
+
+**Részletes dokumentáció:** [Config fájlok](/core/internal/configs)
+
+## Kliens rendszerek
+
+### Cache rendszer
+
+Automatikus cache gyakran használt natívok számára:
+
+```lua
+cache.ped           -- PlayerPedId()
+cache.vehicle       -- GetVehiclePedIsIn()
+cache.seat          -- Jármű ülés
+cache.weapon        -- Aktuális fegyver
+cache.playerId      -- PlayerId()
+cache.serverId      -- GetPlayerServerId()
+
+-- Esemény változásra
+AddEventHandler('Core:Cache:ped', function(newPed, oldPed)
+    print('Ped változott')
+end)
+```
+
+### Keybinds rendszer
+
+Globális billentyű kötések:
+
+```lua
+-- Billentyű lekérése
+local key = LS:GetKeybind('inventory')
+
+-- Esemény figyelése
+AddEventHandler('Keybinds:Client:KeyDown:inventory', function()
+    print('Inventory megnyitva')
+end)
+```
+
+**Előre definiált bindok:** inventory, work_menu, phone, vehicle_menu, interaction
+
+### Threads
+
+Háttérben futó optimalizált szálak:
+
+```lua
+-- Pause menú fejléc
+-- Játékos info megjelenítése
+-- Automatikus szinkronizáció
+```
+
+## ACL rendszer
+
+**Access Control List** jogosultság kezelés:
+
+```lua
+-- Principal hozzáadása
+LS:AddPrincipal('player.1', 'admin')
+
+-- ACE hozzáadása
+LS:AddAce('admin', 'command.kick')
+
+-- Jogosultság ellenőrzés
+LS:IsPlayerAceAllowed(source, 'command.ban')
+```
+
+**Hierarchia:**
+```
+owner → dev → headadmin → admin → moderator → user
+```
+
+## Callback rendszer
+
+Kliens ↔ Szerver kommunikáció:
+
+### Szerver callback
+
+```lua
+-- Server side
+LS:RegisterCallback('getPlayerMoney', function(source, cb)
+    local character = GetCharacter(source)
+    cb(character and character.money or 0)
+end)
+
+-- Client side
+LS:TriggerCallback('getPlayerMoney', function(money)
+    print('Pénz:', money)
+end)
+```
+
+### Kliens callback
+
+```lua
+-- Client side
+LS:RegisterCallback('isPlayerInVehicle', function(cb)
+    cb(IsPedInAnyVehicle(cache.ped, false))
+end)
+
+-- Server side
+LS:TriggerCallback(source, 'isPlayerInVehicle', function(inVehicle)
+    print('Járműben:', inVehicle)
+end)
+```
+
+## Module Registry
+
+Külső modulok regisztrálása:
+
+```lua
+-- Modul regisztrálás
+LS:RegisterModule('myModule', {
+    name = 'My Module',
+    version = '1.0.0',
+    author = 'Author Name'
+})
+
+-- Modul betöltés ellenőrzés
+if LS.Modules.myModule then
+    print('Modul betöltve')
+end
+```
+
+## State kezelés
+
+### Player State
+
+```lua
+local player = Player(source)
+player.state.adminDuty = true
+player.state.customData = { key = 'value' }
+
+-- Kliens oldalon
+LocalPlayer.state.adminDuty  -- true
+```
+
+### Entity State
+
+```lua
+local ped = cache.ped
+Entity(ped).state.busy = true
+
+-- Szerver oldalon
+Entity(ped).state.busy  -- true
+```
+
+## Következő lépések
+
+Válassz egy rendszert a részletes dokumentációhoz:
+
+- 👤 [Player osztály](/core/internal/player) - Játékos kezelés, admin duty, multi-karakter
+- 👥 [Character osztály](/core/internal/character) - Karakter adatok, pozíció, group kezelés
+- 👔 [Group osztály](/core/internal/group) - Job/Gang rendszer, rank és tag kezelés
+- 🌐 [Routing rendszer](/core/internal/routing) - Instance kezelés, privát világok
+- 🛡️ [Admin rendszer](/core/internal/admin) - Parancsok, funkciók, jogosultságok
+- ⚙️ [Config fájlok](/core/internal/configs) - Admin csoportok, spawn pontok, database
+
+## Quick start példák
+
+### Játékos lekérése
+
+```lua
+-- Source alapján
+local player = GetPlayer(source)
+
+-- Identifier alapján
+local player = GetPlayer('license:abc123')
+
+-- Player táblából
+local player = Private.Players[source]
+```
+
+### Karakter lekérése
+
+```lua
+-- Source alapján
+local character = GetCharacter(source)
+
+-- Character ID alapján
+local character = GetCharacter(123)
+```
+
+### Group kezelés
+
+```lua
+local group = Private.Groups['police']
+
+-- Rank hozzáadás
+group:AddRank('captain', 'Kapitány', 4)
+
+-- Tag hozzáadás
+group:AddMember(character.id)
+group:SetRank(character.id, 'captain')
+```
+
+### Routing
+
+```lua
+-- Route létrehozás
+local routeId = LS:CreateRoute('apartment_1')
+
+-- Player hozzáadás
+LS:AddPlayerToRoute(source, routeId)
+
+-- Global route-ra visszahelyezés
+LS:RoutePlayerToGlobalRoute(source)
+```
+
+### Admin parancs
+
+```lua
+LS:Command('heal', 'admin', function(source, args)
+    local target = args.target or source
+    SetEntityHealth(GetPlayerPed(target), 200)
+end, {
+    {name = 'target', type = 'playerId', optional = true}
+}, 'Játékos gyógyítása')
+```
+
+---
+
+**Tipp:** A részletes dokumentációkban találsz átfogó példákat és legjobb gyakorlatokat minden rendszerhez!

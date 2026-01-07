@@ -1,0 +1,1027 @@
+# Character osztály
+
+A **Character osztály** a karakter adatait és funkcióit kezeli. Minden aktív karakterhez tartozik egy Character objektum, amely tartalmazza a karakter specifikus adatokat és metódusokat.
+
+## Character lekérése
+
+```lua
+-- Source alapján
+local character = GetCharacter(source)
+
+-- Character ID alapján
+local character = GetCharacter(123)
+
+-- LS objektum használata
+local character = LS:GetCharacter(source)
+
+-- Player-en keresztül
+local player = GetPlayer(source)
+local character = player:GetActiveCharacter()
+```
+
+### GetIdentifierType (Character)
+
+A rendszer automatikusan felismeri az identifier típusát:
+
+```lua
+-- Source (1-4 számjegy)
+GetCharacter(1)      -- Source alapján
+
+-- Character ID (>4 számjegy)
+GetCharacter(12345)  -- Character ID alapján
+```
+
+## Character tulajdonságok
+
+```lua
+local character = GetCharacter(source)
+
+-- Alapadatok
+character.source         -- number - Játékos source
+character.charId         -- number - Karakter ID (adatbázis)
+character.playerId       -- number - Player ID
+character.stateId        -- string - Egyedi State ID (pl: 'AB12CD3')
+
+-- Név adatok
+character.firstName      -- string - Keresztnév
+character.middleName     -- string - Középső név
+character.lastName       -- string - Vezetéknév
+character.fullName       -- string - Teljes név (generált)
+
+-- Személyes adatok
+character.dateOfBirth    -- string - Születési dátum
+character.nationality    -- string - Nemzetiség
+character.gender         -- number - Nem (0: nő, 1: férfi)
+character.specialization -- string - Specializáció/foglalkozás
+
+-- Játék adatok
+character.position       -- vector4 - Pozíció (x, y, z, heading)
+character.groups         -- table - Csoportok {groupId = rankId}
+character.statuses       -- table - Státuszok (éhség, szomjúság, stb.)
+character.skills         -- table - Képességek
+character.route          -- number - Routing bucket
+```
+
+## Character metódusok
+
+### Event küldése
+
+Esemény küldése a karakter kliensének.
+
+```lua
+character:Event(eventName, ...)
+```
+
+**Paraméterek:**
+- `eventName` (string) - Event neve
+- `...` - Event paraméterei
+
+**Példa:**
+
+```lua
+local character = GetCharacter(source)
+
+-- Egyszerű event
+character:Event('myResource:notify', 'Üzenet')
+
+-- Több paraméterrel
+character:Event('myResource:updateUI', {
+    health = 100,
+    armor = 50
+})
+
+-- Belső események
+character:Event('Core:Client:CharacterDataChanged', 'position', newPos)
+```
+
+### GetPed
+
+Karakter ped entity lekérése.
+
+```lua
+local ped = character:GetPed()
+```
+
+**Visszatérés:**
+- `ped` (number) - Ped entity ID
+
+**Példa:**
+
+```lua
+local character = GetCharacter(source)
+local ped = character:GetPed()
+
+if DoesEntityExist(ped) then
+    local health = GetEntityHealth(ped)
+    print('Ped health:', health)
+end
+```
+
+### Save
+
+Karakter adatok mentése az adatbázisba.
+
+```lua
+local success = character:Save()
+```
+
+**Visszatérés:**
+- `success` (boolean) - Sikeres volt-e
+
+**Példa:**
+
+```lua
+local character = GetCharacter(source)
+
+-- Adatok módosítása
+character.statuses.hunger = 50
+
+-- Mentés
+local success = character:Save()
+
+if success then
+    print('Karakter mentve')
+else
+    print('Mentési hiba')
+end
+```
+
+**Mit ment:**
+- charId, playerId
+- position (koordináták)
+- statuses (éhség, szomjúság, stb.)
+- groups (csoportok)
+- skills (képességek)
+
+### Unload
+
+Karakter kijelentkeztetése és mentése.
+
+```lua
+local success = character:Unload(instant)
+```
+
+**Paraméterek:**
+- `instant` (boolean|nil) - Azonnali kijelentkezés (alapértelmezett: false)
+
+**Visszatérés:**
+- `success` (boolean) - Sikeres volt-e
+
+**Példa:**
+
+```lua
+local character = GetCharacter(source)
+
+-- Normál kijelentkezés (progressbar-ral)
+local success = character:Unload()
+
+-- Azonnali kijelentkezés (lecsatlakozáskor)
+character:Unload(true)
+```
+
+**Működés:**
+1. Ha nem instant → progressbar megjelenítése
+2. Fade out effect
+3. State-ek törlése (charId, name, stateId)
+4. Koordináták mentése
+5. Teleport loading screen-hez
+6. Player bejelentkezés törlése
+7. Adatok mentése
+8. Character objektum törlése
+9. Események triggerelése
+
+**Események:**
+- `Core:Client:CharacterLogout` (kliens)
+- `Core:Server:CharacterLogout` (szerver)
+
+### Data kezelés
+
+#### SetData
+
+Adat beállítása és szinkronizálás.
+
+```lua
+character:SetData(key, value, state, replicated)
+```
+
+**Paraméterek:**
+- `key` (string) - Adat kulcs
+- `value` (any) - Adat érték
+- `state` (boolean|nil) - Player state-be is mentse-e
+- `replicated` (boolean|nil) - Replikálva legyen-e (ha state = true)
+
+**Példa:**
+
+```lua
+local character = GetCharacter(source)
+
+-- Egyszerű adat beállítása
+character:SetData('customField', 'value')
+
+-- State-be is mentés (csak szerver látja)
+character:SetData('adminNote', 'VIP player', true, false)
+
+-- Replikált state (mindenki látja)
+character:SetData('specialRole', 'medic', true, true)
+```
+
+**Működés:**
+- Frissíti a `Private.Players[playerId][key]` értékét
+- Triggere `Core:Client:CharacterDataChanged` eseményt
+- Ha state = true → beállítja a player state-et
+
+#### GetData
+
+Adat lekérdezése.
+
+```lua
+local value = character:GetData(key)
+```
+
+**Paraméterek:**
+- `key` (string) - Adat kulcs
+
+**Visszatérés:**
+- `value` (any) - Adat érték vagy nil
+
+**Példa:**
+
+```lua
+local character = GetCharacter(source)
+
+local customField = character:GetData('customField')
+print('Custom field:', customField)
+```
+
+### Koordináta kezelés
+
+#### SetCoords
+
+Karakter pozíció beállítása.
+
+```lua
+character:SetCoords(newCoords, noSync)
+```
+
+**Paraméterek:**
+- `newCoords` (vector3|vector4|table) - Új koordináták
+- `noSync` (boolean|nil) - Ne szinkronizálja a position property-t
+
+**Példa:**
+
+```lua
+local character = GetCharacter(source)
+
+-- Vector3
+character:SetCoords(vector3(100, 200, 30))
+
+-- Vector4 (heading-gel)
+character:SetCoords(vector4(100, 200, 30, 90.0))
+
+-- Table
+character:SetCoords({
+    x = 100,
+    y = 200,
+    z = 30,
+    heading = 90.0
+})
+
+-- Array
+character:SetCoords({100, 200, 30, 90.0})
+
+-- Nincs szinkronizálás (csak teleport)
+character:SetCoords(vector3(100, 200, 30), true)
+```
+
+**Működés:**
+1. Lekéri a karakter ped-et
+2. Teleportálja az új koordinátákra
+3. Beállítja a heading-et (ha van)
+4. Ha noSync = false → frissíti a position property-t
+5. Triggere eseményt a kliensnek
+
+#### GetCoords
+
+Karakter pozíció lekérése.
+
+```lua
+local coords = character:GetCoords(type)
+```
+
+**Paraméterek:**
+- `type` (string|nil) - Visszatérési típus ('vector2', 'vector3', 'vector4', 'table')
+
+**Visszatérés:**
+- `coords` - Koordináták a megadott típusban (alapértelmezett: vector4)
+
+**Példa:**
+
+```lua
+local character = GetCharacter(source)
+
+-- Vector4 (alapértelmezett)
+local coords = character:GetCoords()
+print(coords.x, coords.y, coords.z, coords.w)
+
+-- Vector3
+local pos = character:GetCoords('vector3')
+print(pos.x, pos.y, pos.z)
+
+-- Vector2
+local pos2d = character:GetCoords('vector2')
+print(pos2d.x, pos2d.y)
+
+-- Table
+local tbl = character:GetCoords('table')
+print(tbl.x, tbl.y, tbl.z, tbl.heading)
+```
+
+**Működés:**
+1. Lekéri a karakter ped-et
+2. Ha nem létezik → visszaadja a mentett position-t
+3. GetEntityCoords és GetEntityHeading használata
+4. Frissíti a belső position property-t
+5. Visszaadja a kért formátumban
+
+### Csoport kezelés
+
+#### SetGroup
+
+Karakter csoport beállítása vagy eltávolítása.
+
+```lua
+local success, message = character:SetGroup(group, rank, silent)
+```
+
+**Paraméterek:**
+- `group` (string) - Csoport azonosító (pl: 'police', 'ambulance')
+- `rank` (string|nil) - Rang azonosító (nil esetén eltávolítás)
+- `silent` (boolean|nil) - Ne küldjön értesítést
+
+**Visszatérés:**
+- `success` (boolean) - Sikeres volt-e
+- `message` (string|nil) - Hibaüzenet (ha sikertelen)
+
+**Példa:**
+
+```lua
+local character = GetCharacter(source)
+
+-- Csoport hozzáadása
+local success, msg = character:SetGroup('police', 'officer')
+if success then
+    print('Rendőr lett')
+else
+    print('Hiba:', msg)
+end
+
+-- Csoport eltávolítása
+character:SetGroup('police', nil)
+
+-- Csendes módosítás (nincs értesítés)
+character:SetGroup('ambulance', 'paramedic', true)
+```
+
+**Működés:**
+- Átirányít a Group objektum metódusaihoz
+- Ha rank van → `group:AddMember()`
+- Ha rank nincs → `group:RemoveMember()`
+- Validálja a csoportot és rangot
+- Triggere eseményeket
+- Küld értesítést (ha nem silent)
+
+**Események:**
+- `Core:Client:CharacterDataChanged` ('groups', groups)
+- `Core:Client:CharacterGroupChanged` (group, rank, groups)
+- `Core:Server:CharacterGroupChanged` (source, charId, group, rank, groups)
+
+#### SetGroupInternal
+
+Belső csoport beállítás (közvetlen, validáció nélkül).
+
+```lua
+local success, message = character:SetGroupInternal(group, rank, silent)
+```
+
+**Paraméterek:**
+- `group` (string) - Csoport azonosító
+- `rank` (string|nil) - Rang azonosító
+- `silent` (boolean|nil) - Ne küldjön értesítést
+
+**Visszatérés:**
+- `success` (boolean) - Sikeres volt-e
+- `message` (string|nil) - Hibaüzenet
+
+**Használat:**
+- Csak belső használatra!
+- Nincs Group objektum validáció
+- Közvetlenül módosítja a groups táblát
+- Ne használd külső resource-okban!
+
+**Példa (csak példa, ne használd!):**
+
+```lua
+-- NE használd ezt külső resource-ban!
+character:SetGroupInternal('police', 'officer', false)
+```
+
+#### HasGroup
+
+Ellenőrzi, hogy a karakter benne van-e egy csoportban.
+
+```lua
+local hasGroup = character:HasGroup(group, rank)
+```
+
+**Paraméterek:**
+- `group` (string) - Csoport azonosító
+- `rank` (string|nil) - Rang azonosító (opcionális)
+
+**Visszatérés:**
+- `hasGroup` (boolean) - Benne van-e
+
+**Példa:**
+
+```lua
+local character = GetCharacter(source)
+
+-- Van-e a police csoportban
+if character:HasGroup('police') then
+    print('Rendőr')
+end
+
+-- Van-e a police csoportban 'chief' ranggal
+if character:HasGroup('police', 'chief') then
+    print('Rendőrfőnök')
+end
+
+-- Több csoport ellenőrzése
+if character:HasGroup('police') or character:HasGroup('sheriff') then
+    print('Rendvédelmi tag')
+end
+```
+
+### Routing kezelés
+
+#### GetRoute
+
+Karakter routing bucket lekérése.
+
+```lua
+local route = character:GetRoute()
+```
+
+**Visszatérés:**
+- `route` (number|nil) - Routing bucket ID
+
+**Példa:**
+
+```lua
+local character = GetCharacter(source)
+local route = character:GetRoute()
+
+if route == 0 then
+    print('Globális route-ban')
+else
+    print('Route:', route)
+end
+```
+
+#### SetRoute
+
+Karakter routing bucket beállítása.
+
+```lua
+local success = character:SetRoute(route, forced)
+```
+
+**Paraméterek:**
+- `route` (number) - Routing bucket ID
+- `forced` (boolean|nil) - Kényszerítse a váltást (alapértelmezett: false)
+
+**Visszatérés:**
+- `success` (boolean) - Sikeres volt-e
+
+**Példa:**
+
+```lua
+local character = GetCharacter(source)
+
+-- Privát route beállítása
+character:SetRoute(123)
+
+-- Ugyanaz a route újra (skip, kivéve ha forced)
+character:SetRoute(123)        -- false
+character:SetRoute(123, true)  -- true
+
+-- Globális route
+character:SetRoute(0)
+```
+
+**Működés:**
+1. Ellenőrzi az aktuális route-ot
+2. Ha ugyanaz és nem forced → return false
+3. Beállítja a player state-et
+4. SetPlayerRoutingBucket() használata
+5. Triggere kliens eseményt
+6. Attached objektumok route-olása
+7. Logger üzenet
+
+**Routing bucket használat:**
+- 0 = Globális (mindenki)
+- 1+ = Privát instance-ok
+- Játékosok más routing bucket-ben nem látják egymást
+
+#### GlobalRoute
+
+Karakter visszahelyezése a globális route-ba.
+
+```lua
+local success = character:GlobalRoute()
+```
+
+**Visszatérés:**
+- `success` (boolean) - Sikeres volt-e
+
+**Példa:**
+
+```lua
+local character = GetCharacter(source)
+
+-- Vissza a globális route-ba
+character:GlobalRoute()
+
+-- Egyenértékű ezzel:
+character:SetRoute(0, true)
+```
+
+## Character konstruktor
+
+Új Character objektum létrehozása (automatikus).
+
+```lua
+-- Belső használat
+local character, characterData = require 'core.server.player.modules.characterClass'(playerSrc, characterData)
+```
+
+**Működés:**
+1. Létrehozza a Character objektumot
+2. Beállítja az összes property-t
+3. Generálja a fullName-et
+4. Beállítja a player state-eket
+5. Globális route beállítása (100ms késleltetéssel)
+6. Visszaadja a character objektumot és a data táblát
+
+**Visszatérés:**
+- `character` - Character objektum
+- `characterData` - Karakter adatok (táblázat)
+
+## Gyakorlati példák
+
+### Teleport rendszer
+
+```lua
+RegisterCommand('tp', function(source, args)
+    local character = GetCharacter(source)
+    
+    if not character then
+        return print('Nincs aktív karakter')
+    end
+    
+    local x, y, z = tonumber(args[1]), tonumber(args[2]), tonumber(args[3])
+    
+    if not x or not y or not z then
+        return print('Használat: /tp x y z')
+    end
+    
+    character:SetCoords(vector3(x, y, z))
+    print('Teleportálva:', x, y, z)
+end)
+
+-- Waypoint teleport
+RegisterCommand('tpwp', function(source)
+    local character = GetCharacter(source)
+    
+    if not character then return end
+    
+    -- Kliens elküldi a waypoint koordinátákat
+    TriggerClientEvent('teleport:requestWaypoint', source)
+end)
+
+RegisterNetEvent('teleport:waypoint', function(coords)
+    local character = GetCharacter(source)
+    
+    if character then
+        character:SetCoords(coords)
+    end
+end)
+```
+
+### Pozíció mentés
+
+```lua
+-- Automatikus mentés 5 percenként
+CreateThread(function()
+    while true do
+        Wait(300000)  -- 5 perc
+        
+        for charId, character in pairs(Private.Characters) do
+            character:GetCoords()  -- Frissíti a position property-t
+            character:Save()
+        end
+        
+        print('Karakterek pozíciói mentve')
+    end
+end)
+
+-- Manual mentés parancs
+RegisterCommand('savepos', function(source)
+    local character = GetCharacter(source)
+    
+    if not character then return end
+    
+    character:GetCoords()
+    local success = character:Save()
+    
+    if success then
+        print('Pozíció mentve')
+    end
+end)
+```
+
+### Csoport rendszer
+
+```lua
+-- Csoport hozzáadása
+RegisterCommand('addjob', function(source, args)
+    local targetSrc = tonumber(args[1])
+    local job = args[2]
+    local rank = args[3] or '1'
+    
+    local character = GetCharacter(targetSrc)
+    if not character then
+        return print('Karakter nem található')
+    end
+    
+    local success, msg = character:SetGroup(job, rank)
+    
+    if success then
+        print('Munka beállítva:', job, rank)
+    else
+        print('Hiba:', msg)
+    end
+end)
+
+-- Csoport eltávolítása
+RegisterCommand('removejob', function(source, args)
+    local targetSrc = tonumber(args[1])
+    local job = args[2]
+    
+    local character = GetCharacter(targetSrc)
+    if not character then
+        return print('Karakter nem található')
+    end
+    
+    local success = character:SetGroup(job, nil)
+    
+    if success then
+        print('Munka eltávolítva:', job)
+    end
+end)
+
+-- Csoport ellenőrzés
+RegisterCommand('checkjob', function(source)
+    local character = GetCharacter(source)
+    
+    if not character then return end
+    
+    if character:HasGroup('police') then
+        print('Rendőr vagy')
+    else
+        print('Nem vagy rendőr')
+    end
+end)
+```
+
+### Routing bucket rendszer
+
+```lua
+-- Privát instance létrehozása
+local instances = {}
+local nextInstanceId = 1
+
+RegisterCommand('createinstance', function(source)
+    local character = GetCharacter(source)
+    
+    if not character then return end
+    
+    local instanceId = nextInstanceId
+    nextInstanceId = nextInstanceId + 1
+    
+    character:SetRoute(instanceId)
+    instances[instanceId] = {
+        owner = source,
+        members = {source}
+    }
+    
+    print('Instance létrehozva:', instanceId)
+end)
+
+-- Játékos hozzáadása instance-hoz
+RegisterCommand('inviteinstance', function(source, args)
+    local character = GetCharacter(source)
+    if not character then return end
+    
+    local instanceId = character:GetRoute()
+    if instanceId == 0 then
+        return print('Nem vagy instance-ban')
+    end
+    
+    local targetSrc = tonumber(args[1])
+    local targetChar = GetCharacter(targetSrc)
+    
+    if not targetChar then
+        return print('Célpont nem található')
+    end
+    
+    targetChar:SetRoute(instanceId)
+    table.insert(instances[instanceId].members, targetSrc)
+    
+    print('Játékos hozzáadva instance-hoz')
+end)
+
+-- Vissza a globális route-ba
+RegisterCommand('leaveinstance', function(source)
+    local character = GetCharacter(source)
+    
+    if not character then return end
+    
+    character:GlobalRoute()
+    print('Visszatértél a globális route-ba')
+end)
+```
+
+### Kijelentkezés kezelés
+
+```lua
+-- Karakter logout parancs
+RegisterCommand('logout', function(source)
+    local character = GetCharacter(source)
+    
+    if not character then
+        return print('Nincs aktív karakter')
+    end
+    
+    local success = character:Unload()
+    
+    if success then
+        print('Kijelentkeztél a karakterből')
+    else
+        print('Kilépés megszakítva')
+    end
+end)
+
+-- Lecsatlakozáskor automatikus mentés
+AddEventHandler('playerDropped', function(reason)
+    local source = source
+    local character = GetCharacter(source)
+    
+    if character then
+        -- Azonnali mentés lecsatlakozáskor
+        character:Unload(true)
+        print('Karakter mentve lecsatlakozáskor:', character.fullName)
+    end
+end)
+```
+
+### Custom data kezelés
+
+```lua
+-- Éhség/szomjúság rendszer
+RegisterCommand('setstatus', function(source, args)
+    local character = GetCharacter(source)
+    if not character then return end
+    
+    local status = args[1]  -- 'hunger' vagy 'thirst'
+    local value = tonumber(args[2])
+    
+    if not character.statuses then
+        character.statuses = {}
+    end
+    
+    character.statuses[status] = value
+    character:SetData('statuses', character.statuses, true, false)
+    
+    print('Státusz beállítva:', status, value)
+end)
+
+-- Custom mező használata
+RegisterCommand('setnote', function(source, args)
+    local character = GetCharacter(source)
+    if not character then return end
+    
+    local note = table.concat(args, ' ')
+    character:SetData('adminNote', note)
+    
+    print('Jegyzet beállítva:', note)
+end)
+
+-- Mező lekérése
+RegisterCommand('getnote', function(source)
+    local character = GetCharacter(source)
+    if not character then return end
+    
+    local note = character:GetData('adminNote')
+    print('Jegyzet:', note or 'Nincs')
+end)
+```
+
+### State szinkronizálás
+
+```lua
+-- Szerver oldal - replikált state
+RegisterCommand('setrole', function(source, args)
+    local character = GetCharacter(source)
+    if not character then return end
+    
+    local role = args[1]
+    character:SetData('currentRole', role, true, true)  -- State + replicated
+    
+    print('Szerep beállítva (mindenki látja):', role)
+end)
+
+-- Kliens oldal - state olvasása
+RegisterNetEvent('checkPlayerRole', function(targetSrc)
+    local state = Player(targetSrc).state
+    local role = state.currentRole
+    
+    if role then
+        print('Játékos szerepe:', role)
+    else
+        print('Nincs szerep beállítva')
+    end
+end)
+```
+
+### Multi-character kezelés
+
+```lua
+-- Karakterváltás
+RegisterCommand('switchchar', function(source)
+    local character = GetCharacter(source)
+    
+    if not character then return end
+    
+    -- Kijelentkezés karakterből
+    local success = character:Unload()
+    
+    if success then
+        -- Karakter választó megnyitása
+        TriggerClientEvent('characterSelector:open', source)
+    end
+end)
+
+-- Karakter lista
+RegisterCommand('mycharacters', function(source)
+    local player = GetPlayer(source)
+    
+    if not player then return end
+    
+    print('Karaktereid:')
+    for _, charId in ipairs(player.characters) do
+        -- Karakter adatok lekérése az adatbázisból
+        local charData = Database:GetCharacter(charId)
+        print(string.format('  - %s (ID: %d)', charData.fullName, charId))
+    end
+end)
+```
+
+## Események
+
+### Szerver események
+
+```lua
+-- Karakter betöltve
+AddEventHandler('Core:Server:CharacterLoaded', function(source, charId)
+    local character = GetCharacter(charId)
+    print('Karakter betöltve:', character.fullName)
+    
+    -- Spawn pozíció beállítása
+    character:SetCoords(vector3(0, 0, 72))
+end)
+
+-- Karakter kijelentkezve
+AddEventHandler('Core:Server:CharacterLogout', function(source, charId)
+    print('Karakter kijelentkezett:', charId)
+end)
+
+-- Karakter csoport változás
+AddEventHandler('Core:Server:CharacterGroupChanged', function(source, charId, group, rank, groups)
+    print('Csoport változás:', group, rank)
+end)
+```
+
+### Kliens események
+
+```lua
+-- Karakter betöltve
+RegisterNetEvent('Core:Client:CharacterLoaded', function(characterData)
+    print('Karakter:', characterData.fullName)
+    print('Pozíció:', characterData.position)
+end)
+
+-- Karakter adat változás
+RegisterNetEvent('Core:Client:CharacterDataChanged', function(key, value)
+    print('Adat változott:', key, value)
+end)
+
+-- Karakter csoport változás
+RegisterNetEvent('Core:Client:CharacterGroupChanged', function(group, rank, groups)
+    print('Csoport:', group, 'Rang:', rank)
+end)
+
+-- Karakter kijelentkezés
+RegisterNetEvent('Core:Client:CharacterLogout', function(charId)
+    print('Kijelentkeztél')
+end)
+```
+
+## Private.Characters tábla
+
+```lua
+-- Belső adatok tárolása
+Private.Characters = {
+    [charId] = {
+        source = 1,
+        charId = 123,
+        playerId = 456,
+        stateId = 'AB12CD3',
+        firstName = 'John',
+        lastName = 'Doe',
+        fullName = 'John Doe',
+        position = vector4(0, 0, 72, 0),
+        groups = {police = '1'},
+        route = 0,
+        -- ... stb
+    }
+}
+
+-- Közvetlen hozzáférés (csak olvasásra!)
+local charData = Private.Characters[charId]
+print('Név:', charData.fullName)
+```
+
+**Figyelem:** Ne módosítsd közvetlenül a Private.Characters táblát! Mindig használd a Character metódusokat.
+
+## State változók
+
+```lua
+-- Character state
+Player(source).state:get('charId')        -- Character ID
+Player(source).state:get('name')          -- Teljes név
+Player(source).state:get('stateId')       -- State ID
+Player(source).state:get('currentRoute')  -- Routing bucket
+
+-- Kliens oldalon
+LocalPlayer.state.charId      -- number
+LocalPlayer.state.name        -- string
+LocalPlayer.state.stateId     -- string
+```
+
+## Típus annotációk
+
+```lua
+---@class Character
+---@field source number
+---@field charId number
+---@field playerId number
+---@field stateId string
+---@field firstName string
+---@field lastName string
+---@field middleName string
+---@field fullName string
+---@field dateOfBirth string
+---@field nationality string
+---@field gender number
+---@field specialization string
+---@field position vector4
+---@field groups table
+---@field statuses table
+---@field skills table
+---@field route number
+
+---@param source number|charId
+---@return Character|nil
+local character = GetCharacter(source)
+```
+
+## Következő lépések
+
+- 👤 [Player osztály](/core/internal/player) - Player kezelés
+- 👥 [Group rendszer](/core/internal#group-rendszer) - Csoportok
+- 🔒 [ACL rendszer](/core/internal#acl-rendszer) - Jogosultságok
+- 🏠 [Core áttekintés](/core/internal) - Belső rendszerek
+
+---
+
+**Fontos:** A Character objektumok az LS Core belső működéséhez tartoznak. Módosításuk előtt mindig gondold át a következményeket!
