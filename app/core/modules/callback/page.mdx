@@ -1,0 +1,393 @@
+# Callback modul
+
+A Callback modul egy hatékony kliens-szerver kommunikációs rendszer, amely lehetővé teszi aszinkron kérések és válaszok küldését.
+
+## Kliens oldal
+
+### Callback hívás
+
+Callback hívása a szerverről válasz kérésével.
+
+```lua
+LS.Callback(event, delay, callback, ...)
+```
+
+**Paraméterek:**
+- `event` (string): A callback event neve
+- `delay` (number|false, opcionális): Késleltetés milliszekundumban vagy false
+- `callback` (function): A válasz kezelő függvény
+- `...`: További paraméterek
+
+**Példa:**
+
+```lua
+-- Egyszerű callback
+LS.Callback('getPlayerData', false, function(data)
+    print('Játékos név:', data.name)
+    print('Pénz:', data.money)
+end)
+
+-- Callback paraméterekkel
+LS.Callback('checkPermission', false, function(hasPermission)
+    if hasPermission then
+        print('Van jogosultságod')
+    else
+        print('Nincs jogosultságod')
+    end
+end, 'admin.kick')
+
+-- Késleltetett callback (5 másodperc)
+LS.Callback('getData', 5000, function(result)
+    print('Adat:', result)
+end)
+```
+
+### Await
+
+Aszinkron callback hívás, amely megvárja a választ.
+
+```lua
+local result = LS.Callback:Await(event, delay, ...)
+```
+
+**Paraméterek:**
+- `event` (string): A callback event neve
+- `delay` (number|false, opcionális): Késleltetés milliszekundumban
+- `...`: További paraméterek
+
+**Visszatérési érték:**
+- Szerver által visszaadott érték(ek)
+
+**Példa:**
+
+```lua
+-- Játékos adat lekérése
+local playerData = LS.Callback:Await('getPlayerData', false)
+print('Név:', playerData.name)
+
+-- Bank egyenleg lekérése
+local balance = LS.Callback:Await('getBankBalance', false)
+print('Egyenleg:', balance)
+
+-- Vásárlás ellenőrzése
+local success, message = LS.Callback:Await('purchaseItem', false, 'bread', 2)
+if success then
+    print('Sikeres vásárlás!')
+else
+    print('Hiba:', message)
+end
+```
+
+### Register
+
+Callback regisztrálása, amelyre a szerver hívhat.
+
+```lua
+LS.Callback:Register(name, callback)
+```
+
+**Paraméterek:**
+- `name` (string): A callback neve
+- `callback` (function): A végrehajtandó függvény
+
+**Példa:**
+
+```lua
+-- Játékos pozíció lekérése
+LS.Callback:Register('getPlayerPosition', function()
+    return GetEntityCoords(cache.ped)
+end)
+
+-- Jármű állapot lekérése
+LS.Callback:Register('getVehicleHealth', function()
+    local vehicle = GetVehiclePedIsIn(cache.ped, false)
+    if vehicle > 0 then
+        return {
+            engine = GetVehicleEngineHealth(vehicle),
+            body = GetVehicleBodyHealth(vehicle)
+        }
+    end
+    return nil
+end)
+
+-- Több paraméter visszaadása
+LS.Callback:Register('getPlayerInfo', function()
+    local ped = cache.ped
+    local coords = GetEntityCoords(ped)
+    local health = GetEntityHealth(ped)
+    local armor = GetPedArmour(ped)
+    
+    return coords, health, armor
+end)
+```
+
+## Szerver oldal
+
+### Callback hívás
+
+Callback hívása egy klienshez válasz kérésével.
+
+```lua
+LS.Callback(event, playerId, callback, ...)
+```
+
+**Paraméterek:**
+- `event` (string): A callback event neve
+- `playerId` (number): A célpont játékos server ID-ja
+- `callback` (function): A válasz kezelő függvény
+- `...`: További paraméterek
+
+**Példa:**
+
+```lua
+-- Játékos pozíció lekérése
+LS.Callback('getPlayerPosition', source, function(coords)
+    print(string.format('Játékos pozíció: %s, %s, %s', coords.x, coords.y, coords.z))
+end)
+
+-- Jármű állapot lekérése
+LS.Callback('getVehicleHealth', source, function(data)
+    if data then
+        print('Motor:', data.engine)
+        print('Karosszéria:', data.body)
+    else
+        print('Játékos nem járműben van')
+    end
+end)
+```
+
+### Await
+
+Aszinkron callback hívás klienshez, amely megvárja a választ.
+
+```lua
+local result = LS.Callback:Await(event, playerId, ...)
+```
+
+**Paraméterek:**
+- `event` (string): A callback event neve
+- `playerId` (number): A célpont játékos server ID-ja
+- `...`: További paraméterek
+
+**Visszatérési érték:**
+- Kliens által visszaadott érték(ek)
+
+**Példa:**
+
+```lua
+RegisterCommand('getpos', function(source, args)
+    local coords = LS.Callback:Await('getPlayerPosition', source)
+    print(string.format('Pozíció: %.2f, %.2f, %.2f', coords.x, coords.y, coords.z))
+end)
+
+-- Több érték visszakapása
+RegisterCommand('checkstats', function(source, args)
+    local coords, health, armor = LS.Callback:Await('getPlayerInfo', source)
+    print('Koordináták:', coords)
+    print('Életerő:', health)
+    print('Páncél:', armor)
+end)
+```
+
+### Register
+
+Callback regisztrálása, amelyre kliensek hívhatnak.
+
+```lua
+LS.Callback:Register(name, callback)
+```
+
+**Paraméterek:**
+- `name` (string): A callback neve
+- `callback` (function): A végrehajtandó függvény (első paraméter mindig a source)
+
+**Példa:**
+
+```lua
+-- Játékos adat lekérése
+LS.Callback:Register('getPlayerData', function(source)
+    local player = GetPlayer(source) -- Saját player rendszer
+    return {
+        name = player.name,
+        money = player.money,
+        bank = player.bank
+    }
+end)
+
+-- Jogosultság ellenőrzése
+LS.Callback:Register('checkPermission', function(source, permission)
+    return HasPermission(source, permission)
+end)
+
+-- Vásárlás
+LS.Callback:Register('purchaseItem', function(source, itemName, quantity)
+    local player = GetPlayer(source)
+    local item = GetItem(itemName)
+    local totalPrice = item.price * quantity
+    
+    if player.money >= totalPrice then
+        player:RemoveMoney(totalPrice)
+        player:AddItem(itemName, quantity)
+        return true, 'Sikeres vásárlás'
+    else
+        return false, 'Nincs elég pénzed'
+    end
+end)
+
+-- Adatbázis lekérdezés
+LS.Callback:Register('getUserData', function(source, userId)
+    local result = MySQL.query.await('SELECT * FROM users WHERE id = ?', {userId})
+    return result[1]
+end)
+```
+
+## Timeout beállítás
+
+A callback timeout idő a `server.cfg` fájlban állítható:
+
+```cfg
+setr ls:callbackTimeout "300000"  # 5 perc (alapértelmezett)
+```
+
+## Hibakezelés
+
+A callback rendszer automatikus hibakezelést biztosít:
+
+```lua
+-- Kliens oldal
+LS.Callback:Register('riskyOperation', function()
+    -- Ha hiba történik, automatikusan logolva lesz
+    local result = someFunction()
+    return result
+end)
+
+-- Szerver oldal
+LS.Callback:Register('databaseQuery', function(source)
+    -- Hibás műveletek automatikusan elkapva
+    local data = MySQL.query.await('SELECT * FROM users')
+    return data
+end)
+```
+
+## Gyakorlati példák
+
+### ATM rendszer
+
+```lua
+-- Kliens (ATM menu)
+RegisterCommand('atm', function()
+    local balance = LS.Callback:Await('getBalance', false)
+    
+    -- ATM UI megjelenítése az egyenleggel
+    OpenATMMenu(balance)
+end)
+
+-- Pénz kivétel
+function WithdrawMoney(amount)
+    LS.Callback('withdrawMoney', false, function(success, newBalance, message)
+        if success then
+            ShowNotification('Sikeres kivét: $' .. amount)
+            UpdateBalanceDisplay(newBalance)
+        else
+            ShowNotification('Hiba: ' .. message)
+        end
+    end, amount)
+end
+
+-- Szerver
+LS.Callback:Register('getBalance', function(source)
+    local player = GetPlayer(source)
+    return player.bank
+end)
+
+LS.Callback:Register('withdrawMoney', function(source, amount)
+    local player = GetPlayer(source)
+    
+    if player.bank >= amount then
+        player:RemoveBank(amount)
+        player:AddMoney(amount)
+        return true, player.bank, 'Sikeres kivét'
+    else
+        return false, player.bank, 'Nincs elég pénz a számládon'
+    end
+end)
+```
+
+### Bolt rendszer
+
+```lua
+-- Kliens
+function PurchaseItem(itemId, quantity)
+    local success, message = LS.Callback:Await('shop:purchase', false, itemId, quantity)
+    
+    if success then
+        ShowNotification('Sikeres vásárlás!')
+    else
+        ShowNotification(message)
+    end
+end
+
+-- Szerver
+LS.Callback:Register('shop:purchase', function(source, itemId, quantity)
+    local player = GetPlayer(source)
+    local item = Config.ShopItems[itemId]
+    
+    if not item then
+        return false, 'Nem létező item'
+    end
+    
+    local totalPrice = item.price * quantity
+    
+    if player.money < totalPrice then
+        return false, 'Nincs elég pénzed'
+    end
+    
+    if not player:CanCarryItem(itemId, quantity) then
+        return false, 'Nincs elég hely a táskádban'
+    end
+    
+    player:RemoveMoney(totalPrice)
+    player:AddItem(itemId, quantity)
+    
+    return true, 'Sikeres vásárlás'
+end)
+```
+
+### Admin rendszer
+
+```lua
+-- Kliens
+RegisterCommand('freeze', function()
+    local targetId, distance = GetClosestPlayer()
+    
+    if distance > 5.0 then
+        return ShowNotification('Nincs játékos a közeledben')
+    end
+    
+    LS.Callback('admin:freezePlayer', false, function(success)
+        if success then
+            ShowNotification('Játékos lefagyasztva')
+        else
+            ShowNotification('Nincs jogosultságod')
+        end
+    end, targetId)
+end)
+
+-- Szerver
+LS.Callback:Register('admin:freezePlayer', function(source, targetId)
+    if not HasPermission(source, 'admin.freeze') then
+        return false
+    end
+    
+    FreezeEntityPosition(GetPlayerPed(targetId), true)
+    return true
+end)
+```
+
+## Jó tudni
+
+- Minden callback hívás egyedi kulcsot kap az ütközések elkerülésére
+- Timeout után a callback automatikusan elutasításra kerül
+- A rendszer ox_lib callback-en alapul, kompatibilis azzal
+- Késleltetés használata megakadályozza a spam hívásokat
+- Hibák automatikusan naplózva vannak a logger rendszerben

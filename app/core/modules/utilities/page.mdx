@@ -1,0 +1,308 @@
+# Utility modulok
+
+Segédfunkciók és eszközök a fejlesztéshez.
+
+## Logger
+
+### Használat
+
+```lua
+-- Info üzenet
+LS.Logger:Info('Ez egy info üzenet')
+
+-- Hiba üzenet
+LS.Logger:Error('Valami hiba történt')
+
+-- Siker üzenet
+LS.Logger:Success('Művelet sikeres')
+
+-- Figyelmezetés
+LS.Logger:Warn('Figyelem!')
+
+-- Debug üzenet
+LS.Logger:Debug('Debug info', {
+    settings = {
+        prefixes = {'ModulName'},
+        subPrefix = 'FunkciÓ',
+        id = 'unique_id'
+    }
+})
+```
+
+### Serialize
+
+Táblázat szerializálása string-gé.
+
+```lua
+local data = {name = 'Test', value = 123}
+local str = LS.Logger:Serialize(data)
+print(str)
+```
+
+## Math
+
+Kiterjesztett matematikai funkciók.
+
+### toscalars
+
+String konvertálása skaláris értékekké.
+
+```lua
+local x, y, z = math.toscalars('10.5, 20, 30.7')
+print(x, y, z)  -- 10.5  20  30.7
+```
+
+### tovector
+
+String vagy táblázat konvertálása vector-rá.
+
+```lua
+local vec = math.tovector('1.0, 2.0, 3.0')
+-- vagy
+local vec = math.tovector({x = 1.0, y = 2.0, z = 3.0})
+-- vagy
+local vec = math.tovector({1.0, 2.0, 3.0})
+
+print(vec)  -- vector3(1.0, 2.0, 3.0)
+```
+
+**Paraméterek:**
+- `input` (string|table): Bemenet
+- `min` (number, opcionális): Minimum érték
+- `max` (number, opcionális): Maximum érték
+- `round` (boolean|number, opcionális): Kerekítés
+
+**Példa:**
+
+```lua
+-- Kerekítéssel
+local vec = math.tovector('1.7, 2.3, 3.9', nil, nil, true)
+-- vector3(2.0, 2.0, 4.0)
+
+-- Min/max korláttal
+local vec = math.tovector({x = 100, y = 200, z = 300}, 0, 255)
+```
+
+### normaltorotation
+
+Felület normál konvertálása forgatássá.
+
+```lua
+local normal = vector3(0.0, 1.0, 0.0)
+local rotation = math.normaltorotation(normal)
+```
+
+### torgba
+
+RGBA színérték létrehozása.
+
+```lua
+local color = math.torgba('255, 128, 64, 1.0')
+-- vector4(255, 128, 64, 1.0)
+```
+
+## Table
+
+Kiterjesztett táblázat funkciók.
+
+### contains
+
+Ellenőrzi, hogy táblázat tartalmaz-e értéket.
+
+```lua
+local tbl = {1, 2, 3, 4, 5}
+local exists = table.contains(tbl, 3)  -- true
+local exists2 = table.contains(tbl, 10)  -- false
+
+-- Több érték ellenőrzése
+local exists3 = table.contains(tbl, {2, 4})  -- true
+```
+
+### matches
+
+Két táblázat összehasonlítása (mély összehasonlítás).
+
+```lua
+local t1 = {name = 'Test', value = 123}
+local t2 = {name = 'Test', value = 123}
+local same = table.matches(t1, t2)  -- true
+```
+
+### deepclone
+
+Táblázat mély másolása (referenciák nélkül).
+
+```lua
+local original = {name = 'Test', nested = {value = 123}}
+local copy = table.deepclone(original)
+
+copy.nested.value = 999
+print(original.nested.value)  -- 123 (eredeti változatlan)
+```
+
+### merge
+
+Két táblázat összefűzése.
+
+```lua
+local t1 = {a = 1, b = 2}
+local t2 = {b = 3, c = 4}
+table.merge(t1, t2)
+-- t1 = {a = 1, b = 5, c = 4}  -- számok összeadva
+
+-- Vagy felülírás
+table.merge(t1, t2, false)
+-- t1 = {a = 1, b = 3, c = 4}  -- b felülírva
+```
+
+## WaitFor
+
+Várakozás amíg feltétel teljesül.
+
+```lua
+local result = LS:WaitFor(function()
+    if condition then
+        return value
+    end
+    return nil
+end, 'Timeout hiba üzenet', 5000)
+```
+
+**Paraméterek:**
+- `callback` (function): Feltétel függvény, visszatérési érték != nil amikor teljesül
+- `errMessage` (string, opcionális): Hiba üzenet timeout esetén
+- `timeout` (number|false, opcionális): Timeout milliszekundumban (alapértelmezett: 1000)
+
+**Példa:**
+
+```lua
+-- Várakozás ped betöltésére
+local ped = LS:WaitFor(function()
+    if DoesEntityExist(someEntity) then
+        return someEntity
+    end
+end, 'Ped nem töltődött be', 5000)
+
+-- Végtelen várakozás
+local data = LS:WaitFor(function()
+    return GetSomeData()
+end, 'Adat nem érkezett', false)
+```
+
+## Grid
+
+Grid rendszer koordináták kezelésére.
+
+```lua
+-- Grid generálás
+local grid = LS.Grid:Create(centerCoords, cellSize, rows, cols)
+
+-- Cella lekérése
+local cell = grid:GetCell(x, y)
+
+-- Közeli cellák
+local nearbyCells = grid:GetNearbyCells(coords, radius)
+```
+
+## Require
+
+Biztonságos modul betöltés.
+
+```lua
+local module = require 'moduleName'
+```
+
+## Gyakorlati példák
+
+### Logger használat modulban
+
+```lua
+local settings = {
+    settings = {
+        prefixes = {'MyScript'},
+        id = 'myscript_main'
+    }
+}
+
+LS.Logger:Info('Script inicializálva', settings)
+LS.Logger:Debug('Config betöltve', settings)
+
+-- Táblázat kiírása
+local config = {option1 = true, option2 = 'value'}
+LS.Logger:Info(LS.Logger:Serialize(config), settings)
+```
+
+### Vector string parsing
+
+```lua
+RegisterCommand('tp', function(source, args)
+    -- /tp 100.5 200.3 30.0
+    local coords = math.tovector(table.concat(args, ','))
+    
+    if coords then
+        SetEntityCoords(cache.ped, coords.x, coords.y, coords.z)
+        LS.Logger:Success('Teleport sikeres: ' .. tostring(coords))
+    end
+end)
+```
+
+### Táblázat műveletek
+
+```lua
+local defaultConfig = {
+    enabled = true,
+    maxPlayers = 32,
+    features = {
+        pvp = true,
+        trading = false
+    }
+}
+
+local userConfig = {
+    maxPlayers = 64,
+    features = {
+        trading = true
+    }
+}
+
+-- Merge
+local finalConfig = table.deepclone(defaultConfig)
+table.merge(finalConfig, userConfig)
+
+print(finalConfig.maxPlayers)  -- 64
+print(finalConfig.features.pvp)  -- true
+print(finalConfig.features.trading)  -- true
+```
+
+### WaitFor entity betöltésre
+
+```lua
+function WaitForEntityToLoad(entity, timeout)
+    return LS:WaitFor(function()
+        if DoesEntityExist(entity) and not IsEntityDead(entity) then
+            return entity
+        end
+    end, 'Entity nem töltődött be időben', timeout or 5000)
+end
+
+-- Használat
+CreateThread(function()
+    local vehicle = CreateVehicle(model, coords, heading, true, false)
+    WaitForEntityToLoad(vehicle)
+    
+    -- Most már biztos, hogy betöltött
+    SetVehicleColours(vehicle, 0, 0)
+end)
+```
+
+### Config ellenőrzés
+
+```lua
+local requiredKeys = {'enabled', 'maxPlayers', 'serverName'}
+local config = LoadConfig()
+
+if not table.contains(config, requiredKeys) then
+    LS.Logger:Error('Config hiányos! Hiányzó kulcsok.')
+    return
+end
+```

@@ -1,0 +1,269 @@
+# Egyéb modulok
+
+További hasznos modulok és funkciók.
+
+## GetRelativeCoords
+
+Relatív koordináták számítása entitáshoz képest.
+
+```lua
+local relativeCoords = LS:GetRelativeCoords(entity, offset)
+```
+
+**Paraméterek:**
+- `entity` (number): Entity ID
+- `offset` (vector3): Eltolás az entity lokális koordinátarendszerében
+
+**Visszatérési érték:**
+- `vector3`: Világkoordináták
+
+**Példa:**
+
+```lua
+local vehicle = GetVehiclePedIsIn(cache.ped, false)
+
+-- 5 méterrel az autó előtt
+local frontCoords = LS:GetRelativeCoords(vehicle, vector3(0.0, 5.0, 0.0))
+
+-- 2 méterrel az autó jobb oldalán
+local rightCoords = LS:GetRelativeCoords(vehicle, vector3(2.0, 0.0, 0.0))
+
+-- Objektum spawno lása az autó mögött
+local behindCoords = LS:GetRelativeCoords(vehicle, vector3(0.0, -3.0, 0.0))
+local obj = CreateObject(model, behindCoords.x, behindCoords.y, behindCoords.z, true, false, false)
+```
+
+## GetFilesInDirectory (Szerver)
+
+Fájlok listázása egy mappában.
+
+```lua
+local files = LS:GetFilesInDirectory(directory, extension)
+```
+
+**Paraméterek:**
+- `directory` (string): Mappa elérési útja
+- `extension` (string, opcionális): Fájl kiterjesztés szűrő (pl. '.lua', '.json')
+
+**Visszatérési érték:**
+- `table`: Fájlnevek listája
+
+**Példa:**
+
+```lua
+-- Összes Lua fájl a configs mappában
+local luaFiles = LS:GetFilesInDirectory('configs', '.lua')
+
+for _, file in ipairs(luaFiles) do
+    print('Config fájl:', file)
+    local config = require('configs.' .. file:gsub('.lua', ''))
+end
+
+-- Összes fájl a data mappában
+local allFiles = LS:GetFilesInDirectory('data')
+
+for _, file in ipairs(allFiles) do
+    print('Fájl:', file)
+end
+
+-- JSON config-ok betöltése
+local jsonFiles = LS:GetFilesInDirectory('configs', '.json')
+
+for _, file in ipairs(jsonFiles) do
+    local path = ('configs/%s'):format(file)
+    local content = LoadResourceFile(GetCurrentResourceName(), path)
+    local data = json.decode(content)
+    
+    print('JSON config:', file, data)
+end
+```
+
+## Grid
+
+Grid (rács) rendszer térbeli felosztáshoz.
+
+```lua
+local grid = LS.Grid:Create(centerCoords, cellSize, rows, cols)
+```
+
+**Paraméterek:**
+- `centerCoords` (vector3): A grid középpontja
+- `cellSize` (number): Cella mérete
+- `rows` (number): Sorok száma
+- `cols` (number): Oszlopok száma
+
+**Grid metódusok:**
+
+```lua
+-- Cella lekérése index alapján
+local cell = grid:GetCell(x, y)
+
+-- Közeli cellák lekérése
+local nearbyCells = grid:GetNearbyCells(coords, radius)
+
+-- Koordináták grid indexre konvertálása
+local x, y = grid:WorldToGrid(coords)
+
+-- Grid index világkoordinátákra konvertálása
+local coords = grid:GridToWorld(x, y)
+```
+
+## Require
+
+Biztonságos modul betöltés with error handling.
+
+```lua
+local module = require 'path.to.module'
+```
+
+A require funkció automatikusan kezeli a hibákat és logot ír ha a modul nem található.
+
+## Gyakorlati példák
+
+### Jármű előtti spawn pont
+
+```lua
+RegisterCommand('spawncar', function()
+    local vehicle = GetVehiclePedIsIn(cache.ped, false)
+    
+    if vehicle > 0 then
+        -- Új jármű spawn az eredeti előtt
+        local spawnCoords = LS:GetRelativeCoords(vehicle, vector3(0.0, 5.0, 0.0))
+        local spawnHeading = GetEntityHeading(vehicle)
+        
+        local newVehicle = SpawnVehicle('adder', spawnCoords, spawnHeading)
+        print('Jármű spawnolva előre:', newVehicle)
+    end
+end)
+```
+
+### Config fájlok dinamikus betöltése
+
+```lua
+-- server.lua
+local configs = {}
+
+local configFiles = LS:GetFilesInDirectory('configs', '.lua')
+
+for _, file in ipairs(configFiles) do
+    local name = file:gsub('.lua', '')
+    configs[name] = require('configs.' .. name)
+    print('Config betöltve:', name)
+end
+
+-- Használat
+local shopConfig = configs.shops
+local vehicleConfig = configs.vehicles
+```
+
+### Grid alapú spawn rendszer
+
+```lua
+local spawnGrid = LS.Grid:Create(
+    vector3(0.0, 0.0, 0.0),  -- Középpont
+    50.0,  -- 50x50 méteres cellák
+    10,    -- 10 sor
+    10     -- 10 oszlop
+)
+
+function SpawnInGrid(model, gridX, gridY)
+    local spawnCoords = spawnGrid:GridToWorld(gridX, gridY)
+    local entity = CreateVehicle(model, spawnCoords.x, spawnCoords.y, spawnCoords.z, 0.0, true, false)
+    return entity
+end
+
+-- Használat: spawnoló a (2, 3) cellába
+local vehicle = SpawnInGrid('adder', 2, 3)
+```
+
+### Prop elhelyezés entity körül
+
+```lua
+function PlacePropsAroundEntity(entity, propModel, count, radius)
+    local props = {}
+    
+    for i = 1, count do
+        local angle = (360 / count) * i
+        local rad = math.rad(angle)
+        
+        -- Relatív pozíció számítása
+        local offset = vector3(
+            math.cos(rad) * radius,
+            math.sin(rad) * radius,
+            0.0
+        )
+        
+        local coords = LS:GetRelativeCoords(entity, offset)
+        local prop = CreateObject(propModel, coords.x, coords.y, coords.z, true, false, false)
+        
+        -- Prop ráfordítása az entity-re
+        local heading = GetEntityHeading(entity)
+        SetEntityHeading(prop, heading + angle)
+        
+        table.insert(props, prop)
+    end
+    
+    return props
+end
+
+-- Használat: 8 kúp a jármű körül
+local vehicle = GetVehiclePedIsIn(cache.ped, false)
+local cones = PlacePropsAroundEntity(vehicle, `prop_roadcone02a`, 8, 5.0)
+```
+
+### Mappa alapú LOD rendszer grid-del
+
+```lua
+-- Szerver
+local worldGrid = LS.Grid:Create(
+    vector3(0.0, 0.0, 0.0),
+    500.0,  -- 500x500 méteres cellák
+    20,
+    20
+)
+
+local cellObjects = {}
+
+RegisterNetEvent('player:updatePosition', function(coords)
+    local gridX, gridY = worldGrid:WorldToGrid(coords)
+    local nearbyCells = worldGrid:GetNearbyCells(coords, 1000.0)
+    
+    -- Load nearby cells
+    for _, cell in ipairs(nearbyCells) do
+        if not cellObjects[cell.id] then
+            LoadCellObjects(cell)
+        end
+    end
+    
+    -- Unload far cells
+    for cellId, objects in pairs(cellObjects) do
+        if not IsIn(cellId, nearbyCells) then
+            UnloadCellObjects(cellId)
+        end
+    end
+end)
+```
+
+### Config összefűzés
+
+```lua
+-- Alap config
+local baseConfig = require 'configs.base'
+
+-- Speciális config-ok betöltése és összefűzése
+local configFiles = LS:GetFilesInDirectory('configs/overrides', '.lua')
+
+for _, file in ipairs(configFiles) do
+    local override = require('configs.overrides.' .. file:gsub('.lua', ''))
+    table.merge(baseConfig, override)
+end
+
+return baseConfig
+```
+
+## Jó tudni
+
+- `GetRelativeCoords` figyelembe veszi az entity forgatását
+- `GetFilesInDirectory` csak a szerveren érhető el
+- Grid rendszer hasznos nagy világok esetén LOD kezeléshez
+- A require automatikusan cache-eli a betöltött modulokat

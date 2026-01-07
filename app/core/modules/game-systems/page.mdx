@@ -1,0 +1,398 @@
+# Game System modulok
+
+Játékmechanikai rendszerek és eszközök.
+
+## Zones
+
+Zone (zóna) rendszer interaktív területek létrehozásához.
+
+### Sphere Zone
+
+Gömb alakú zóna.
+
+```lua
+local zone = LS.Zones:CreateSphere({
+    coords = vector3(x, y, z),
+    radius = 10.0,
+    debug = false,
+    onEnter = function(self)
+        print('Beléptél a zónába')
+    end,
+    onExit = function(self)
+        print('Kiléptél a zónából')
+    end,
+    inside = function(self)
+        -- Futtatódik minden frame-ben, amikor a zónában vagy
+    end
+})
+```
+
+### Box Zone
+
+Doboz alakú zóna.
+
+```lua
+local zone = LS.Zones:CreateBox({
+    coords = vector3(x, y, z),
+    size = vector3(10.0, 10.0, 5.0),
+    rotation = 45.0,
+    debug = true,
+    debugColour = vector4(255, 0, 0, 100),
+    onEnter = function(self)
+        print('Box zónába léptél')
+    end
+})
+```
+
+### Poly Zone
+
+Polygon alakú zóna.
+
+```lua
+local zone = LS.Zones:CreatePoly({
+    points = {
+        vector3(x1, y1, z1),
+        vector3(x2, y2, z2),
+        vector3(x3, y3, z3),
+        vector3(x4, y4, z4)
+    },
+    thickness = 5.0,
+    debug = true,
+    onEnter = function(self)
+        print('Poly zónába léptél')
+    end
+})
+```
+
+### Zone metódusok
+
+```lua
+-- Zóna törlése
+zone:remove()
+
+-- Debug mód váltása
+zone:setDebug(true, vector4(0, 255, 0, 100))
+
+-- Ellenőrzés, hogy egy pont a zónában van-e
+local inside = zone:contains(coords)
+```
+
+## Raycast
+
+Sugárvetítés (raycast) a játéktérben.
+
+### FromCoords
+
+Raycast két koordináta között.
+
+```lua
+local hit, entityHit, endCoords, surfaceNormal, materialHash = LS.Raycast:FromCoords(
+    startCoords,
+    endCoords,
+    flags,  -- opcionális, alapértelmezett: 511 (minden)
+    ignore  -- opcionális, alapértelmezett: 4 (NO_COLLISION)
+)
+
+if hit then
+    print('Eltalált entity:', entityHit)
+    print('Ütközési pont:', endCoords)
+end
+```
+
+**Flags értékek:**
+- `1` - INCLUDE_MOVER
+- `2` - INCLUDE_VEHICLE
+- `4` - INCLUDE_PED
+- `8` - INCLUDE_RAGDOLL
+- `16` - INCLUDE_OBJECT
+- `256` - INCLUDE_FOLIAGE
+- `511` - INCLUDE_ALL (alapértelmezett)
+
+### FromCamera
+
+Raycast a kamerából előre.
+
+```lua
+local hit, entityHit, endCoords, surfaceNormal, materialHash = LS.Raycast:FromCamera(
+    flags,
+    ignore,
+    distance  -- opcionális, alapértelmezett: 10.0
+)
+```
+
+**Példa:**
+
+```lua
+-- Mire néz a játékos
+local hit, entity, coords = LS.Raycast:FromCamera(511, 4, 100.0)
+
+if hit then
+    if IsEntityAVehicle(entity) then
+        print('Járműre nézel:', entity)
+    elseif IsEntityAPed(entity) then
+        print('Pedre nézel:', entity)
+    end
+end
+```
+
+## Keybinds
+
+Billentyű kötések kezelése.
+
+### Register
+
+Billentyű regisztrálása.
+
+```lua
+LS.Keybinds:Register({
+    name = 'openMenu',
+    description = 'Menü megnyitása',
+    defaultKey = 'E',
+    keydownCb = function()
+        print('E billentyű lenyomva')
+        OpenMenu()
+    end,
+    keyupCb = function()
+        print('E billentyű felengedve')
+    end
+})
+```
+
+### DisableKey
+
+Billentyű letiltása.
+
+```lua
+LS.Keybinds:DisableKey('openMenu')
+```
+
+### EnableKey
+
+Billentyű engedélyezése.
+
+```lua
+LS.Keybinds:EnableKey('openMenu')
+```
+
+### DisableAllKeys
+
+Összes billentyű letiltása.
+
+```lua
+LS.Keybinds:DisableAllKeys(true)
+-- Engedélyezés
+LS.Keybinds:DisableAllKeys(false)
+```
+
+## Cron (Szerver)
+
+Időzített feladatok ütemezése szerveren.
+
+### Create
+
+Cron task létrehozása.
+
+```lua
+local task = LS.Cron:Create({
+    minute = '*/5',  -- Minden 5. percben
+    hour = '*',      -- Minden órában
+    day = '*',       -- Minden nap
+    month = '*',     -- Minden hónap
+    weekday = '*',   -- Minden nap
+    job = function(task, date)
+        print('Cron task futott:', os.date('%c', os.time(date)))
+        -- Feladat logika
+    end,
+    debug = false,
+    maxDelay = 60  -- Max 60 másodperc késés megengedett
+})
+```
+
+**Cron kifejezések:**
+- `*` - Minden érték
+- `*/5` - Minden 5. érték
+- `1,5,10` - Konkrét értékek
+- `1-5` - Tartomány
+
+**Példák:**
+
+```lua
+-- Naponta 00:00-kor
+LS.Cron:Create({
+    minute = 0,
+    hour = 0,
+    job = function()
+        print('Éjfél!')
+    end
+})
+
+-- Minden hétfőn 12:00-kor
+LS.Cron:Create({
+    minute = 0,
+    hour = 12,
+    weekday = 1,  -- Hétfő
+    job = function()
+        print('Hétfői dél!')
+    end
+})
+
+-- 15 percenként
+LS.Cron:Create({
+    minute = '*/15',
+    job = function()
+        SaveData()
+    end
+})
+```
+
+## Objects
+
+Objektum kezelés (kliens és szerver).
+
+### CreateObject (Kliens)
+
+```lua
+local obj = LS.Objects:Create(model, coords, isNetwork, netMissionEntity, doorFlag)
+```
+
+### DeleteObject
+
+```lua
+LS.Objects:Delete(object)
+```
+
+## Peds
+
+Ped kezelés (kliens és szerver).
+
+### CreatePed (Kliens)
+
+```lua
+local ped = LS.Peds:Create(pedType, model, coords, heading, isNetwork, bScriptHostPed)
+```
+
+### DeletePed
+
+```lua
+LS.Peds:Delete(ped)
+```
+
+### SetHostile
+
+Ped ellenségessé tétele.
+
+```lua
+LS.Peds:SetHostile(ped, target)
+```
+
+## Gyakorlati példák
+
+### Bolt zóna
+
+```lua
+local shopZone = LS.Zones:CreateSphere({
+    coords = vector3(25.7, -1347.3, 29.49),
+    radius = 2.0,
+    onEnter = function(self)
+        LS.UI:TextUI({
+            id = 'shop',
+            text = 'Nyomj [E] a bolt megnyitásához'
+        })
+    end,
+    onExit = function(self)
+        LS.UI:HideTextUI('shop')
+        CloseShop()
+    end
+})
+```
+
+### Raycast célpont jelölés
+
+```lua
+CreateThread(function()
+    while true do
+        Wait(0)
+        
+        local hit, entity, coords, normal = LS.Raycast:FromCamera(511, 4, 100.0)
+        
+        if hit then
+            DrawMarker(28, coords.x, coords.y, coords.z, 0, 0, 0, 0, 0, 0, 0.3, 0.3, 0.3, 255, 0, 0, 100, false, true, 2, false, nil, nil, false)
+            
+            if IsEntityAVehicle(entity) then
+                -- Jármű információk megjelenítése
+            end
+        end
+    end
+end)
+```
+
+### Interakciós billentyű
+
+```lua
+LS.Keybinds:Register({
+    name = 'useItem',
+    description = 'Tárgy használata',
+    defaultKey = 'F',
+    keydownCb = function()
+        if canUseItem then
+            UseCurrentItem()
+        end
+    end
+})
+
+-- Tárgy használat közben tiltás
+function UseCurrentItem()
+    LS.Keybinds:DisableKey('useItem')
+    
+    -- Használat...
+    Wait(2000)
+    
+    LS.Keybinds:EnableKey('useItem')
+end
+```
+
+### Napi reset cron
+
+```lua
+-- Szerver
+LS.Cron:Create({
+    minute = 0,
+    hour = 0,
+    job = function(task, date)
+        print('Napi reset kezdődik...')
+        
+        -- Adatbázis reset
+        MySQL.query('UPDATE users SET daily_login = 0')
+        
+        -- Játékosok értesítése
+        TriggerClientEvent('game:dailyReset', -1)
+        
+        print('Napi reset befejezve!')
+    end,
+    debug = true
+})
+```
+
+### NPC spawn zónában
+
+```lua
+local guardSpawns = {
+    {pos = vector3(100, 200, 30), heading = 90.0},
+    {pos = vector3(110, 200, 30), heading = 270.0}
+}
+
+for i, spawn in ipairs(guardSpawns) do
+    local guard = LS.Peds:Create(4, `s_m_m_security_01`, spawn.pos, spawn.heading, true, false)
+    
+    LS.Peds:SetHostile(guard, cache.ped)
+    
+    -- Guard zóna
+    LS.Zones:CreateSphere({
+        coords = spawn.pos,
+        radius = 20.0,
+        inside = function()
+            TaskGuardCurrentPosition(guard, 10.0, 10.0, 1)
+        end
+    })
+end
+```

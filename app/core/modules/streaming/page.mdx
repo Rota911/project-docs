@@ -1,0 +1,290 @@
+# Streaming modulok
+
+A streaming modulok lehetővé teszik game assetek (modellek, animációk, textúrák stb.) betöltését.
+
+## Request modulok
+
+### RequestModel
+
+Model betöltése.
+
+```lua
+local modelHash = LS:RequestModel(model, timeout)
+```
+
+**Paraméterek:**
+- `model` (number|string): Model hash vagy neve
+- `timeout` (number, opcionális): Timeout milliszekundumban (alapértelmezett: 10000)
+
+**Példa:**
+
+```lua
+-- Model név alapján
+local adderHash = LS:RequestModel('adder', 5000)
+local vehicle = CreateVehicle(adderHash, coords.x, coords.y, coords.z, heading, true, false)
+SetModelAsNoLongerNeeded(adderHash)
+
+-- Hash alapján
+local pedHash = LS:RequestModel(`a_m_y_business_01`)
+local ped = CreatePed(4, pedHash, coords, heading, true, false)
+```
+
+### RequestAnimDict
+
+Animációs dictionary betöltése.
+
+```lua
+LS:RequestAnimDict(dict, timeout)
+```
+
+**Paraméterek:**
+- `dict` (string): Animációs dictionary neve
+- `timeout` (number, opcionális): Timeout milliszekundumban
+
+**Példa:**
+
+```lua
+LS:RequestAnimDict('amb@world_human_welding@male@base')
+TaskPlayAnim(cache.ped, 'amb@world_human_welding@male@base', 'base', 8.0, -8.0, -1, 1, 0, false, false, false)
+RemoveAnimDict('amb@world_human_welding@male@base')
+```
+
+### RequestAnimSet
+
+Animációs set betöltése.
+
+```lua
+LS:RequestAnimSet(set, timeout)
+```
+
+**Paraméterek:**
+- `set` (string): Animációs set neve
+- `timeout` (number, opcionális): Timeout
+
+**Példa:**
+
+```lua
+LS:RequestAnimSet('move_m@drunk@verydrunk')
+SetPedMovementClipset(cache.ped, 'move_m@drunk@verydrunk', 1.0)
+```
+
+### RequestStreamedTextureDict
+
+Textúra dictionary betöltése.
+
+```lua
+LS:RequestStreamedTextureDict(dict, timeout)
+```
+
+**Paraméterek:**
+- `dict` (string): Textúra dictionary neve
+- `timeout` (number, opcionális): Timeout
+
+**Példa:**
+
+```lua
+LS:RequestStreamedTextureDict('mpmessage')
+-- Használat DrawSprite-tal
+SetStreamedTextureDictAsNoLongerNeeded('mpmessage')
+```
+
+### RequestNamedPtfxAsset
+
+Particle effect asset betöltése.
+
+```lua
+LS:RequestNamedPtfxAsset(asset, timeout)
+```
+
+**Paraméterek:**
+- `asset` (string): Particle effect asset neve
+- `timeout` (number, opcionális): Timeout
+
+**Példa:**
+
+```lua
+LS:RequestNamedPtfxAsset('core')
+UseParticleFxAsset('core')
+StartParticleFxLoopedAtCoord('exp_grd_bzgas_smoke', coords.x, coords.y, coords.z, 0.0, 0.0, 0.0, 1.0, false, false, false, false)
+```
+
+### RequestScaleformMovie
+
+Scaleform movie betöltése.
+
+```lua
+local scaleform = LS:RequestScaleformMovie(movie, timeout)
+```
+
+**Paraméterek:**
+- `movie` (string): Scaleform movie neve
+- `timeout` (number, opcionális): Timeout
+
+**Visszatérési érték:**
+- `number`: Scaleform handle
+
+**Példa:**
+
+```lua
+local scaleform = LS:RequestScaleformMovie('MP_BIG_MESSAGE_FREEMODE')
+BeginScaleformMovieMethod(scaleform, 'SHOW_SHARD_WASTED_MP_MESSAGE')
+PushScaleformMovieMethodParameterString('Wasted')
+EndScaleformMovieMethod()
+
+-- Renderelés
+DrawScaleformMovieFullscreen(scaleform, 255, 255, 255, 255, 0)
+```
+
+### RequestWeaponAsset
+
+Fegyver asset betöltése.
+
+```lua
+LS:RequestWeaponAsset(weapon, timeout)
+```
+
+**Paraméterek:**
+- `weapon` (number|string): Fegyver hash vagy neve
+- `timeout` (number, opcionális): Timeout
+
+**Példa:**
+
+```lua
+local weaponHash = GetHashKey('WEAPON_PISTOL')
+LS:RequestWeaponAsset(weaponHash)
+GiveWeaponToPed(cache.ped, weaponHash, 100, false, true)
+```
+
+### RequestAudioBank
+
+Audio bank betöltése.
+
+```lua
+LS:RequestAudioBank(bank, timeout)
+```
+
+**Paraméterek:**
+- `bank` (string): Audio bank neve
+- `timeout` (number, opcionális): Timeout
+
+**Példa:**
+
+```lua
+LS:RequestAudioBank('DLC_HEIST_FLEECA_SOUNDSET')
+PlaySoundFrontend(-1, 'Drill', 'DLC_HEIST_FLEECA_SOUNDSET', true)
+```
+
+## StreamingRequest
+
+Általános streaming request függvény (belső használatra).
+
+```lua
+local asset = LS:StreamingRequest(requestFunc, hasLoadedFunc, assetType, asset, timeout, ...)
+```
+
+Ez egy low-level függvény, amelyet a többi request modul használ.
+
+## Gyakorlati példák
+
+### Jármű spawnoló
+
+```lua
+function SpawnVehicle(modelName, coords, heading)
+    local modelHash = LS:RequestModel(modelName, 5000)
+    
+    if not modelHash then
+        print('Model betöltése sikertelen')
+        return nil
+    end
+    
+    local vehicle = CreateVehicle(modelHash, coords.x, coords.y, coords.z, heading, true, false)
+    SetModelAsNoLongerNeeded(modelHash)
+    
+    return vehicle
+end
+
+-- Használat
+local vehicle = SpawnVehicle('adder', GetEntityCoords(cache.ped), 0.0)
+```
+
+### Ped létrehozás animációval
+
+```lua
+function CreateNPCWithAnim(model, coords, heading, animDict, animName)
+    -- Model betöltése
+    local modelHash = LS:RequestModel(model)
+    local ped = CreatePed(4, modelHash, coords.x, coords.y, coords.z, heading, false, true)
+    SetModelAsNoLongerNeeded(modelHash)
+    
+    -- Animáció betöltése és lejátszás
+    LS:RequestAnimDict(animDict)
+    TaskPlayAnim(ped, animDict, animName, 8.0, -8.0, -1, 1, 0, false, false, false)
+    RemoveAnimDict(animDict)
+    
+    return ped
+end
+
+-- Használat
+local guard = CreateNPCWithAnim(
+    's_m_m_security_01',
+    vector3(100.0, 200.0, 30.0),
+    90.0,
+    'amb@world_human_guard_stand@male@base',
+    'base'
+)
+```
+
+### Particle effect robbanás
+
+```lua
+function CreateExplosionEffect(coords)
+    LS:RequestNamedPtfxAsset('core')
+    
+    UseParticleFxAsset('core')
+    local fx = StartParticleFxLoopedAtCoord(
+        'exp_grd_bzgas_smoke',
+        coords.x, coords.y, coords.z,
+        0.0, 0.0, 0.0,
+        2.0,
+        false, false, false, false
+    )
+    
+    SetTimeout(5000, function()
+        StopParticleFxLooped(fx, false)
+    end)
+end
+```
+
+### Scaleform üzenet
+
+```lua
+function ShowBigMessage(title, subtitle, duration)
+    local scaleform = LS:RequestScaleformMovie('MP_BIG_MESSAGE_FREEMODE')
+    
+    BeginScaleformMovieMethod(scaleform, 'SHOW_SHARD_WASTED_MP_MESSAGE')
+    PushScaleformMovieMethodParameterString(title)
+    PushScaleformMovieMethodParameterString(subtitle or '')
+    EndScaleformMovieMethod()
+    
+    local endTime = GetGameTimer() + (duration or 5000)
+    
+    CreateThread(function()
+        while GetGameTimer() < endTime do
+            DrawScaleformMovieFullscreen(scaleform, 255, 255, 255, 255, 0)
+            Wait(0)
+        end
+        SetScaleformMovieAsNoLongerNeeded(scaleform)
+    end)
+end
+
+-- Használat
+ShowBigMessage('Misszió teljesítve!', 'Kaptál $5000', 5000)
+```
+
+## Jó tudni
+
+- Mindig használj timeout-ot a végtelen várakozás elkerülésére
+- A betöltött asseteket `SetModelAsNoLongerNeeded()` stb. függvényekkel szabadítsd fel
+- A RequestModel automatikusan konvertál string modelnevet hash-é
+- Hibás model betöltési kísérlet error-t dob
+- Az összes request függvény yield-eli a thread-et betöltés alatt

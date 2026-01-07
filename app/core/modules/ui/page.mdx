@@ -1,0 +1,139 @@
+# UI modul
+
+Az UI modul a `ls_ui` resource funkcióit teszi elérhetővé a core-on keresztül.
+
+## Funkciók
+
+### TextUI
+
+Szöveges UI elem megjelenítése.
+
+```lua
+LS.UI:TextUI({
+    id = 'mytext',
+    text = 'Nyomj [E] a használathoz',
+    position = 'top-center'
+})
+```
+
+**Paraméterek:**
+- `data` (table|table[]): TextUI adat(ok)
+  - `id` (string): Egyedi azonosító
+  - `text` (string): Megjelenítendő szöveg
+  - `position` (string): Pozíció
+
+### HideTextUI
+
+TextUI elrejtése.
+
+```lua
+LS.UI:HideTextUI('mytext')
+-- vagy több egyszerre
+LS.UI:HideTextUI({'id1', 'id2'})
+```
+
+### PatchTextUI
+
+TextUI módosítása.
+
+```lua
+LS.UI:PatchTextUI({
+    id = 'mytext',
+    text = 'Új szöveg'
+})
+```
+
+### HideAllTextUIs
+
+Összes TextUI elrejtése.
+
+```lua
+LS.UI:HideAllTextUIs()
+```
+
+### Notification
+
+Értesítés megjelenítése.
+
+```lua
+LS.UI:Notification({
+    title = 'Siker',
+    description = 'Művelet sikeres',
+    type = 'success',
+    duration = 5000
+})
+```
+
+**Paraméterek:**
+- `data` (table): Notification adat
+  - `title` (string): Cím
+  - `description` (string): Leírás
+  - `type` (string): Típus ('success', 'error', 'info', 'warning')
+  - `duration` (number): Időtartam milliszekundumban
+
+### InputDialog
+
+Input dialog megjelenítése.
+
+```lua
+local result = LS.UI:InputDialog({
+    title = 'Adatok megadása',
+    inputs = {
+        {type = 'text', label = 'Név', placeholder = 'Add meg a neved'},
+        {type = 'number', label = 'Mennyiség', placeholder = '0', min = 1, max = 100}
+    }
+})
+
+if result then
+    print('Név:', result[1])
+    print('Mennyiség:', result[2])
+end
+```
+
+### CloseInputDialog
+
+Input dialog bezárása.
+
+```lua
+LS.UI:CloseInputDialog()
+```
+
+## Példák
+
+### Interakciós pont
+
+```lua
+CreateThread(function()
+    local zone = lib.zones.sphere({
+        coords = vector3(0.0, 0.0, 0.0),
+        radius = 2.0,
+        onEnter = function()
+            LS.UI:TextUI({
+                id = 'shop',
+                text = 'Nyomj [E] a bolt megnyitásához',
+                position = 'top-center'
+            })
+        end,
+        onExit = function()
+            LS.UI:HideTextUI('shop')
+        end
+    })
+end)
+```
+
+### Sikeres művelet értesítés
+
+```lua
+RegisterNetEvent('item:purchased', function(itemName)
+    LS.UI:Notification({
+        title = 'Vásárlás',
+        description = 'Sikeresen megvásároltad: ' .. itemName,
+        type = 'success',
+        duration = 3000
+    })
+end)
+```
+
+## Megjegyzés
+
+Az UI modul az `ls_ui` resource-t használja, amely külön telepítendő!

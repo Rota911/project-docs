@@ -1,0 +1,413 @@
+# Camera modul
+
+A Camera modul lehetővé teszi scriptelt kamerák létrehozását és vezérlését különféle effektekkel.
+
+## Funkciók
+
+### Create
+
+Új kamera létrehozása.
+
+```lua
+local camera = LS.Camera:Create({
+    coords = vector3(x, y, z),
+    rotation = vector3(pitch, roll, yaw),
+    fov = 50.0,
+    activate = true,
+    activateDelay = 0,
+    attach = {
+        entity = entityId,
+        offset = vector3(0, 0, 0),
+        isRelative = true,
+        point = true
+    }
+})
+```
+
+**Paraméterek:**
+- `data` (table): Kamera beállítások
+  - `coords` (vector3, opcionális): Kezdő pozíció
+  - `rotation` (vector3, opcionális): Kezdő forgatás
+  - `fov` (number, opcionális): Látószög (Field of View)
+  - `activate` (boolean, opcionális): Automatikus aktiválás
+  - `activateDelay` (number, opcionális): Aktiválás késleltetése (ms)
+  - `attach` (table, opcionális): Entity-hez csatolás
+    - `entity` (number): Entity ID
+    - `offset` (vector3): Eltolás
+    - `isRelative` (boolean): Relatív pozícionálás
+    - `point` (boolean): Ráirányítás az entity-re
+
+**Visszatérési érték:**
+- `Camera`: Kamera objektum
+
+**Példa:**
+
+```lua
+-- Egyszerű kamera
+local cam = LS.Camera:Create({
+    coords = vector3(0.0, 0.0, 100.0),
+    rotation = vector3(0.0, 0.0, 0.0),
+    fov = 50.0,
+    activate = true
+})
+
+-- Kamera csatolva járműhöz
+local vehicle = GetVehiclePedIsIn(cache.ped, false)
+local vehicleCam = LS.Camera:Create({
+    attach = {
+        entity = vehicle,
+        offset = vector3(0.0, -5.0, 2.0),
+        isRelative = true,
+        point = true
+    },
+    activate = true
+})
+```
+
+## Kamera objektum metódusok
+
+### Activate
+
+Kamera aktiválása.
+
+```lua
+camera:Activate(delay)
+```
+
+**Paraméterek:**
+- `delay` (number, opcionális): Késleltetés milliszekundumban
+
+**Példa:**
+
+```lua
+camera:Activate()  -- Azonnal
+camera:Activate(2000)  -- 2 másodperc késleltetéssel
+```
+
+### Deactivate
+
+Kamera deaktiválása.
+
+```lua
+camera:Deactivate()
+```
+
+### Point
+
+Kamera ráirányítása célpontra.
+
+```lua
+camera:Point(target, offset)
+```
+
+**Paraméterek:**
+- `target` (vector3|number): Célpont koordináták vagy entity ID
+- `offset` (vector3, opcionális): Eltolás (csak entity esetén)
+
+**Példa:**
+
+```lua
+-- Koordinátára
+camera:Point(vector3(100.0, 200.0, 30.0))
+
+-- Entity-re
+local ped = cache.ped
+camera:Point(ped)
+
+-- Entity-re eltolással
+camera:Point(ped, vector3(0.0, 0.0, 1.0))
+```
+
+### Attach
+
+Kamera hozzácsatolása entity-hez.
+
+```lua
+camera:Attach(entity, offset, isRelative, point)
+```
+
+**Paraméterek:**
+- `entity` (number): Entity ID
+- `offset` (vector3): Eltolás
+- `isRelative` (boolean): Relatív pozícionálás
+- `point` (boolean, opcionális): Automatikus ráirányítás
+
+**Példa:**
+
+```lua
+local vehicle = GetVehiclePedIsIn(cache.ped, false)
+camera:Attach(vehicle, vector3(0.0, -3.0, 1.5), true, true)
+```
+
+### SetCoords / GetCoords
+
+Kamera pozíció beállítása/lekérése.
+
+```lua
+camera:SetCoords(vector3(x, y, z))
+local pos = camera:GetCoords()
+```
+
+### SetRotation / GetRotation
+
+Kamera forgatás beállítása/lekérése.
+
+```lua
+camera:SetRotation(vector3(pitch, roll, yaw), rotationOrder)
+local rot = camera:GetRotation(rotationOrder)
+```
+
+**Paraméterek:**
+- `rotation` (vector3): Forgatás (pitch, roll, yaw)
+- `rotationOrder` (number, opcionális): Forgatási sorrend (alapértelmezett: 2)
+
+### SetFov / GetFov
+
+Látószög beállítása/lekérése.
+
+```lua
+camera:SetFov(50.0)
+local fov = camera:GetFov()
+```
+
+### TransitionTo
+
+Sima átmenet új pozícióra és forgatásra.
+
+```lua
+camera:TransitionTo(coords, rotation, duration, easeType)
+```
+
+**Paraméterek:**
+- `coords` (vector3): Cél koordináták
+- `rotation` (vector3): Cél forgatás
+- `duration` (number): Átmenet időtartama (ms)
+- `easeType` (string, opcionális): Easing típus
+
+**Példa:**
+
+```lua
+camera:TransitionTo(
+    vector3(100.0, 200.0, 50.0),
+    vector3(0.0, 0.0, 180.0),
+    3000,
+    'InOutQuad'
+)
+```
+
+### InterpolateTo
+
+Interpoláció másik kamerához.
+
+```lua
+camera:InterpolateTo(targetCamera, duration, easeType)
+```
+
+### Shake
+
+Kamera rázkódás effekt.
+
+```lua
+camera:Shake(intensity, duration, shakeType)
+```
+
+**Paraméterek:**
+- `intensity` (number): Intenzitás (0.0 - 1.0)
+- `duration` (number): Időtartam milliszekundumban
+- `shakeType` (string, opcionális): Rázkódás típusa
+
+**Példa:**
+
+```lua
+-- Enyhe rázkódás
+camera:Shake(0.3, 2000)
+
+-- Erős rázkódás
+camera:Shake(1.0, 5000, 'DRUNK_SHAKE')
+```
+
+### StopShake
+
+Rázkódás leállítása.
+
+```lua
+camera:StopShake()
+```
+
+### SetDepthOfField
+
+Mélységélesség (Depth of Field) beállítása.
+
+```lua
+camera:SetDepthOfField(nearDOF, farDOF, strength)
+```
+
+**Paraméterek:**
+- `nearDOF` (number): Közeli távolság
+- `farDOF` (number): Távoli távolság
+- `strength` (number): Erősség
+
+### SetMotionBlur
+
+Motion blur (mozgáselmosódás) beállítása.
+
+```lua
+camera:SetMotionBlur(strength)
+```
+
+### SetNearClip / SetFarClip
+
+Vágási síkok beállítása.
+
+```lua
+camera:SetNearClip(0.1)
+camera:SetFarClip(10000.0)
+```
+
+### IsActive
+
+Ellenőrzi, hogy a kamera aktív-e.
+
+```lua
+local active = camera:IsActive()
+```
+
+### Destroy
+
+Kamera törlése.
+
+```lua
+camera:Destroy()
+```
+
+## Gyakorlati példák
+
+### Cinematic cutscene
+
+```lua
+local function PlayCutscene()
+    local cam = LS.Camera:Create({
+        coords = vector3(100.0, 200.0, 50.0),
+        rotation = vector3(-10.0, 0.0, 0.0),
+        fov = 60.0,
+        activate = true
+    })
+    
+    -- Széles látószög kezdéskor
+    cam:SetFov(80.0)
+    
+    -- Sima átmenet közelire
+    Wait(1000)
+    cam:TransitionTo(
+        vector3(110.0, 210.0, 48.0),
+        vector3(-5.0, 0.0, 45.0),
+        4000,
+        'InOutQuad'
+    )
+    
+    -- Zoom in
+    Wait(2000)
+    cam:SetFov(40.0)
+    
+    Wait(3000)
+    cam:Destroy()
+end
+```
+
+### Jármű bemutató kamera
+
+```lua
+local function ShowVehicle(vehicle)
+    local vehicleCoords = GetEntityCoords(vehicle)
+    
+    local cam = LS.Camera:Create({
+        coords = vehicleCoords + vector3(5.0, 5.0, 2.0),
+        fov = 50.0,
+        activate = true
+    })
+    
+    cam:Point(vehicle)
+    
+    -- Körbejárás a jármű körül
+    CreateThread(function()
+        local angle = 0
+        while cam:IsActive() do
+            angle = angle + 0.5
+            local rad = math.rad(angle)
+            local x = vehicleCoords.x + math.cos(rad) * 8.0
+            local y = vehicleCoords.y + math.sin(rad) * 8.0
+            local z = vehicleCoords.z + 2.0
+            
+            cam:SetCoords(vector3(x, y, z))
+            cam:Point(vehicle)
+            
+            Wait(0)
+        end
+    end)
+    
+    -- 10 másodperc után leállítás
+    Wait(10000)
+    cam:Destroy()
+end
+```
+
+### Robbanás effekt
+
+```lua
+local function ExplosionEffect(coords)
+    local cam = LS.Camera:Create({
+        coords = GetEntityCoords(cache.ped),
+        rotation = GetGameplayCamRot(2),
+        fov = GetGameplayCamFov(),
+        activate = true
+    })
+    
+    -- Rázkódás
+    cam:Shake(0.8, 2000, 'LARGE_EXPLOSION_SHAKE')
+    
+    -- Motion blur
+    cam:SetMotionBlur(0.5)
+    
+    Wait(2000)
+    cam:Destroy()
+end
+```
+
+### Első személyű cutscene
+
+```lua
+local function FirstPersonCutscene()
+    local ped = cache.ped
+    
+    local cam = LS.Camera:Create({
+        attach = {
+            entity = ped,
+            offset = vector3(0.0, 0.0, 0.6),  -- Fej magasság
+            isRelative = true,
+            point = false
+        },
+        fov = 70.0,
+        activate = true
+    })
+    
+    -- Kamera követi a ped fejét
+    CreateThread(function()
+        while cam:IsActive() do
+            local pedRot = GetEntityRotation(ped, 2)
+            cam:SetRotation(pedRot)
+            Wait(0)
+        end
+    end)
+    
+    Wait(5000)
+    cam:Destroy()
+end
+```
+
+## Jó tudni
+
+- A kamera automatikusan kezeli az aktiválást és deaktiválást
+- A `Destroy()` metódus automatikusan deaktiválja a kamerát
+- Több kamera is létrehozható, de egyszerre csak egy lehet aktív
+- Az átmenetek során a kamera továbbra is vezérelhető
+- A rázkódás és motion blur effektek kombinálhatók

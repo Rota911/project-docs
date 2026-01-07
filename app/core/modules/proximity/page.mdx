@@ -1,0 +1,301 @@
+# Proximity modulok
+
+A proximity modulok lehetővé teszik közel lévő entitások és játékosok megkeresését.
+
+## GetClosest modulok
+
+### GetClosestPlayer
+
+Legközelebbi játékos keresése.
+
+```lua
+local playerId, playerPed, playerCoords = LS:GetClosestPlayer(coords, maxDistance, includePlayer)
+```
+
+**Paraméterek:**
+- `coords` (vector3): Keresés központja
+- `maxDistance` (number, opcionális): Maximum távolság (alapértelmezett: 2.0)
+- `includePlayer` (boolean, opcionális): Saját játékos beleszámítása
+
+**Visszatérési érték:**
+- `playerId` (number|nil): Játékos ID
+- `playerPed` (number|nil): Játékos ped
+- `playerCoords` (vector3|nil): Játékos koordináták
+
+**Példa:**
+
+```lua
+local coords = GetEntityCoords(cache.ped)
+local playerId, playerPed, playerCoords = LS:GetClosestPlayer(coords, 5.0)
+
+if playerId then
+    print('Legközelebbi játékos:', GetPlayerName(playerId))
+end
+```
+
+### GetClosestVehicle
+
+Legközelebbi jármű keresése.
+
+```lua
+local vehicle, vehicleCoords = LS:GetClosestVehicle(coords, maxDistance)
+```
+
+**Paraméterek:**
+- `coords` (vector3): Keresés központja
+- `maxDistance` (number, opcionális): Maximum távolság (alapértelmezett: 2.0)
+
+**Visszatérési érték:**
+- `vehicle` (number|nil): Jármű entity
+- `vehicleCoords` (vector3|nil): Jármű koordináták
+
+**Példa:**
+
+```lua
+local coords = GetEntityCoords(cache.ped)
+local vehicle, vehicleCoords = LS:GetClosestVehicle(coords, 10.0)
+
+if vehicle then
+    local model = GetEntityModel(vehicle)
+    print('Legközelebbi jármű:', model)
+end
+```
+
+### GetClosestPed
+
+Legközelebbi ped keresése.
+
+```lua
+local ped, pedCoords = LS:GetClosestPed(coords, maxDistance)
+```
+
+**Paraméterek:**
+- `coords` (vector3): Keresés központja
+- `maxDistance` (number, opcionális): Maximum távolság (alapértelmezett: 2.0)
+
+**Visszatérési érték:**
+- `ped` (number|nil): Ped entity
+- `pedCoords` (vector3|nil): Ped koordináták
+
+**Példa:**
+
+```lua
+local coords = GetEntityCoords(cache.ped)
+local ped, pedCoords = LS:GetClosestPed(coords, 3.0)
+
+if ped then
+    TaskLookAtEntity(cache.ped, ped, 5000, 0, 2)
+end
+```
+
+### GetClosestObject
+
+Legközelebbi objektum keresése.
+
+```lua
+local object, objectCoords = LS:GetClosestObject(coords, maxDistance)
+```
+
+**Paraméterek:**
+- `coords` (vector3): Keresés központja
+- `maxDistance` (number, opcionális): Maximum távolság (alapértelmezett: 2.0)
+
+**Visszatérési érték:**
+- `object` (number|nil): Objektum entity
+- `objectCoords` (vector3|nil): Objektum koordináták
+
+**Példa:**
+
+```lua
+local coords = GetEntityCoords(cache.ped)
+local object, objectCoords = LS:GetClosestObject(coords, 5.0)
+
+if object then
+    SetEntityAlpha(object, 128, false)
+end
+```
+
+## GetNearby modulok
+
+### GetNearbyPlayers
+
+Közeli játékosok keresése.
+
+```lua
+local players = LS:GetNearbyPlayers(coords, maxDistance, includePlayer)
+```
+
+**Paraméterek:**
+- `coords` (vector3): Keresés központja
+- `maxDistance` (number, opcionális): Maximum távolság (alapértelmezett: 2.0)
+- `includePlayer` (boolean, opcionális): Saját játékos beleszámítása
+
+**Visszatérési érték:**
+- `players` (table[]): Játékosok listája
+  - `id` (number): Játékos ID
+  - `ped` (number): Játékos ped
+  - `coords` (vector3): Játékos koordináták
+
+**Példa:**
+
+```lua
+local coords = GetEntityCoords(cache.ped)
+local players = LS:GetNearbyPlayers(coords, 10.0)
+
+print('Közeli játékosok száma:', #players)
+
+for _, player in ipairs(players) do
+    print('Játékos:', GetPlayerName(player.id))
+    print('Távolság:', #(coords - player.coords))
+end
+```
+
+### GetNearbyVehicles
+
+Közeli járművek keresése.
+
+```lua
+local vehicles = LS:GetNearbyVehicles(coords, maxDistance)
+```
+
+**Visszatérési érték:**
+- `vehicles` (table[]): Járművek listája
+  - `vehicle` (number): Jármű entity
+  - `coords` (vector3): Jármű koordináták
+
+**Példa:**
+
+```lua
+local coords = GetEntityCoords(cache.ped)
+local vehicles = LS:GetNearbyVehicles(coords, 20.0)
+
+for _, data in ipairs(vehicles) do
+    SetVehicleDoorsLocked(data.vehicle, 2)  -- Összes közeli jármű bezárása
+end
+```
+
+### GetNearbyPeds
+
+Közeli pedek keresése.
+
+```lua
+local peds = LS:GetNearbyPeds(coords, maxDistance)
+```
+
+**Visszatérési érték:**
+- `peds` (table[]): Pedek listája
+  - `ped` (number): Ped entity
+  - `coords` (vector3): Ped koordináták
+
+**Példa:**
+
+```lua
+local coords = GetEntityCoords(cache.ped)
+local peds = LS:GetNearbyPeds(coords, 15.0)
+
+-- Összes közeli ped megszólítása
+for _, data in ipairs(peds) do
+    TaskLookAtEntity(data.ped, cache.ped, 3000, 0, 2)
+end
+```
+
+### GetNearbyObjects
+
+Közeli objektumok keresése.
+
+```lua
+local objects = LS:GetNearbyObjects(coords, maxDistance)
+```
+
+**Visszatérési érték:**
+- `objects` (table[]): Objektumok listája
+  - `object` (number): Objektum entity
+  - `coords` (vector3): Objektum koordináták
+
+**Példa:**
+
+```lua
+local coords = GetEntityCoords(cache.ped)
+local objects = LS:GetNearbyObjects(coords, 10.0)
+
+-- Összes közeli objektum megjelölése
+for _, data in ipairs(objects) do
+    DrawMarker(28, data.coords.x, data.coords.y, data.coords.z + 1.0, 0, 0, 0, 0, 0, 0, 0.5, 0.5, 0.5, 255, 0, 0, 100, false, true, 2, false, nil, nil, false)
+end
+```
+
+## Gyakorlati példák
+
+### Közeli játékosok heal-elése
+
+```lua
+RegisterCommand('healall', function()
+    local coords = GetEntityCoords(cache.ped)
+    local players = LS:GetNearbyPlayers(coords, 10.0)
+    
+    for _, player in ipairs(players) do
+        local health = GetEntityMaxHealth(player.ped)
+        SetEntityHealth(player.ped, health)
+    end
+    
+    print('Meggyógyítva ' .. #players .. ' játékos')
+end)
+```
+
+### Legközelebbi jármű beülés
+
+```lua
+RegisterCommand('getin', function()
+    local coords = GetEntityCoords(cache.ped)
+    local vehicle, vehicleCoords = LS:GetClosestVehicle(coords, 5.0)
+    
+    if vehicle then
+        TaskEnterVehicle(cache.ped, vehicle, -1, -1, 1.0, 1, 0)
+    else
+        print('Nincs közeli jármű')
+    end
+end)
+```
+
+### Közeli pedek felriasztása
+
+```lua
+function AlertNearbyPeds(coords, radius)
+    local peds = LS:GetNearbyPeds(coords, radius)
+    
+    for _, data in ipairs(peds) do
+        if not IsPedAPlayer(data.ped) then
+            TaskSmartFleePed(data.ped, cache.ped, 100.0, -1, false, false)
+        end
+    end
+end
+```
+
+### Járművek nyitva hagyása ellenőrzés
+
+```lua
+CreateThread(function()
+    while true do
+        Wait(5000)
+        
+        local coords = GetEntityCoords(cache.ped)
+        local vehicles = LS:GetNearbyVehicles(coords, 50.0)
+        
+        for _, data in ipairs(vehicles) do
+            local locked = GetVehicleDoorLockStatus(data.vehicle)
+            if locked == 1 then  -- Nyitva
+                print('Figyelem: jármű nyitva van!')
+                -- Blip létrehozása stb.
+            end
+        end
+    end
+end)
+```
+
+## Jó tudni
+
+- A GetClosest függvények a legközelebbi egy entitást adják vissza
+- A GetNearby függvények az összes megfelelő entitást táblázatban adják vissza
+- Az alapértelmezett maximum távolság 2.0, de általában 5-10 ajánlott
+- A koordináták mindig vector3 típusúak
+- A függvények nil-t adnak vissza, ha nincs találat
