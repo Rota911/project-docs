@@ -1,0 +1,269 @@
+# Animáció modul
+
+Az animáció modul lehetővé teszi animációk és scenáriók lejátszását és kezelését pedekre.
+
+## Funkciók
+
+### Play
+
+Animáció lejátszása egy peden.
+
+```lua
+local success = LS.Anim:Play(ped, animDictionary, animationName, options)
+```
+
+**Paraméterek:**
+- `ped` (number): A ped entitás
+- `animDictionary` (string): Az animációs dictionary neve vagy preset név
+- `animationName` (string): Az animáció neve a dictionaryben
+- `options` (table, opcionális): Animáció beállítások
+  - `blendInSpeed` (number): Belépési sebesség (alapértelmezett: 8.0)
+  - `blendOutSpeed` (number): Kilépési sebesség (alapértelmezett: -8.0)
+  - `duration` (number): Időtartam milliszekundumban (alapértelmezett: -1, végtelen)
+  - `animFlags` (number): Animáció flagek (alapértelmezett: 0 vagy 1)
+  - `startPhase` (number): Kezdő fázis (alapértelmezett: 0.0)
+  - `phaseControlled` (boolean): Fázis kontrollált (alapértelmezett: false)
+  - `controlledPhase` (boolean): Kontrollált fázis (alapértelmezett: false)
+  - `overrideCloneUpdate` (boolean): Clone update felülírása (alapértelmezett: false)
+  - `reverse` (boolean): Animáció visszafelé játszása (alapértelmezett: false)
+  - `prop` (table): Prop objektum beállítások (lásd alább)
+
+**Prop beállítások:**
+- `model` (hash/string): A prop modellje
+- `bone` (number): A csont ID ahova a prop kerül
+- `offset` (vector3): Pozíció eltolás
+- `rot` (vector3): Forgatás
+- `rotationOrder` (number, opcionális): Forgatási sorrend
+
+**Visszatérési érték:**
+- `boolean`: Sikeres volt-e a lejátszás
+
+**Példa:**
+
+```lua
+-- Egyszerű animáció
+LS.Anim:Play(cache.ped, 'amb@world_human_stand_mobile@male@text@base', 'base')
+
+-- Animáció proppal és egyéni beállításokkal
+LS.Anim:Play(cache.ped, 'cellphone@', 'cellphone_text_read_base', {
+    duration = 5000,
+    animFlags = 49,
+    prop = {
+        model = `prop_player_phone_01`,
+        bone = 57005,
+        offset = vector3(0.14, 0.01, -0.02),
+        rot = vector3(110.0, 120.0, -15.0)
+    }
+})
+
+-- Preset használata
+LS.Anim:Play(cache.ped, 'phone')
+```
+
+### PlayScenario
+
+Scenario lejátszása egy peden.
+
+```lua
+local success = LS.Anim:PlayScenario(ped, scenarioName)
+```
+
+**Paraméterek:**
+- `ped` (number): A ped entitás
+- `scenarioName` (string): A scenario neve
+
+**Visszatérési érték:**
+- `boolean`: Sikeres volt-e a lejátszás
+
+**Példa:**
+
+```lua
+-- Karfeszítés scenario
+LS.Anim:PlayScenario(cache.ped, 'WORLD_HUMAN_PUSH_UPS')
+
+-- Őr scenario
+LS.Anim:PlayScenario(cache.ped, 'WORLD_HUMAN_GUARD_STAND')
+
+-- Ülés
+LS.Anim:PlayScenario(cache.ped, 'WORLD_HUMAN_SEAT_WALL')
+```
+
+### IsPlaying
+
+Ellenőrzi, hogy egy adott animáció játszik-e.
+
+```lua
+local isPlaying = LS.Anim:IsPlaying(ped, animDictionary, animationName)
+```
+
+**Paraméterek:**
+- `ped` (number): A ped entitás
+- `animDictionary` (string): Az animációs dictionary neve
+- `animationName` (string): Az animáció neve
+
+**Visszatérési érték:**
+- `boolean`: Játszik-e az animáció
+
+**Példa:**
+
+```lua
+if LS.Anim:IsPlaying(cache.ped, 'amb@world_human_push_ups@male@base', 'base') then
+    print('Fekvőtámasz animáció játszik')
+end
+```
+
+### IsPlayingScenario
+
+Ellenőrzi, hogy egy ped scenario-t játszik-e.
+
+```lua
+local isPlaying = LS.Anim:IsPlayingScenario(ped)
+```
+
+**Paraméterek:**
+- `ped` (number): A ped entitás
+
+**Visszatérési érték:**
+- `boolean`: Játszik-e scenario
+
+**Példa:**
+
+```lua
+if LS.Anim:IsPlayingScenario(cache.ped) then
+    print('Scenario aktív')
+end
+```
+
+### GetPlaying
+
+Visszaadja az aktuálisan játszott animációt.
+
+```lua
+local currentAnim = LS.Anim:GetPlaying(ped)
+```
+
+**Paraméterek:**
+- `ped` (number): A ped entitás
+
+**Visszatérési érték:**
+- `table|nil`: Az animáció adatai vagy nil
+  - `dict` (string): Dictionary név
+  - `name` (string): Animáció név
+  - `options` (table): Animáció opciók
+  - `scenario` (string): Scenario név (ha scenario játszik)
+
+**Példa:**
+
+```lua
+local anim = LS.Anim:GetPlaying(cache.ped)
+if anim then
+    if anim.scenario then
+        print('Scenario játszik:', anim.scenario)
+    else
+        print('Animáció játszik:', anim.dict, anim.name)
+    end
+end
+```
+
+### Stop
+
+Leállítja az aktuálisan játszott animációt vagy scenario-t.
+
+```lua
+LS.Anim:Stop(ped, options)
+```
+
+**Paraméterek:**
+- `ped` (number): A ped entitás
+- `options` (table, opcionális): Leállítási beállítások
+  - `blendOutSpeed` (number): Kilépési sebesség (alapértelmezett: 8.0)
+
+**Példa:**
+
+```lua
+-- Animáció leállítása
+LS.Anim:Stop(cache.ped)
+
+-- Lassú leállítás
+LS.Anim:Stop(cache.ped, { blendOutSpeed = 2.0 })
+```
+
+## Animáció Presets
+
+A modul tartalmaz előre definiált preset animációkat propokkal:
+
+### Elérhető presets
+
+- `phone` - Telefon használat
+- `broom` - Seprűzés
+- `mop` - Felmosás
+- `rake` - Gereblyézés
+- `dig` - Ásás lapáttal
+- `leafblower` - Lombfúvó használata
+- `armchair` - Ülés karfában (prop a játékoson)
+
+**Példa preset használatra:**
+
+```lua
+-- Telefon animáció preset
+LS.Anim:Play(cache.ped, 'phone')
+
+-- Seprűzés preset
+LS.Anim:Play(cache.ped, 'broom')
+
+-- Ásás preset
+LS.Anim:Play(cache.ped, 'dig')
+```
+
+## Animáció flagek
+
+Gyakran használt animáció flagek:
+
+- `0` - Normal lejátszás
+- `1` - Ismétlődő (loop)
+- `2` - Csak a felső test
+- `16` - Megszakítható
+- `32` - Nem megszakítható
+- `48` - Felső test + megszakítható
+- `49` - Loop + megszakítható
+
+**Példa:**
+
+```lua
+-- Loop animáció, megszakítható
+LS.Anim:Play(cache.ped, 'mini@strip_club@idles@bouncer@base', 'base', {
+    animFlags = 49
+})
+
+-- Nem megszakítható animáció
+LS.Anim:Play(cache.ped, 'mp_arresting', 'idle', {
+    animFlags = 32,
+    duration = 5000
+})
+```
+
+## Események
+
+### Automatikus újraindítás
+
+Az animáció modul automatikusan újraindítja az animációt a következő esetekben:
+
+- **Játékos ütközés peddel**: Ha játékos nekimegy egy másik pednek, az animáció 500ms múlva automatikusan újraindul
+- **Ajtó nyitás**: Ha a játékos ajtót nyit animáció közben, az animáció az ajtónyitás után automatikusan újraindul
+
+Ezek a funkciók csak akkor működnek, ha nincs aktív progressbar (`ls_ui:IsProgressbarActive()`).
+
+## Jó tudni
+
+- A prop objektumok automatikusan szinkronizálódnak a többi játékossal
+- A modulban validáció történik, hogy a ped létezik-e, ped típusú-e és emberi-e
+- Az animáció dictionary-k automatikusan betöltődnek és törlődnek a memóriából
+- A `reverse` opció lehetővé teszi az animáció visszafelé játszását
+
+## Hibakeresés
+
+A modul debug üzeneteket ír ki a logger segítségével. A debug üzenetek tartalmaznak információt:
+- Ped validációról
+- Dictionary betöltésről
+- Animáció paraméterekről
+- Lejátszás sikerességéről
