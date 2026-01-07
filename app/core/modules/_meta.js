@@ -1,3 +1,4 @@
 export default {
-  anim: 'Animációk'
+  anim: 'Anim',
+  blip: 'Blip',
 }
