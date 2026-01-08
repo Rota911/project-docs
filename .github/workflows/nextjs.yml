@@ -3,8 +3,6 @@ name: Nextra Self Hosted CI
 on:
   push:
     branches: ["main"]
-  pull_request:
-    branches: ["main"]
 
 concurrency:
   group: nextra-prod
@@ -15,15 +13,28 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      - uses: oven-sh/setup-bun@v2
+      - name: Stop pm2 app
+        shell: powershell
+        run: |
+          try {
+            pm2 stop nextra-app
+          } catch {
+            Write-Host "pm2 app not running"
+          }
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
-      - run: bun install
+      - name: Install dependencies
+        run: bun install
 
-      - run: bun run build
+      - name: Build project
+        run: bun run build
 
       - name: Run postbuild if present
         shell: powershell
@@ -33,9 +44,10 @@ jobs:
             bun run postbuild
           }
 
-      - name: Restart pm2 app
+      - name: Start pm2 app
         shell: powershell
         run: |
-          try { pm2 delete nextra-app } catch { }
+          try {
+            pm2 delete nextra-app
+          } catch { }
           pm2 start bun --name "nextra-app" -- run serve
-
