@@ -1,19 +1,62 @@
 # ls_marker
 
-Az **ls_marker** egy marker készítő és kezelő eszköz fejlesztéshez.
+Az **ls_marker** egy fejlett DUI-alapú marker rendszer dinamikus 3D markerek létrehozásához és kezeléséhez FiveM szervereken.
 
 ## Áttekintés
 
-Vizuális marker editor koordináták és route-ok létrehozásához.
+Modern marker rendszer amely DUI (Drawing User Interface) technológiát használ React alapú UI komponensekkel, lehetővé téve teljes testreszabhatóságot és valós idejű interakciót.
 
 ### Főbb funkciók
 
-- 📍 **Mark készítés** - Egyedi marker pontok
-- 🗺️ **Ground route** - Földi útvonalak
-- ↗️ **Waypoint** - Waypoint koordináták
-- 💾 **Export** - JSON és Lua export
-- 🎨 **Vizualizáció** - DUI alapú megjelenítés
-- 📋 **Clipboard copy** - Gyors másolás
+- 🎯 **DUI-alapú rendering** - React + TypeScript alapú vizuális komponensek
+- 📍 **Mark markerek** - 3D nyíl és gyémánt markerek ikonokkal
+- 🅿️ **Ground markerek** - Parkoló helyek jármű detektálással
+- 🔷 **GroundPoly markerek** - Poligon alakú parkoló zónák
+- 📌 **Waypoint markerek** - Távolság-alapú checkpoint markerek
+- 🚗 **Kerék detektálás** - Precíz jármű pozíció ellenőrzés
+- 🎨 **Valós idejű szín váltás** - Státusz alapú színek (zöld, narancssárga, fehér)
+- 🔌 **Plugin rendszer** - Egyszerű integrációs rendszer más resource-okhoz
+- 💾 **Export funkciók** - Teljes API más resource-ok számára
+
+
+## Architektúra
+
+### DUI Rendszer
+
+Az ls_marker egy egyedi DUI (Drawing User Interface) megközelítést használ:
+
+1. **React Frontend** (`src/` mappa)
+   - Vite + React + TypeScript + Tailwind CSS stack
+   - Komponensek: `DiamondMark.tsx`, `GroundAreaMark.tsx`, `GroundPolyMark.tsx`, `Marker.tsx`
+   - Valós idejű frissítés NUI üzeneteken keresztül
+
+2. **Lua Backend** (`client/` mappa)
+   - DUI instance kezelés (`client/modules/dui.lua`)
+   - Marker típusok class-alapú rendszerrel (`client/classes/`)
+   - Központi marker manager (`client/modules/marker.lua`)
+
+3. **Renderelési folyamat**
+   - DUI létrehozása → Runtime texture generálás → 3D világba rajzolás
+   - `DrawTexturedPoly` használata forgott textúrákhoz
+   - Dinamikus távolság-alapú méretezés
+
+### Marker típusok
+
+```
+TypeHandlers = {
+  waypoint    → client/classes/waypoint.lua
+  mark        → client/classes/mark.lua
+  ground      → client/classes/ground.lua
+  groundpoly  → client/classes/groundpoly.lua
+}
+```
+
+Minden típus implementálja:
+- `ResolveUrl()` - DUI URL meghatározás
+- `OnDuiReady()` - Inicializálás üzenet küldés
+- `CanRender()` - Render feltétel ellenőrzés
+- `RenderSingle()` - Egyedi render logika
+- `GetStreamDistance()` - Streaming távolság kalkuláció
 
 ## Telepítés
 
@@ -21,7 +64,7 @@ Vizuális marker editor koordináták és route-ok létrehozásához.
 
 ```lua
 dependencies {
-    'ls_core'
+    'ls_core'  -- LS framework core
 }
 ```
 
@@ -32,72 +75,533 @@ ensure ls_core
 ensure ls_marker
 ```
 
+### Development Mode
+
+A resource fejlesztés módban lokális Vite szervert használ:
+
+```lua
+-- fxmanifest.lua
+ui_page 'http://localhost:5173'  -- Dev mode
+-- ui_page 'html/index.html'    -- Production build
+```
+
+Vite szerver indítása:
+```bash
+cd src/
+pnpm install
+pnpm dev
+```
+
+Production build:
+```bash
+cd src/
+pnpm build  # Kimeneti: ../html/
+```
+
 ## Használat
 
-### Marker készítés
+### Marker létrehozása (Lua API)
+
+#### Waypoint Marker
 
 ```lua
--- Parancs használat
-/marker open          -- Marker editor megnyitása
-/marker mark          -- Mark pont létrehozás
-/marker ground        -- Ground route készítés
-/marker waypoint      -- Waypoint használat
-/marker save          -- Mentés
-/marker export        -- Export
-/marker clear         -- Törlés
+local Marker = require "client.modules.marker"
+
+local waypoint = Marker:Create({
+  id = "mission_checkpoint",
+  type = "waypoint",
+  position = vector3(100.0, 200.0, 30.0),
+  streamDistance = 500.0,
+  
+  -- Megjelenés
+  color = "#4dabf7",
+  label = "MISSION CHECKPOINT",
+  icon = "IconFlag",
+  iconColor = "#ffffff",
+  iconSize = 96,
+  
+  -- Debug
+  debug = false
+})
 ```
 
-### UI kezelés
+**Funkciók:**
+- Távolság-alapú méretezés (közelebb → nagyobb)
+- Automatikus távolság és progress számítás
+- Testreszabható szöveg és ikon
+- Smooth height transition
 
-1. **Editor megnyitása** - `/marker open`
-2. **Mód választása** - Mark, Ground, Waypoint
-3. **Pontok lehelyezése** - E gomb vagy kattintás
-4. **Export** - JSON vagy Lua formátumban
-5. **Clipboard** - Másolás vágólapra
-
-## Marker típusok
-
-### Mark (Egyedi pont)
+#### Mark Marker (Nyíl/Gyémánt)
 
 ```lua
--- Egy koordináta mentése
-{
-    type = 'mark',
-    coords = vector3(100.0, 200.0, 30.0),
-    heading = 90.0,
-    label = 'Custom Location'
+local mark = Marker:Create({
+  id = "point_of_interest",
+  type = "mark",
+  position = vector3(100.0, 200.0, 30.0),
+  streamDistance = 15.0,
+  
+  -- Gyémánt és nyíl stílus
+  size = 180,
+  lineColor = "#d4d4d4",
+  diamondWidth = 3,
+  arrowWidth = 3,
+  arrow2Width = 2.4,
+  arrowGap = 13,
+  arrow2Scale = 0.86,
+  
+  -- Ikon
+  iconName = "IconStar",
+  iconColor = "#ffd700",
+  iconSize = 96,
+  iconStroke = 1.6,
+  iconOffsetX = 0,
+  iconOffsetY = 0,
+})
+```
+
+**Komponensek:**
+- Gyémánt alakú keret
+- Dupla nyíl rendszer (főnyíl + belső nyíl)
+- Tabler Icons támogatás
+- Távolság-alapú magasság számítás
+
+#### Ground Marker (Parkoló)
+
+```lua
+local parking = Marker:Create({
+  id = "parking_spot_1",
+  type = "ground",
+  position = vector3(100.0, 200.0, 30.0),
+  heading = 45.0,
+  streamDistance = 150.0,
+  
+  -- Méretek
+  width = 17.2,   -- Szélesség (alapértelmezett: standard kocsi)
+  height = 13.2,  -- Magasság
+  zOffset = -0.05, -- Finomhangolás (talajba süllyesztés)
+  
+  -- Színek
+  lineColor = "#e5e7eb",              -- Alapértelmezett keret (fehér/szürke)
+  fillColor = "#ffffff",              -- Alapértelmezett háttér
+  activeBorderColor = "#69db7c",      -- Aktív keret (zöld)
+  activeBackgroundColor = "#40c057",  -- Aktív háttér
+  errorBorderColor = "#ffa94d",       -- Hiba keret (narancs)
+  errorBackgroundColor = "#fd7e14",   -- Hiba háttér
+  
+  -- Stílus
+  fillOpacity = 0.10,
+  borderWidth = 3,
+  dash = 10,
+  gap = 6,
+  
+  -- Címke és ikon
+  label = "PARK THE CAR HERE",
+  iconName = "IconParking",
+  iconSize = 72,
+  iconColor = "#ffffff",
+  
+  -- Callback-ek
+  onVehicleParked = function(markerId, vehicle)
+    print(("Jármű %d beparkolt: %s"):format(vehicle, markerId))
+    -- Egyéb logika: ajtók zárása, blip eltávolítása, stb.
+  end,
+  
+  onVehicleExited = function(markerId, vehicle)
+    print(("Jármű %d elhagyta: %s"):format(vehicle, markerId))
+    -- Egyéb logika: mission fail, timer stop, stb.
+  end,
+  
+  debug = false  -- Debug mode: zöld detection box megjelenítése
+})
+```
+
+**Jármű detektálás:**
+- Kerék pozíció alapú detektálás (6 kerék: lf, rf, lm, rm, lr, rr)
+- 3 státusz szín:
+  - **Fehér/Szürke**: Nincs jármű vagy távol van
+  - **Narancssárga**: Részben bent (nem minden kerék)
+  - **Zöld**: Teljesen bent (mind a 4+ kerék)
+- Z-tolerancia: ±2 méter
+- Csak a játékos járműve detektálódik
+- 250ms frissítési ráta
+
+#### GroundPoly Marker (Poligon parkoló)
+
+```lua
+local polyParking = Marker:Create({
+  id = "irregular_parking",
+  type = "groundpoly",
+  
+  -- 4 sarok (vec2, óramutató járásával)
+  corners = {
+    vec2(100.0, 200.0),  -- Bal felső
+    vec2(120.0, 202.0),  -- Jobb felső
+    vec2(119.0, 215.0),  -- Jobb alsó
+    vec2(101.0, 214.0)   -- Bal alsó
+  },
+  
+  -- Z koordináták finomhangolása
+  zOffset = 0.0,           -- Globális offset
+  corner1ZOffset = 0.265,  -- Bal felső sarok
+  corner2ZOffset = 0.03,   -- Jobb felső sarok
+  corner3ZOffset = -0.05,  -- Jobb alsó sarok
+  corner4ZOffset = -0.05,  -- Bal alsó sarok
+  
+  streamDistance = 150.0,
+  
+  -- Stílus (ugyanaz, mint Ground)
+  lineColor = "#e5e7eb",
+  activeBorderColor = "#4dabf7",
+  activeBackgroundColor = "#228be6",
+  
+  label = "POLYGON PARKING",
+  iconName = "IconParking",
+  
+  -- Callback-ek
+  onVehicleParked = function(markerId, vehicle)
+    print("Poligon parkolas aktív")
+  end,
+  
+  onVehicleExited = function(markerId, vehicle)
+    print("Jármű elhagyta a poligont")
+  end,
+  
+  debug = false
+})
+```
+
+**Előnyök:**
+- Tetszőleges alakú parkoló helyek (nem csak négyzet)
+- Sarokonkénti Z-offset (domborzat követése)
+- Ray casting alapú poligon detektálás
+- Ugyanaz a kerék-alapú rendszer, mint Ground
+
+
+## Export API
+
+Az ls_marker teljes export API-t biztosít más resource-ok számára. Az alábbi exportok elérhetők:
+
+### Marker létrehozás
+
+```lua
+-- Általános marker létrehozás
+local marker = exports.ls_marker:CreateMarker({
+  id = "my_marker",
+  type = "ground",  -- "waypoint" | "mark" | "ground" | "groundpoly"
+  position = vector3(x, y, z),
+  -- ... további opciók
+})
+
+-- Típus-specifikus létrehozás
+local waypoint = exports.ls_marker:CreateWaypoint({...})
+local mark = exports.ls_marker:CreateMark({...})
+local ground = exports.ls_marker:CreateGround({...})
+local poly = exports.ls_marker:CreateGroundPoly({...})
+
+-- Batch létrehozás
+local markers = exports.ls_marker:CreateMarkers({
+  { id = "marker1", type = "ground", position = vec3(...) },
+  { id = "marker2", type = "waypoint", position = vec3(...) }
+})
+```
+
+### Marker lekérdezés
+
+```lua
+-- Marker instance lekérése
+local marker = exports.ls_marker:GetMarker("marker_id")
+
+-- Összes marker lekérése
+local allMarkers = exports.ls_marker:GetAllMarkers()
+
+-- Típus szerinti szűrés
+local groundMarkers = exports.ls_marker:GetMarkersByType("ground")
+
+-- Marker létezés ellenőrzés
+local exists = exports.ls_marker:MarkerExists("marker_id")
+
+-- Marker számláló
+local total = exports.ls_marker:GetMarkerCount()
+local enabled = exports.ls_marker:GetEnabledMarkerCount()
+```
+
+### Marker vezérlés
+
+```lua
+-- Marker engedélyezése/tiltása
+exports.ls_marker:EnableMarker("marker_id")
+exports.ls_marker:DisableMarker("marker_id")
+
+-- Összes marker vezérlése
+local count = exports.ls_marker:EnableAllMarkers()
+local count = exports.ls_marker:DisableAllMarkers()
+
+-- Marker törlése
+exports.ls_marker:DeleteMarker("marker_id")
+
+-- Batch törlés
+local deleted = exports.ls_marker:DeleteMarkers({"id1", "id2", "id3"})
+```
+
+### Marker módosítás
+
+```lua
+-- Pozíció frissítés
+exports.ls_marker:SetMarkerPosition("marker_id", vector3(x, y, z))
+
+-- Render property frissítés (Lua oldal)
+exports.ls_marker:UpdateMarkerRender("marker_id", "smooth", 0.25)
+
+-- Visual property frissítés (DUI oldal)
+exports.ls_marker:UpdateMarkerVisual("marker_id", "lineColor", "#ff0000")
+
+-- Több visual property egyszerre
+exports.ls_marker:UpdateMarkerVisuals("marker_id", {
+  lineColor = "#ff0000",
+  fillColor = "#00ff00",
+  iconSize = 100
+})
+```
+
+### Jármű detektálás (Ground/GroundPoly)
+
+```lua
+-- Jármű lista lekérése
+local vehicles = exports.ls_marker:GetVehiclesInside("marker_id")
+
+-- Van-e jármű bent?
+local hasVehicles = exports.ls_marker:HasVehiclesInside("marker_id")
+
+-- Marker aktív-e? (van teljesen beparkolt jármű)
+local isActive = exports.ls_marker:IsMarkerActive("marker_id")
+```
+
+### Példa: Autókereskedés
+
+```lua
+-- client/vehicles.lua
+local carDealer = {
+  testDriveSpot = nil,
+  purchaseSpot = nil
 }
+
+function carDealer:Initialize()
+  -- Teszt vezetés visszaadó hely
+  self.testDriveSpot = exports.ls_marker:CreateGround({
+    id = "cardealer_testdrive_return",
+    type = "ground",
+    position = vector3(-55.8, -1096.6, 26.4),
+    heading = 25.0,
+    width = 20.0,
+    height = 15.0,
+    streamDistance = 100.0,
+    
+    label = "RETURN TEST DRIVE VEHICLE",
+    iconName = "IconCarGarage",
+    activeBorderColor = "#4dabf7",
+    
+    onVehicleParked = function(markerId, vehicle)
+      -- Jármű leadása
+      local plate = GetVehicleNumberPlateText(vehicle)
+      TriggerServerEvent('cardealer:returnTestDrive', plate)
+      
+      -- Visual feedback
+      exports.ls_marker:UpdateMarkerVisuals(markerId, {
+        lineColor = "#69db7c",
+        fillColor = "#40c057"
+      })
+      
+      SetTimeout(2000, function()
+        DeleteVehicle(vehicle)
+        LS.UI:Notify('Teszt vezetés befejezve', 'success')
+      end)
+    end,
+    
+    onVehicleExited = function(markerId, vehicle)
+      -- Reset színek
+      exports.ls_marker:UpdateMarkerVisuals(markerId, {
+        lineColor = "#e5e7eb",
+        fillColor = "#ffffff"
+      })
+    end
+  })
+  
+  -- Vásárlás után leadó hely
+  self.purchaseSpot = exports.ls_marker:CreateGround({
+    id = "cardealer_purchase_delivery",
+    position = vector3(-45.2, -1097.3, 26.4),
+    heading = 200.0,
+    width = 18.0,
+    height = 14.0,
+    
+    label = "PARK YOUR NEW VEHICLE",
+    activeBorderColor = "#ffd43b",
+    
+    onVehicleParked = function(markerId, vehicle)
+      -- Jármű átvétel befejezése
+      local plate = GetVehicleNumberPlateText(vehicle)
+      TriggerServerEvent('cardealer:completeDelivery', plate)
+      
+      LS.UI:Notify('Gratulálunk az új autóhoz!', 'success')
+      
+      -- Marker eltávolítása
+      SetTimeout(3000, function()
+        exports.ls_marker:DeleteMarker(markerId)
+      end)
+    end
+  })
+end
+
+-- Cleanup amikor kész
+function carDealer:Cleanup()
+  if self.testDriveSpot then
+    exports.ls_marker:DeleteMarker("cardealer_testdrive_return")
+  end
+  if self.purchaseSpot then
+    exports.ls_marker:DeleteMarker("cardealer_purchase_delivery")
+  end
+end
+
+CreateThread(function()
+  carDealer:Initialize()
+end)
 ```
 
-### Ground Route (Útvonal)
+### Példa: Mission System
 
 ```lua
--- Több pont összekötése
-{
-    type = 'ground',
-    points = {
-        vector3(100.0, 200.0, 30.0),
-        vector3(110.0, 210.0, 30.0),
-        vector3(120.0, 220.0, 31.0)
-    },
-    label = 'Patrol Route'
+-- client/mission.lua
+local currentMission = {
+  waypoints = {},
+  currentWaypointIndex = 1
 }
+
+function StartDeliveryMission(locations)
+  -- Markerek létrehozása az összes lokációhoz
+  for i, loc in ipairs(locations) do
+    local wp = exports.ls_marker:CreateWaypoint({
+      id = ("mission_wp_%d"):format(i),
+      position = loc.coords,
+      color = i == 1 and "#4dabf7" or "#6c757d",  -- Első kék, többi szürke
+      label = ("WAYPOINT %d/%d"):format(i, #locations),
+      streamDistance = 300.0
+    })
+    
+    table.insert(currentMission.waypoints, wp.id)
+  end
+  
+  LS.UI:Notify('Kövesd a waypoint-okat!', 'info')
+end
+
+-- Checkpoint elérés kezelése
+CreateThread(function()
+  while true do
+    Wait(500)
+    
+    if #currentMission.waypoints > 0 then
+      local currentWpId = currentMission.waypoints[currentMission.currentWaypointIndex]
+      local marker = exports.ls_marker:GetMarker(currentWpId)
+      
+      if marker then
+        local playerPos = GetEntityCoords(cache.ped)
+        local dist = #(playerPos - marker.position)
+        
+        if dist < 5.0 then
+          -- Waypoint elérve
+          exports.ls_marker:DeleteMarker(currentWpId)
+          
+          currentMission.currentWaypointIndex = currentMission.currentWaypointIndex + 1
+          
+          if currentMission.currentWaypointIndex <= #currentMission.waypoints then
+            -- Következő waypoint aktiválása
+            local nextWpId = currentMission.waypoints[currentMission.currentWaypointIndex]
+            exports.ls_marker:UpdateMarkerVisual(nextWpId, "color", "#4dabf7")
+            LS.UI:Notify(('Waypoint %d/%d'):format(
+              currentMission.currentWaypointIndex, 
+              #currentMission.waypoints
+            ), 'success')
+          else
+            -- Mission befejezve
+            LS.UI:Notify('Mission completed!', 'success')
+            currentMission.waypoints = {}
+            currentMission.currentWaypointIndex = 1
+          end
+        end
+      end
+    end
+  end
+end)
 ```
 
-### Waypoint
+### Példa: Dinamikus parkoló rendszer
 
 ```lua
--- Waypoint koordináta
-{
-    type = 'waypoint',
-    coords = vector3(100.0, 200.0, 30.0),
-    blip = true
-}
+-- client/parking.lua
+local ParkingSystem = {}
+ParkingSystem.spots = {}
+
+function ParkingSystem:CreateParkingLot(name, spots)
+  for i, spot in ipairs(spots) do
+    local markerId = ("%s_spot_%d"):format(name, i)
+    
+    local marker = exports.ls_marker:CreateGround({
+      id = markerId,
+      position = spot.position,
+      heading = spot.heading,
+      width = spot.width or 17.2,
+      height = spot.height or 13.2,
+      streamDistance = 75.0,
+      
+      label = ("PARKING #%d"):format(i),
+      iconName = "IconParking",
+      
+      activeBorderColor = "#69db7c",
+      errorBorderColor = "#ffa94d",
+      
+      onVehicleParked = function(mId, vehicle)
+        -- Parkolás mentése
+        local plate = GetVehicleNumberPlateText(vehicle)
+        TriggerServerEvent('parking:saveVehicle', mId, plate, spot.position)
+        
+        -- Marker tiltása (foglalt)
+        exports.ls_marker:DisableMarker(mId)
+        ParkingSystem.spots[mId] = { vehicle = vehicle, plate = plate }
+        
+        LS.UI:Notify('Jármű leadva', 'success')
+      end,
+      
+      onVehicleExited = function(mId, vehicle)
+        -- Ha elhagyja a helyet mielőtt leadná
+        LS.UI:Notify('Parkold le teljesen a járművet!', 'warning')
+      end
+    })
+    
+    self.spots[markerId] = { marker = marker, occupied = false }
+  end
+end
+
+function ParkingSystem:RetrieveVehicle(markerId)
+  local spot = self.spots[markerId]
+  if spot and spot.vehicle then
+    -- Jármű előhívása
+    TriggerServerEvent('parking:retrieveVehicle', spot.plate)
+    
+    -- Marker újra engedélyezése
+    exports.ls_marker:EnableMarker(markerId)
+    spot.occupied = false
+    spot.vehicle = nil
+  end
+end
+
+-- Használat
+CreateThread(function()
+  ParkingSystem:CreateParkingLot("legion_square", {
+    { position = vector3(215.9, -809.8, 30.8), heading = 160.0 },
+    { position = vector3(220.2, -807.3, 30.8), heading = 160.0 },
+    { position = vector3(224.5, -804.8, 30.8), heading = 160.0 },
+  })
+end)
 ```
-
-## Konfiguráció
-
-### shared/config.lua
 
 ```lua
 Config = {}
