@@ -12,18 +12,32 @@ jobs:
   build:
     runs-on: self-hosted
 
+    env:
+      PM2_HOME: C:\pm2   # Stable PM2 home
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Stop pm2 app
+      - name: Add Bun bin to PATH
         shell: powershell
         run: |
-          try {
-            pm2 stop nextra-app
-          } catch {
-            Write-Host "pm2 app not running"
+          $env:PATH = "$env:USERPROFILE\.bun\bin;$env:PATH"
+          Write-Host "PATH updated: $env:PATH"
+
+      - name: Ensure PM2_HOME exists
+        shell: powershell
+        run: |
+          if (-not (Test-Path $env:PM2_HOME)) {
+            New-Item -ItemType Directory -Force $env:PM2_HOME | Out-Null
           }
+
+      - name: Stop pm2 app (safe)
+        shell: powershell
+        run: |
+          pm2 stop nextra-app 2>$null
+          pm2 delete nextra-app 2>$null
+          exit 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -47,7 +61,5 @@ jobs:
       - name: Start pm2 app
         shell: powershell
         run: |
-          try {
-            pm2 delete nextra-app
-          } catch { }
           pm2 start bun --name "nextra-app" -- run serve
+          pm2 save
