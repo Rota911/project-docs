@@ -1,29 +1,12 @@
-name: Nextra Self Hosted CI
-
-on:
-  push:
-    branches: ["main"]
-
-concurrency:
-  group: nextra-prod
-  cancel-in-progress: true
-
 jobs:
   build:
     runs-on: self-hosted
-
     env:
-      PM2_HOME: C:\pm2   # Stable PM2 home
+      PM2_HOME: C:\pm2
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-
-      - name: Add Bun bin to PATH
-        shell: powershell
-        run: |
-          $env:PATH = "$env:USERPROFILE\.bun\bin;$env:PATH"
-          Write-Host "PATH updated: $env:PATH"
 
       - name: Ensure PM2_HOME exists
         shell: powershell
@@ -35,8 +18,8 @@ jobs:
       - name: Stop pm2 app (safe)
         shell: powershell
         run: |
-          pm2 stop nextra-app 2>$null
-          pm2 delete nextra-app 2>$null
+          & "$env:USERPROFILE\.bun\bin\pm2.exe" stop nextra-app -s
+          & "$env:USERPROFILE\.bun\bin\pm2.exe" delete nextra-app -s
           exit 0
 
       - name: Setup Bun
@@ -61,5 +44,5 @@ jobs:
       - name: Start pm2 app
         shell: powershell
         run: |
-          pm2 start bun --name "nextra-app" -- run serve
-          pm2 save
+          & "$env:USERPROFILE\.bun\bin\pm2.exe" start bun --name "nextra-app" -- run serve
+          & "$env:USERPROFILE\.bun\bin\pm2.exe" save
