@@ -1,3 +1,12 @@
+name: Build Nextra App
+
+# Trigger workflow manually or on push to main branch
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # allows manual trigger from Actions tab
+
 jobs:
   build:
     runs-on: self-hosted
@@ -12,7 +21,7 @@ jobs:
         shell: powershell
         run: |
           if (-not (Test-Path $env:PM2_HOME)) {
-            New-Item -ItemType Directory -Force $env:PM2_HOME | Out-Null
+            New-Item -ItemType Directory -Force -Path $env:PM2_HOME | Out-Null
           }
 
       - name: Stop pm2 app (safe)
