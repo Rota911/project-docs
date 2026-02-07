@@ -1,454 +1,112 @@
 # ls_admin
 
-Az **ls_admin** egy teljes körű admin menü és eszköztár resource FiveM szerverekhez.
+Az admin modul lehetővé teszi parancsok és funkciók regisztrálását jogosultság ellenőrzéssel.
 
-## Áttekintés
+## RegisterFunction
 
-Admin eszközök és menürendszer szerver adminisztrátorok számára.
-
-### Főbb funkciók
-
-- 🎮 **Admin menü** - Grafikus felület admin műveletekhez
-- 👥 **Játékos kezelés** - Teleport, freeze, kick, ban
-- 🚗 **Jármű spawner** - Járművek létrehozása és kezelése
-- 🎯 **Gyors eszközök** - Heal, armor, god mode
-- 📍 **Teleport rendszer** - Koordináta és játékos alapú teleport
-- ⚙️ **Szerver eszközök** - Időjárás, idő, bejelentések
-
-## Telepítés
-
-### Függőségek
+Regisztrál egy szerver oldali funkciót jogosultság ellenőrzéssel.
 
 ```lua
--- ls_core framework szükséges
-dependencies {
-    'ls_core'
-}
+---@param name string A funkció neve
+---@param permissions string|string[]? Szükséges jogosultságok (alapértelmezett: 'user')
+---@param callback fun(source: number, args: table): boolean, string? Végrehajtási funkció
+---@param arguments Arguments[]? Argumentum definíciók
+LS:RegisterFunction(name, permissions, callback, arguments)
 ```
 
-### server.cfg
-
-```cfg
-ensure ls_core
-ensure ls_admin
-```
-
-## Használat
-
-### Menü megnyitása
+### Példa
 
 ```lua
--- Kliens side
-TriggerEvent('ls_admin:openMenu')
-
--- Alapértelmezett billentyű (általában F10 vagy hasonló)
+LS:RegisterFunction('teleport', 'admin', function(source, args)
+    local targetPed = GetPlayerPed(args.playerId)
+    local sourceCoords = GetEntityCoords(PlayerPedId())
+    
+    SetEntityCoords(targetPed, sourceCoords.x, sourceCoords.y, sourceCoords.z)
+    return true, 'Teleportálva'
+end, {
+    { name = 'playerId', type = 'playerId', optional = false }
+})
 ```
 
-### Permissions
+## Command
 
-Az admin jogosultságok az ls_core ACL rendszerén keresztül működnek:
+Regisztrál egy admin parancsot jogosultság ellenőrzéssel.
 
 ```lua
--- Admin csoport beállítása
-LS:AddPrincipal('player.1', 'admin')
-
--- Jogosultságok
-owner       -- Teljes hozzáférés
-dev         -- Fejlesztői eszközök
-headadmin   -- Fő admin funkciók
-admin       -- Alap admin eszközök
-moderator   -- Moderátori eszközök
+---@param command string|string[] Parancs neve vagy nevek
+---@param permissions string|string[]? Szükséges jogosultságok (alapértelmezett: 'dev')
+---@param callback fun(source: number, args: table, raw: string)|string Végrehajtási funkció vagy funkció név
+---@param arguments Arguments[]? Argumentum definíciók
+---@param helpText string? Súgó szöveg
+LS:Command(command, permissions, callback, arguments, helpText)
 ```
 
-## Funkciók
-
-### Játékos kezelés
-
-#### Teleport játékoshoz
+### Példa - Direct callback
 
 ```lua
--- Példa parancs használat
-/goto [playerId]  -- Teleport a játékoshoz
-/bring [playerId] -- Játékos magadhoz hozása
+LS:Command('teleport', 'admin', function(source, args, raw)
+    local targetPed = GetPlayerPed(args.playerId)
+    local sourceCoords = GetEntityCoords(PlayerPedId())
+    
+    SetEntityCoords(targetPed, sourceCoords.x, sourceCoords.y, sourceCoords.z)
+    TriggerClientEvent('chat:addMessage', source, {
+        args = { 'ADMIN', 'Teleportálva!' }
+    })
+end, {
+    { name = 'playerId', type = 'playerId', optional = false }
+}, 'Teleportál egy játékost')
 ```
 
-#### Freeze/Unfreeze
+### Példa - RegisterFunction alapján
 
 ```lua
-/freeze [playerId]   -- Játékos lefagyasztása
-/unfreeze [playerId] -- Feloldás
+-- Először regisztrálj egy funkciót
+LS:RegisterFunction('duty', 'user', function(source, args)
+    local player = LS:GetPlayer(source)
+
+    if not player then
+        return false, 'Játékos nem található'
+    end
+
+    player:SetDuty()
+    return true
+end, nil)
+
+-- Majd hozz létre egy parancsot, amely ezt a funkciót hívja
+LS:Command('duty', 'user', 'duty', nil, 'Szolgálat be- és kikapcsolása.')
 ```
 
-#### Kick/Ban
+## ExecuteFunction
+
+Végrehajtja a regisztrált funkciót jogosultság ellenőrzéssel.
 
 ```lua
-/kick [playerId] [reason]  -- Játékos kirúgása
--- Ban funkció menüből érhető el
+---@param source number Játékos azonosító
+---@param functionName string A funkció neve
+---@param args table? Argumentumok
+---@return boolean success Sikeres-e a végrehajtás
+---@return string? message Hibaüzenet vagy eredmény
+LS:ExecuteFunction(source, functionName, args)
 ```
 
-### Jármű kezelés
-
-#### Spawn Vehicle
+### Példa
 
 ```lua
--- Menüből: Vehicle Spawner
--- Kategóriák: Cars, Bikes, Helicopters, Boats, Emergency
-
--- Vagy parancs:
-/car [modelName]  -- Jármű spawn
-```
-
-#### Jármű javítás
-
-```lua
-/fix    -- Aktuális jármű javítása
-/dv     -- Aktuális jármű törlése
-```
-
-### Player eszközök
-
-#### Heal & Armor
-
-```lua
-/heal [playerId]   -- Gyógyítás (opcionális target)
-/armor [playerId]  -- Páncél adása
-```
-
-#### God Mode
-
-```lua
--- Menüből: Player Options → God Mode
--- Toggle: Be/ki kapcsolás
-```
-
-#### Invisible
-
-```lua
-/invisible  -- Láthatatlanság toggle
-```
-
-### Szerver eszközök
-
-#### Időjárás vezérlés
-
-```lua
--- Menü: Server Options → Weather
--- Opciók:
-EXTRASUNNY, CLEAR, CLOUDS, OVERCAST,
-RAIN, THUNDER, CLEARING, NEUTRAL,
-SNOW, BLIZZARD, SNOWLIGHT, XMAS, HALLOWEEN
-```
-
-#### Idő beállítás
-
-```lua
--- Menü: Server Options → Time
--- 00:00 - 23:59 beállítható
-```
-
-#### Announcement
-
-```lua
--- Menü: Server Options → Announcement
--- Szerver-wide üzenet küldése
-```
-
-## Menü struktúra
-
-```
-Admin Menu
-├── Player Options
-│   ├── Heal Self
-│   ├── Armor Self
-│   ├── God Mode
-│   ├── Invisible
-│   └── Noclip
-│
-├── Player Management
-│   ├── Online Players
-│   │   ├── Teleport To
-│   │   ├── Bring Player
-│   │   ├── Freeze
-│   │   ├── Kick
-│   │   └── Spectate
-│   │
-│   └── Offline Management
-│       └── Ban List
-│
-├── Vehicle Options
-│   ├── Spawn Vehicle
-│   │   ├── Cars
-│   │   ├── Bikes
-│   │   ├── Helicopters
-│   │   ├── Boats
-│   │   └── Emergency
-│   │
-│   ├── Fix Vehicle
-│   └── Delete Vehicle
-│
-├── Teleport
-│   ├── Waypoint
-│   ├── Coordinates
-│   └── Saved Locations
-│
-└── Server Options
-    ├── Weather
-    ├── Time
-    ├── Announcement
-    └── Server Info
-```
-
-## Integrációk
-
-### ls_core integráció
-
-```lua
--- Karakter alapú admin duty
-local player = GetPlayer(source)
-player:SetDuty(true)  -- Admin szolgálatba lépés
-
--- Admin státusz ellenőrzés
-if player:GetDuty() then
-    -- Admin szolgálatban
+local success, message = LS:ExecuteFunction(source, 'duty', {})
+if success then
+    TriggerClientEvent('chat:addMessage', source, {
+        args = { 'ADMIN', message }
+    })
+else
+    TriggerClientEvent('chat:addMessage', source, {
+        args = { 'HIBA', message }
+    })
 end
 ```
 
-### Események
+## Argumentum típusok
 
-```lua
--- Kliens események
-AddEventHandler('ls_admin:menuOpened', function()
-    print('Admin menü megnyitva')
-end)
-
-AddEventHandler('ls_admin:menuClosed', function()
-    print('Admin menü bezárva')
-end)
-
--- Szerver események
-AddEventHandler('ls_admin:playerAction', function(adminSource, targetSource, action)
-    print(('Admin %d végrehajtotta: %s a játékoson %d'):format(
-        adminSource, action, targetSource
-    ))
-end)
-```
-
-## API Export-ok
-
-### Client
-
-```lua
--- Menü megnyitása
-exports.ls_admin:OpenMenu()
-
--- Menü bezárása
-exports.ls_admin:CloseMenu()
-
--- Noclip toggle
-exports.ls_admin:ToggleNoclip()
-
--- God mode toggle
-exports.ls_admin:ToggleGodMode()
-```
-
-### Server
-
-```lua
--- Játékos freeze
-exports.ls_admin:FreezePlayer(source, true)
-
--- Admin check
-local isAdmin = exports.ls_admin:IsAdmin(source)
-
--- Log admin akció
-exports.ls_admin:LogAction(adminSource, action, target, reason)
-```
-
-## Konfiguráció
-
-### shared/main.lua
-
-```lua
-Config = {}
-
--- Menü billentyű
-Config.MenuKey = 'F10'
-
--- Admin jogok
-Config.Permissions = {
-    menu = 'moderator',      -- Menü megnyitása
-    noclip = 'admin',        -- Noclip használat
-    godmode = 'admin',       -- God mode
-    vehicle = 'admin',       -- Jármű spawn
-    weather = 'headadmin',   -- Időjárás vezérlés
-    ban = 'headadmin'        -- Ban jogosultság
-}
-
--- Teleport locations
-Config.SavedLocations = {
-    {label = 'Rendőrség', coords = vector3(425.1, -979.5, 30.7)},
-    {label = 'Kórház', coords = vector3(298.8, -584.6, 43.2)},
-    {label = 'Garage', coords = vector3(-340.7, -874.0, 31.3)}
-}
-
--- Vehicle categories
-Config.VehicleCategories = {
-    ['cars'] = 'Autók',
-    ['bikes'] = 'Motorok',
-    ['helicopters'] = 'Helikopterek',
-    ['boats'] = 'Hajók',
-    ['emergency'] = 'Sürgősségi'
-}
-```
-
-## Parancsok
-
-### Játékos parancsok
-
-| Parancs | Jogosultság | Leírás |
-|---------|-------------|--------|
-| `/admin` | moderator | Admin menü megnyitása |
-| `/goto [id]` | admin | Teleport játékoshoz |
-| `/bring [id]` | admin | Játékos magadhoz hozása |
-| `/freeze [id]` | admin | Játékos lefagyasztása |
-| `/unfreeze [id]` | admin | Játékos feloldása |
-| `/kick [id] [reason]` | admin | Játékos kirúgása |
-| `/heal [id]` | admin | Játékos gyógyítása |
-| `/armor [id]` | admin | Páncél adása |
-| `/car [model]` | admin | Jármű spawn |
-| `/fix` | admin | Jármű javítása |
-| `/dv` | admin | Jármű törlése |
-| `/noclip` | admin | Noclip toggle |
-| `/invisible` | admin | Láthatatlanság toggle |
-| `/announce [msg]` | headadmin | Szerver bejelentés |
-| `/weather [type]` | headadmin | Időjárás beállítás |
-| `/time [hour] [minute]` | headadmin | Idő beállítás |
-
-## Gyakorlati példák
-
-### Custom admin action
-
-```lua
--- Server side
-RegisterNetEvent('ls_admin:customAction')
-AddEventHandler('ls_admin:customAction', function(targetId, data)
-    local source = source
-    local player = GetPlayer(source)
-    
-    -- Admin check
-    if not player or player.group ~= 'admin' then
-        return
-    end
-    
-    -- Művelet végrehajtása
-    local target = GetPlayer(targetId)
-    if target then
-        -- ... custom logic
-        
-        -- Log
-        exports.ls_admin:LogAction(source, 'custom_action', targetId)
-    end
-end)
-```
-
-### Custom menu item
-
-```lua
--- Client side
-RegisterNetEvent('ls_admin:addMenuItem')
-AddEventHandler('ls_admin:addMenuItem', function()
-    exports.ls_admin:AddMenuItem({
-        label = 'Custom Function',
-        icon = 'fas fa-star',
-        permission = 'admin',
-        action = function()
-            TriggerServerEvent('myResource:customAction')
-        end
-    })
-end)
-```
-
-### Admin log rendszer
-
-```lua
--- Server side
-AddEventHandler('ls_admin:actionLogged', function(adminId, action, targetId, data)
-    local admin = GetPlayer(adminId)
-    local target = targetId and GetPlayer(targetId)
-    
-    local logMessage = string.format(
-        '[ADMIN] %s (%s) used %s',
-        GetPlayerName(adminId),
-        admin.group,
-        action
-    )
-    
-    if target then
-        logMessage = logMessage .. string.format(' on %s', GetPlayerName(targetId))
-    end
-    
-    print(logMessage)
-    
-    -- Database log
-    MySQL.insert('INSERT INTO admin_logs (admin_id, action, target_id, data, timestamp) VALUES (?, ?, ?, ?, NOW())', {
-        adminId, action, targetId, json.encode(data)
-    })
-end)
-```
-
-## Fejlesztés
-
-### Új admin funkció hozzáadása
-
-```lua
--- 1. Szerver funkció létrehozása
-LS:RegisterFunction('myAdminFunction', 'admin', function(source, args)
-    -- Admin funkció logika
-    return true, 'Sikeres művelet'
-end, {
-    {name = 'target', type = 'playerId'}
-})
-
--- 2. Kliens menü item
-exports.ls_admin:AddMenuItem({
-    category = 'Player Management',
-    label = 'My Function',
-    icon = 'fas fa-cog',
-    permission = 'admin',
-    action = function(targetId)
-        LS:ExecuteFunction('myAdminFunction', {target = targetId})
-    end
-})
-```
-
-## Troubleshooting
-
-### Menü nem nyílik meg
-
-```lua
--- Ellenőrizd a jogosultságokat
-local player = GetPlayer(source)
-print('Player group:', player.group)
-
--- Ellenőrizd az ACL-t
-print('Has admin ace:', LS:IsPlayerAceAllowed(source, 'admin'))
-```
-
-### Noclip nem működik
-
-```lua
--- Kliens oldalon
--- Győződj meg róla, hogy a noclip engedélyezve van
-SetPlayerInvincible(PlayerId(), true)
-FreezeEntityPosition(PlayerPedId(), true)
-```
-
-## Következő lépések
-
-- 🏠 [LS Core](/core) - Core framework dokumentáció
-- 🛡️ [Admin rendszer](/core/internal/admin) - Core admin rendszer
-- 👤 [Player osztály](/core/internal/player) - Player duty és group kezelés
-
----
-
-**Megjegyzés:** Az ls_admin az ls_core ACL és Permission rendszerét használja. Győződj meg róla, hogy az admin csoportok megfelelően be vannak állítva!
+- `'string'` - Szöveg argumentum
+- `'number'` - Szám argumentum
+- `'playerId'` - Játékos azonosító (lehet 'me' vagy valós azonosító)
+- `'any'` - Bármilyen típus

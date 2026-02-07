@@ -12,14 +12,5 @@ export default withNextra({
 	images: {
 		unoptimized: true,
 	},
-	async redirects() {
-		return [
-			{
-				source: "/",
-				destination: "/",
-				permanent: true,
-			},
-		];
-	},
 	devIndicators: false,
 });

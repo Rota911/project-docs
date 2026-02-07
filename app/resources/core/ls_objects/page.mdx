@@ -1,92 +1,176 @@
 # ls_objects
 
-Az **ls_objects** egy object spawn és kezelő rendszer perzisztens tárolással.
+Objektumok kezelésére szolgáló modul, amely lehetővé teszi objektumok létrehozását, eltávolítását és kezelését.
 
-## Áttekintés
+## Client oldal
 
-Object-ek létrehozása, szerkesztése és törlése admin eszközökkel.
+### Placer
 
-### Főbb funkciók
-
-- 📦 **Object spawn** - Model alapú object létrehozás
-- 💾 **Perzisztens** - Database tárolás
-- ✏️ **Szerkesztés** - Pozíció, rotáció módosítás
-- 🔒 **Jogosultságok** - Admin szintű hozzáférés
-- 🎯 **Placement tool** - Vizuális elhelyezés
-- 🗑️ **Törlés** - Object eltávolítás
-
-## Telepítés
-
-### Függőségek
+Client oldali, szerverre nem kerül felküldés.
 
 ```lua
-dependencies {
-    'ls_core'
-}
-```
-
-### server.cfg
-
-```cfg
-ensure ls_core
-ensure ls_objects
-```
-
-## Használat
-
-### Object spawn
-
-```lua
--- Export használat
-local objectId = exports.ls_objects:CreateObject({
-    model = 'prop_bin_01a',
-    coords = vector3(100.0, 200.0, 30.0),
-    rotation = vector3(0.0, 0.0, 90.0),
-    frozen = true
+---@param data PlacementData Elhelyezési adatok
+---@return Placer|nil
+exports.ls_objects:Placer({
+    model = 'prop_box_wood02a',
+    position = vector3(100.0, 200.0, 100.0),
+    rotation = vector3(0.0, 0.0, 45.0),
+    metadata = { custom = 'érték' }
 })
 ```
 
-### Object törlés
+### Create
+
+Objektum létrehozása → **Szerver: Create**
 
 ```lua
-exports.ls_objects:DeleteObject(objectId)
+---@param data ObjectDataClient
+---@return ObjectClient|nil
+exports.ls_objects:Create({
+    model = 'prop_box_wood02a',
+    position = vector3(100.0, 200.0, 100.0),
+    rotation = vector3(0.0, 0.0, 45.0),
+    matrix = nil,
+    metadata = { custom = 'érték' },
+    serverSided = false,
+    isTemp = true,
+    route = 0
+})
 ```
 
-### Object lekérése
+### Remove
+
+Objektum eltávolítása → **Szerver: Objects:Server:Remove event**
 
 ```lua
-local object = exports.ls_objects:GetObject(objectId)
+---@param id string
+exports.ls_objects:Remove('core_perm_123')
 ```
 
-## API Export-ok
+### Get
 
-### Server
+Client oldali, szerverre nem kerül felküldés.
 
 ```lua
--- Object létrehozás
-exports.ls_objects:CreateObject(data)
-
--- Object törlés
-exports.ls_objects:DeleteObject(objectId)
-
--- Object lista
-local objects = exports.ls_objects:GetAllObjects()
-
--- Object frissítés
-exports.ls_objects:UpdateObject(objectId, data)
+---@param id string
+---@return ObjectClient|nil
+exports.ls_objects:Get('core_perm_123')
 ```
 
-### Client
+## Szerver oldal
+
+### Create
+
+Új objektum létrehozása az adatbázisban vagy ideiglenesen.
 
 ```lua
--- Placement mode
-exports.ls_objects:StartPlacement(model)
-
--- Object info
-local info = exports.ls_objects:GetObjectInfo(objectId)
+---@param data ObjectDataServer
+---@return Objecterver|nil
+exports.ls_objects:Create({
+    model = 'prop_box_wood02a',
+    position = vector3(100.0, 200.0, 100.0),
+    rotation = vector3(0.0, 0.0, 45.0),
+    matrix = nil,
+    metadata = {
+        owner = 'player_1',
+        locked = true
+    },
+    serverSided = true,
+    isTemp = false,
+    route = 0
+})
 ```
 
-## Következő lépések
+### Remove
 
-- 🏠 [LS Core](/core) - Core framework
-- 🛡️ [ls_admin](/resources/core/ls_admin) - Admin eszközök
+Objektum eltávolítása az adatbázisból és a világból.
+
+```lua
+---@param id string
+---@return boolean
+exports.ls_objects:Remove('core_perm_123')
+```
+
+### Get
+
+Objektum lekérése az azonosítója alapján.
+
+```lua
+---@param id string
+---@return Objecterver|nil
+local object = exports.ls_objects:Get('core_perm_123')
+```
+
+### Events
+
+#### Objects:Server:Remove
+
+Objektum eltávolítási esemény.
+
+```lua
+TriggerEvent('Objects:Server:Remove', 'core_perm_123')
+```
+
+### Callbacks
+
+#### Objects:Server:Create
+
+Objektum létrehozási callback kliens oldalról.
+
+```lua
+local id = LS.Callback:Await('Objects:Server:Create', nil, {
+    model = 'prop_box_wood02a',
+    position = vector3(100.0, 200.0, 100.0),
+    rotation = vector3(0.0, 0.0, 45.0),
+    metadata = { owner = 'player_1' },
+    serverSided = false,
+    isTemp = false,
+    route = 0
+})
+```
+
+## Adatstruktúrák
+
+### ObjectDataServer
+
+```lua
+{
+    model = 'prop_box_wood02a',          -- Objektum modellje (hash vagy név)
+    position = vector3(100, 200, 100),   -- Objektum pozíciója
+    rotation = vector3(0, 0, 45),        -- Objektum forgatása (alapértelmezett: 0, 0, 0)
+    matrix = nil,                        -- Objektum mátrix adatai (opcionális)
+    metadata = {                         -- Egyéni metaadatok (opcionális)
+        owner = 'player_1',
+        locked = true
+    },
+    serverSided = true,                  -- Szerver oldali objektum-e (opcionális)
+    isTemp = false,                      -- Ideiglenes objektum-e (opcionális)
+    route = 0                            -- Objektum route-ja (alapértelmezett: 0)
+}
+```
+
+### Objecterver
+
+```lua
+{
+    id = 'core_perm_123',                -- Objektum egyedi azonosítója
+    model = 'prop_box_wood02a',          -- Objektum modellje
+    position = vector3(100, 200, 100),   -- Objektum pozíciója
+    rotation = vector3(0, 0, 45),        -- Objektum forgatása
+    matrix = nil,                        -- Objektum mátrix (opcionális)
+    metadata = {                         -- Metaadatok
+        owner = 'player_1',
+        locked = true
+    },
+    serverSided = true,                  -- Szerver oldali objektum-e
+    isTemp = false,                      -- Ideiglenes objektum-e
+    route = 0,                           -- Objektum route-ja
+    entity = 12345,                      -- Entity handle (csak serverSided esetén)
+    resource = 'ls_objects',             -- Resource neve
+    created = '2024-01-15 14:30:45',     -- Létrehozás időpontja
+    creator = {                          -- Létrehozó adatai
+        playerId = 1,
+        charId = 'char_123'
+    }
+}
+```
