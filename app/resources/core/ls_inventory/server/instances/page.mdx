@@ -1,0 +1,1013 @@
+# Instances
+
+A szerver oldali instance rendszer OOP-alapú API-t biztosít az inventory kezeléséhez. Három fő instance típus létezik:
+
+- **PlayerInventoryInstance** — Egy játékos összes inventory-ját kezeli (character, pocket, backpack)
+- **InventoryInstance** — Egyetlen inventory kezelése
+- **ItemInstance** — Egyetlen item kezelése
+
+## PlayerInventoryInstance
+
+A `GetPlayerInventory` export-tal kérhető le. Egy karakter összes inventory-ját összefogja.
+
+```lua
+local inventory = exports.ls_inventory:GetPlayerInventory(source)
+```
+
+**Paraméterek:**
+- `source` (number) — Játékos server ID
+
+**Visszatérési érték:** `PlayerInventoryInstance|nil`
+
+---
+
+### GetCharacterIdentifier
+
+Karakter azonosító lekérése.
+
+```lua
+local charId = inventory:GetCharacterIdentifier()
+```
+
+**Visszatérési érték:** `string`
+
+---
+
+### GetInventoryIds
+
+Összes inventory ID és típus lekérése.
+
+```lua
+local ids = inventory:GetInventoryIds()
+```
+
+**Visszatérési érték:** `table[]` — `{ id: string, type: string, label: string }[]`
+
+```lua
+local ids = inventory:GetInventoryIds()
+for _, inv in ipairs(ids) do
+    print(inv.id, inv.type, inv.label)
+    -- "character:ABC123"  "character"  "Inventory"
+    -- "pocket:ABC123"     "pocket"     "Pocket"
+end
+```
+
+---
+
+### GetInventory
+
+Egy adott típusú inventory instance lekérése.
+
+```lua
+local inv = inventory:GetInventory(inventoryType)
+```
+
+**Paraméterek:**
+- `inventoryType` (string|nil) — Inventory típus, alapértelmezett: `"character"`
+
+**Visszatérési érték:** `InventoryInstance|nil`
+
+```lua
+local characterInv = inventory:GetInventory("character")
+local pocketInv = inventory:GetInventory("pocket")
+```
+
+---
+
+### GetAllInventories
+
+Összes inventory instance lekérése típus szerint.
+
+```lua
+local all = inventory:GetAllInventories()
+```
+
+**Visszatérési érték:** `table<string, InventoryInstance>`
+
+```lua
+local all = inventory:GetAllInventories()
+for invType, inv in pairs(all) do
+    print(invType, inv:GetId(), inv:GetItemCount())
+end
+```
+
+---
+
+### GetItems
+
+Összes item lekérése az összes inventory-ból. Opcionális kategória szűrővel.
+
+```lua
+local items = inventory:GetItems(category)
+```
+
+**Paraméterek:**
+- `category` (string|nil) — Kategória szűrő (pl. `"weapon"`, `"consumable"`)
+
+**Visszatérési érték:** `table<number, ItemInstance>`
+
+```lua
+local allItems = inventory:GetItems()
+for itemId, item in pairs(allItems) do
+    print(item:GetName(), item:GetCount())
+end
+
+local weapons = inventory:GetItems("weapon")
+```
+
+---
+
+### GetItem
+
+Egy adott nevű item lekérése (első találat).
+
+```lua
+local item = inventory:GetItem(itemName)
+```
+
+**Paraméterek:**
+- `itemName` (string) — Item neve
+
+**Visszatérési érték:** `ItemInstance|nil`
+
+```lua
+local water = inventory:GetItem('water')
+if water then
+    print(water:GetLabel(), water:GetCount())
+end
+```
+
+---
+
+### GetItemById
+
+Item lekérése ID alapján.
+
+```lua
+local item = inventory:GetItemById(itemId)
+```
+
+**Paraméterek:**
+- `itemId` (number) — Item ID
+
+**Visszatérési érték:** `ItemInstance|nil`
+
+```lua
+local item = inventory:GetItemById(42)
+if item then
+    print(item:GetName())
+end
+```
+
+---
+
+### HasItem
+
+Van-e adott item a játékosnál.
+
+```lua
+local hasItem = inventory:HasItem(itemName, amount)
+```
+
+**Paraméterek:**
+- `itemName` (string) — Item neve
+- `amount` (number|nil) — Elvárt mennyiség, alapértelmezett: `1`
+
+**Visszatérési érték:** `boolean`
+
+```lua
+if inventory:HasItem('lockpick', 2) then
+    print('Van legalább 2 lockpick')
+end
+```
+
+---
+
+### CountItem
+
+Adott item teljes mennyisége az összes inventory-ban.
+
+```lua
+local count = inventory:CountItem(itemName)
+```
+
+**Paraméterek:**
+- `itemName` (string) — Item neve
+
+**Visszatérési érték:** `number`
+
+```lua
+local waterCount = inventory:CountItem('water')
+print(("Összesen %d víz"):format(waterCount))
+```
+
+---
+
+### CanCarryAmount
+
+Mennyi fér még az adott itemből.
+
+```lua
+local canCarry, totalCapacity = inventory:CanCarryAmount(itemName)
+```
+
+**Paraméterek:**
+- `itemName` (string) — Item neve
+
+**Visszatérési érték:**
+- `boolean` — Van-e hely
+- `number` — Összes szabad kapacitás
+
+```lua
+local canCarry, capacity = inventory:CanCarryAmount('water')
+if canCarry then
+    print(("Kapacitás: %d"):format(capacity))
+end
+```
+
+---
+
+### AddItem
+
+Item hozzáadása a játékos inventory-jához.
+
+```lua
+local result = inventory:AddItem(itemName, metadata, uses, amount)
+```
+
+**Paraméterek:**
+- `itemName` (string) — Item neve
+- `metadata` (table|nil) — Item metadata
+- `uses` (number|nil) — Használati számláló
+- `amount` (number|nil) — Mennyiség, alapértelmezett: `1`
+
+**Visszatérési érték:** `table` — `{ ok: boolean, data: table|nil, msg: string|nil }`
+
+```lua
+local result = inventory:AddItem('water', nil, nil, 5)
+if result.ok then
+    print(("Hozzáadva: %d db"):format(result.data.totalAdded))
+end
+
+local result = inventory:AddItem('phone', { number = '555-1234' }, nil, 1)
+```
+
+---
+
+### RemoveItem
+
+Item eltávolítása ID alapján.
+
+```lua
+local result = inventory:RemoveItem(itemId, amount)
+```
+
+**Paraméterek:**
+- `itemId` (number) — Item ID
+- `amount` (number|nil) — Mennyiség (stackelhető itemeknél)
+
+**Visszatérési érték:** `table` — `{ ok: boolean }`
+
+```lua
+local item = inventory:GetItem('water')
+if item then
+    local result = inventory:RemoveItem(item:GetId(), 1)
+end
+```
+
+---
+
+### RemoveItemByName
+
+Item eltávolítása név alapján.
+
+```lua
+local result = inventory:RemoveItemByName(itemName, amount)
+```
+
+**Paraméterek:**
+- `itemName` (string) — Item neve
+- `amount` (number) — Eltávolítandó mennyiség
+
+**Visszatérési érték:** `table` — `{ ok: boolean, data: { itemsRemoved: number } }`
+
+```lua
+local result = inventory:RemoveItemByName('water', 3)
+if result.ok then
+    print(("Eltávolítva: %d db"):format(result.data.itemsRemoved))
+end
+```
+
+---
+
+### Clear
+
+Összes inventory kiürítése.
+
+```lua
+local result = inventory:Clear()
+```
+
+**Visszatérési érték:** `table` — `{ ok: boolean, data: { itemsCleared: number } }`
+
+```lua
+local result = inventory:Clear()
+if result.ok then
+    print(("Törölve: %d item"):format(result.data.itemsCleared))
+end
+```
+
+---
+
+### GetItemCount
+
+Összes item darabszáma.
+
+```lua
+local count = inventory:GetItemCount()
+```
+
+**Visszatérési érték:** `number`
+
+---
+
+### GetTotalWeight
+
+Összes item teljes súlya.
+
+```lua
+local weight = inventory:GetTotalWeight()
+```
+
+**Visszatérési érték:** `number`
+
+```lua
+print(("Összesen: %d item, %.2f kg"):format(inventory:GetItemCount(), inventory:GetTotalWeight() / 1000))
+```
+
+---
+
+### IsEmpty
+
+Üres-e az összes inventory.
+
+```lua
+local empty = inventory:IsEmpty()
+```
+
+**Visszatérési érték:** `boolean`
+
+---
+
+### GetItemsByFlag
+
+Itemek lekérése flag alapján.
+
+```lua
+local items = inventory:GetItemsByFlag(flag)
+```
+
+**Paraméterek:**
+- `flag` (string) — Flag neve (pl. `"isBackpack"`, `"container"`)
+
+**Visszatérési érték:** `table<number, ItemInstance>`
+
+```lua
+local containers = inventory:GetItemsByFlag('container')
+for _, item in pairs(containers) do
+    print(item:GetLabel())
+end
+```
+
+---
+
+### GetItemsByName
+
+Adott nevű itemek lekérése.
+
+```lua
+local items = inventory:GetItemsByName(itemName)
+```
+
+**Paraméterek:**
+- `itemName` (string) — Item neve
+
+**Visszatérési érték:** `table<number, ItemInstance>`
+
+```lua
+local allWater = inventory:GetItemsByName('water')
+for _, item in pairs(allWater) do
+    print(("ID: %d, Count: %d"):format(item:GetId(), item:GetCount()))
+end
+```
+
+---
+
+### GetExpiredItems
+
+Lejárt itemek lekérése.
+
+```lua
+local expired = inventory:GetExpiredItems()
+```
+
+**Visszatérési érték:** `table<number, ItemInstance>`
+
+---
+
+### GetDepletedItems
+
+Elhasznált (0 uses) itemek lekérése.
+
+```lua
+local depleted = inventory:GetDepletedItems()
+```
+
+**Visszatérési érték:** `table<number, ItemInstance>`
+
+---
+
+### RemoveExpiredItems
+
+Összes lejárt item automatikus eltávolítása.
+
+```lua
+local removedCount = inventory:RemoveExpiredItems()
+```
+
+**Visszatérési érték:** `number` — Eltávolított itemek száma
+
+---
+
+### RemoveDepletedItems
+
+Összes elhasznált item automatikus eltávolítása.
+
+```lua
+local removedCount = inventory:RemoveDepletedItems()
+```
+
+**Visszatérési érték:** `number` — Eltávolított itemek száma
+
+---
+
+### Filter
+
+Itemek szűrése egyedi callback-kel.
+
+```lua
+local items = inventory:Filter(callback)
+```
+
+**Paraméterek:**
+- `callback` (function) — `fun(item: ItemInstance): boolean`
+
+**Visszatérési érték:** `table<number, ItemInstance>`
+
+```lua
+local stackableItems = inventory:Filter(function(item)
+    return item:IsStackable()
+end)
+
+local heavyItems = inventory:Filter(function(item)
+    return item:GetWeight() > 1000
+end)
+```
+
+---
+
+### Find
+
+Első item megtalálása egyedi callback-kel.
+
+```lua
+local item = inventory:Find(callback)
+```
+
+**Paraméterek:**
+- `callback` (function) — `fun(item: ItemInstance): boolean`
+
+**Visszatérési érték:** `ItemInstance|nil`
+
+```lua
+local firstUsable = inventory:Find(function(item)
+    return item:IsUsable()
+end)
+
+if firstUsable then
+    print(("Használható: %s"):format(firstUsable:GetLabel()))
+end
+```
+
+---
+
+### ForEach
+
+Iteráció az összes itemen.
+
+```lua
+inventory:ForEach(callback)
+```
+
+**Paraméterek:**
+- `callback` (function) — `fun(item: ItemInstance)`
+
+```lua
+inventory:ForEach(function(item)
+    print(("%s x%d"):format(item:GetName(), item:GetCount()))
+end)
+```
+
+---
+
+### Serialize
+
+Instance szerializálása.
+
+```lua
+local data = inventory:Serialize()
+```
+
+**Visszatérési érték:** `table` — `{ characterIdentifier, inventories, itemCount, totalWeight }`
+
+---
+
+## InventoryInstance
+
+Egyetlen inventory kezelése. A `GetInventory` export-tal vagy a `PlayerInventoryInstance:GetInventory()` metódussal kérhető le.
+
+```lua
+local inv = exports.ls_inventory:GetInventory(inventoryId)
+```
+
+**Paraméterek:**
+- `inventoryId` (string) — Inventory azonosító (pl. `"character:ABC123"`, `"stash:police"`)
+
+**Visszatérési érték:** `InventoryInstance|nil`
+
+Az `InventoryInstance` ugyanazokkal a metódusokkal rendelkezik mint a `PlayerInventoryInstance`, de egyetlen inventory-ra vonatkoznak:
+
+| Metódus | Visszatérési érték | Leírás |
+|---|---|---|
+| `GetId()` | `string` | Inventory ID |
+| `GetCharacterIdentifier()` | `string` | Karakter azonosító |
+| `GetItems(category?)` | `table<number, ItemInstance>` | Itemek lekérése |
+| `GetItem(itemName)` | `ItemInstance\|nil` | Első item név alapján |
+| `GetItemById(itemId)` | `ItemInstance\|nil` | Item ID alapján |
+| `HasItem(itemName, amount?)` | `boolean` | Van-e item |
+| `CountItem(itemName)` | `number` | Item mennyiség |
+| `CanCarryAmount(itemName)` | `boolean, number\|nil` | Szabad kapacitás |
+| `AddItem(itemName, metadata?, uses?, amount?)` | `table` | Item hozzáadás |
+| `RemoveItem(itemId, amount?)` | `table` | Item eltávolítás (ID) |
+| `RemoveItemByName(itemName, amount)` | `table` | Item eltávolítás (név) |
+| `Clear()` | `table` | Inventory kiürítés |
+| `GetItemCount()` | `number` | Item darabszám |
+| `GetTotalWeight()` | `number` | Teljes súly |
+| `IsEmpty()` | `boolean` | Üres-e |
+| `GetItemsByFlag(flag)` | `table<number, ItemInstance>` | Itemek flag alapján |
+| `GetItemsByName(itemName)` | `table<number, ItemInstance>` | Itemek név alapján |
+| `GetExpiredItems()` | `table<number, ItemInstance>` | Lejárt itemek |
+| `GetDepletedItems()` | `table<number, ItemInstance>` | Elhasznált itemek |
+| `RemoveExpiredItems()` | `number` | Lejárt itemek eltávolítása |
+| `RemoveDepletedItems()` | `number` | Elhasznált itemek eltávolítása |
+| `Filter(callback)` | `table<number, ItemInstance>` | Szűrés |
+| `Find(callback)` | `ItemInstance\|nil` | Keresés |
+| `ForEach(callback)` | — | Iteráció |
+| `Serialize()` | `table` | Szerializálás |
+
+```lua
+local stashInv = exports.ls_inventory:GetInventory('stash:police_armory')
+if stashInv then
+    stashInv:ForEach(function(item)
+        print(item:GetName(), item:GetCount())
+    end)
+end
+```
+
+---
+
+## ItemInstance
+
+Egyetlen item kezelése. A `PlayerInventoryInstance:GetItem()` vagy `InventoryInstance:GetItem()` metódusokkal kérhető le.
+
+```lua
+local item = inventory:GetItem('water')
+```
+
+---
+
+### GetId
+
+Item ID lekérése.
+
+```lua
+local id = item:GetId()
+```
+
+**Visszatérési érték:** `number`
+
+---
+
+### GetName
+
+Item belső neve.
+
+```lua
+local name = item:GetName()
+```
+
+**Visszatérési érték:** `string`
+
+---
+
+### GetInventoryId
+
+Az inventory ID ahol az item található.
+
+```lua
+local invId = item:GetInventoryId()
+```
+
+**Visszatérési érték:** `string`
+
+---
+
+### GetLabel
+
+Item megjelenített neve (az item definícióból).
+
+```lua
+local label = item:GetLabel()
+```
+
+**Visszatérési érték:** `string|nil`
+
+---
+
+### GetDescription
+
+Item leírása.
+
+```lua
+local desc = item:GetDescription()
+```
+
+**Visszatérési érték:** `string|nil`
+
+---
+
+### GetCategoryName
+
+Item kategóriája.
+
+```lua
+local category = item:GetCategoryName()
+```
+
+**Visszatérési érték:** `string|nil`
+
+---
+
+### GetCategory
+
+Kategória egyezés ellenőrzés.
+
+```lua
+local isWeapon = item:GetCategory('weapon')
+```
+
+**Paraméterek:**
+- `category` (string) — Kategória neve
+
+**Visszatérési érték:** `boolean`
+
+---
+
+### GetCount
+
+Item mennyisége.
+
+```lua
+local count = item:GetCount()
+```
+
+**Visszatérési érték:** `number`
+
+---
+
+### GetMetadata
+
+Item metadata lekérése.
+
+```lua
+local metadata = item:GetMetadata()
+```
+
+**Visszatérési érték:** `table`
+
+```lua
+local meta = item:GetMetadata()
+print(meta.number)    -- "555-1234"
+print(meta.expiresAt) -- 1700000000
+```
+
+---
+
+### GetMetadataValue
+
+Egyetlen metadata mező lekérése.
+
+```lua
+local value = item:GetMetadataValue(key)
+```
+
+**Paraméterek:**
+- `key` (string) — Metadata kulcs
+
+**Visszatérési érték:** `any`
+
+```lua
+local phoneNumber = item:GetMetadataValue('number')
+```
+
+---
+
+### SetMetadataValue
+
+Metadata mező beállítása (perzisztens, azonnal mentődik).
+
+```lua
+local result = item:SetMetadataValue(key, value)
+```
+
+**Paraméterek:**
+- `key` (string) — Metadata kulcs
+- `value` (any) — Metadata érték
+
+**Visszatérési érték:** `table` — `{ ok: boolean }`
+
+```lua
+item:SetMetadataValue('battery', 75)
+item:SetMetadataValue('lastUsed', os.time())
+```
+
+---
+
+### GetDefinition
+
+Item definíció lekérése.
+
+```lua
+local def = item:GetDefinition()
+```
+
+**Visszatérési érték:** `table|nil`
+
+---
+
+### GetWeight
+
+Item teljes súlya (unitWeight × count).
+
+```lua
+local weight = item:GetWeight()
+```
+
+**Visszatérési érték:** `number`
+
+---
+
+### GetUnitWeight
+
+Egy darab súlya.
+
+```lua
+local unitWeight = item:GetUnitWeight()
+```
+
+**Visszatérési érték:** `number`
+
+---
+
+### GetUses
+
+Hátralévő használatok.
+
+```lua
+local uses = item:GetUses()
+```
+
+**Visszatérési érték:** `number|nil` — nil ha nincs uses rendszer az itemen
+
+---
+
+### GetMaxStack
+
+Maximum stack méret.
+
+```lua
+local maxStack = item:GetMaxStack()
+```
+
+**Visszatérési érték:** `number`
+
+---
+
+### IsStackable
+
+Stackelhető-e.
+
+```lua
+local stackable = item:IsStackable()
+```
+
+**Visszatérési érték:** `boolean`
+
+---
+
+### IsUnique
+
+Egyedi-e (minden darab külön itemId-vel rendelkezik).
+
+```lua
+local unique = item:IsUnique()
+```
+
+**Visszatérési érték:** `boolean`
+
+---
+
+### IsUsable
+
+Használható-e.
+
+```lua
+local usable = item:IsUsable()
+```
+
+**Visszatérési érték:** `boolean`
+
+---
+
+### CanDrop
+
+Eldobható-e.
+
+```lua
+local canDrop = item:CanDrop()
+```
+
+**Visszatérési érték:** `boolean`
+
+---
+
+### HasFlag
+
+Van-e adott flag az item definíción.
+
+```lua
+local hasFlag = item:HasFlag(flag)
+```
+
+**Paraméterek:**
+- `flag` (string) — Flag neve
+
+**Visszatérési érték:** `boolean`
+
+```lua
+if item:HasFlag('container') then
+    print('Ez egy tároló item')
+end
+```
+
+---
+
+### IsDepleted
+
+Elhasználódott-e (uses ≤ 0).
+
+```lua
+local depleted = item:IsDepleted()
+```
+
+**Visszatérési érték:** `boolean`
+
+---
+
+### IsExpired
+
+Lejárt-e (metadata.expiresAt < os.time()).
+
+```lua
+local expired = item:IsExpired()
+```
+
+**Visszatérési érték:** `boolean`
+
+---
+
+### GetExpiresAt
+
+Lejárat időpontja.
+
+```lua
+local expiresAt = item:GetExpiresAt()
+```
+
+**Visszatérési érték:** `number|nil` — Unix timestamp
+
+---
+
+### GetTimeUntilExpiry
+
+Hátralévő idő lejáratig.
+
+```lua
+local seconds = item:GetTimeUntilExpiry()
+```
+
+**Visszatérési érték:** `number|nil` — Másodpercek száma, 0 ha lejárt, nil ha nincs lejárat
+
+---
+
+### Remove
+
+Item eltávolítása az inventory-ból.
+
+```lua
+local result = item:Remove(amount)
+```
+
+**Paraméterek:**
+- `amount` (number|nil) — Mennyiség (stackelhető itemeknél)
+
+**Visszatérési érték:** `table` — `{ ok: boolean }`
+
+```lua
+local item = inventory:GetItem('bandage')
+if item then
+    item:Remove(1)
+end
+```
+
+---
+
+### Use
+
+Item használata (csökkenti a uses számlálót, ha elfogyott eltávolítja).
+
+```lua
+local result = item:Use()
+```
+
+**Visszatérési érték:** `table` — `{ ok: boolean, data: { consumed: boolean } }`
+
+```lua
+local item = inventory:GetItem('medkit')
+if item and item:IsUsable() and not item:IsDepleted() then
+    local result = item:Use()
+    if result.ok and result.data.consumed then
+        print('Medkit elhasználva és eltávolítva')
+    end
+end
+```
+
+---
+
+### MoveToInventory
+
+Item áthelyezése másik inventory-ba.
+
+```lua
+local result = item:MoveToInventory(targetInventoryId)
+```
+
+**Paraméterek:**
+- `targetInventoryId` (string) — Cél inventory ID
+
+**Visszatérési érték:** `table` — `{ ok: boolean }`
+
+```lua
+local item = inventory:GetItem('evidence')
+if item then
+    item:MoveToInventory('stash:police_evidence')
+end
+```
+
+---
+
+### Serialize
+
+Item szerializálása.
+
+```lua
+local data = item:Serialize()
+```
+
+**Visszatérési érték:** `table` — `{ itemId, itemName, inventoryId, metadata, uses, count }`
+
+```lua
+local data = item:Serialize()
+print(json.encode(data))
+-- { "itemId": 42, "itemName": "water", "inventoryId": "character:ABC123", "metadata": {}, "uses": null, "count": 5 }
+```

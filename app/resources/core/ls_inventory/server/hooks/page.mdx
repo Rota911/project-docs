@@ -1,0 +1,456 @@
+# Hooks
+
+A hook rendszer lehetővé teszi külső resource-ok számára, hogy **az inventory akciók végrehajtása előtt** beavatkozzanak. A hook-ok blokkolhatják az akciót (`return false`) vagy módosíthatják az adatokat (pl. metadata az `addItem` hook-nál).
+
+A rendszer az ox_inventory `registerHook` mintáját követi, az ls_inventory architektúrájára adaptálva.
+
+## registerHook
+
+Hook regisztrálása egy adott event típusra.
+
+```lua
+local hookId = exports.ls_inventory:registerHook(event, callback, options)
+```
+
+**Paraméterek:**
+- `event` (string) — Hook event típus
+- `callback` (function) — `fun(payload: table): boolean|table|nil`
+- `options` (table|nil) — Szűrő opciók
+
+**Visszatérési érték:** `number` — Hook ID (eltávolításhoz)
+
+---
+
+## removeHooks
+
+Hook(ok) eltávolítása. Ha `hookId` megadva, csak azt távolítja el. Egyébként a hívó resource összes hookját eltávolítja.
+
+```lua
+exports.ls_inventory:removeHooks(hookId)
+```
+
+**Paraméterek:**
+- `hookId` (number|nil) — Specifikus hook ID, vagy nil az összes eltávolításához
+
+```lua
+local hookId = exports.ls_inventory:registerHook('addItem', function(payload)
+    return false
+end)
+
+exports.ls_inventory:removeHooks(hookId)
+
+exports.ls_inventory:removeHooks()
+```
+
+> A hook-ok automatikusan eltávolításra kerülnek, ha a regisztráló resource leáll (`onResourceStop`).
+
+---
+
+## Event típusok
+
+| Event | Mikor fut | Blokkolható | Módosítható |
+|---|---|---|---|
+| `addItem` | Item hozzáadás előtt | ✅ `return false` | ✅ `return metadata` |
+| `removeItem` | Item eltávolítás előtt | ✅ `return false` | ❌ |
+| `moveItem` | Item mozgatás/áthelyezés előtt | ✅ `return false` | ❌ |
+| `useItem` | Item használat előtt | ✅ `return false` | ❌ |
+| `splitItem` | Stack szétválasztás előtt | ✅ `return false` | ❌ |
+| `clearInventory` | Inventory kiürítés előtt | ✅ `return false` | ❌ |
+
+---
+
+## Szűrő opciók
+
+A hook-ok opcionálisan szűrhetők, így csak releváns esetekben futnak le:
+
+### itemFilter
+
+Csak a megadott item nevekre triggerelődik.
+
+```lua
+exports.ls_inventory:registerHook('addItem', function(payload)
+    print(("Fegyver hozzáadás: %s"):format(payload.itemName))
+end, {
+    itemFilter = {
+        ['weapon_pistol'] = true,
+        ['weapon_smg'] = true,
+        ['weapon_rifle'] = true
+    }
+})
+```
+
+### inventoryFilter
+
+Csak a megadott inventory ID mintákra triggerelődik. Lua `string.match` pattern-eket használ.
+
+```lua
+exports.ls_inventory:registerHook('moveItem', function(payload)
+    print('Stash-ba mozgatás blokkolva')
+    return false
+end, {
+    inventoryFilter = { '^stash:' }
+})
+```
+
+```lua
+exports.ls_inventory:registerHook('removeItem', function(payload)
+    print('Rendőrségi inventory-ból nem törölhető')
+    return false
+end, {
+    inventoryFilter = { 'police' }
+})
+```
+
+### print
+
+Debug log engedélyezése a hook triggereléskor.
+
+```lua
+exports.ls_inventory:registerHook('addItem', function(payload)
+    -- ...
+end, {
+    print = true
+})
+```
+
+Kimenet: `[ls_inventory] Triggering hook "my_resource:addItem:1"`
+
+### Kombinált szűrők
+
+```lua
+exports.ls_inventory:registerHook('addItem', function(payload)
+    return false
+end, {
+    itemFilter = { ['contraband'] = true, ['drugs'] = true },
+    inventoryFilter = { '^stash:police' },
+    print = true
+})
+```
+
+---
+
+## Payload struktúrák
+
+Minden hook callback megkap egy `payload` táblát az akció adataival. A payload mezői event típusonként eltérnek.
+
+### addItem
+
+```lua
+{
+    characterId = "ABC123",
+    inventoryId = "character:ABC123",
+    itemName = "water",
+    metadata = { expiresAt = 1700000000 },
+    amount = 5
+}
+```
+
+**Visszatérési értékek:**
+- `false` — Hozzáadás blokkolása
+- `table` — Módosított metadata tábla (lecseréli a metadata-t)
+- `nil` vagy `true` — Engedélyezés változtatás nélkül
+
+```lua
+exports.ls_inventory:registerHook('addItem', function(payload)
+    if payload.itemName == 'contraband' then
+        return false
+    end
+end)
+
+exports.ls_inventory:registerHook('addItem', function(payload)
+    payload.metadata.addedAt = os.time()
+    payload.metadata.source = 'crafting'
+    return payload.metadata
+end, {
+    itemFilter = { ['lockpick'] = true }
+})
+```
+
+---
+
+### removeItem
+
+```lua
+{
+    characterId = "ABC123",
+    inventoryId = "character:ABC123",    -- Csak RemoveItem-nél (nem RemoveItemByName)
+    itemId = 42,                         -- Csak RemoveItem-nél
+    itemName = "water",
+    metadata = { expiresAt = 1700000000 },  -- Csak RemoveItem-nél
+    amount = 1
+}
+```
+
+**Visszatérési értékek:**
+- `false` — Eltávolítás blokkolása
+- Bármi más — Engedélyezés
+
+```lua
+exports.ls_inventory:registerHook('removeItem', function(payload)
+    if payload.itemName == 'quest_item' then
+        return false
+    end
+end)
+```
+
+---
+
+### moveItem
+
+Két variáció létezik: egyszerű mozgatás (ugyanazon inventory-n belül) és cross-inventory mozgatás.
+
+**Egyszerű mozgatás:**
+
+```lua
+{
+    source = 1,
+    characterId = "ABC123",
+    inventoryId = "character:ABC123",
+    itemId = 42,
+    itemName = "water",
+    metadata = {},
+    fromX = 0,
+    fromY = 0,
+    toX = 3,
+    toY = 2
+}
+```
+
+**Cross-inventory mozgatás:**
+
+```lua
+{
+    source = 1,
+    characterId = "ABC123",
+    sourceInventoryId = "character:ABC123",
+    targetInventoryId = "stash:police_armory",
+    inventoryId = "character:ABC123",
+    itemId = 42,
+    itemName = "weapon_pistol",
+    metadata = {},
+    fromX = 0,
+    fromY = 0,
+    toX = 5,
+    toY = 3,
+    isCrossInventory = true
+}
+```
+
+**Visszatérési értékek:**
+- `false` — Mozgatás blokkolása
+- Bármi más — Engedélyezés
+
+```lua
+exports.ls_inventory:registerHook('moveItem', function(payload)
+    if payload.isCrossInventory and payload.itemName == 'soulbound_item' then
+        return false
+    end
+end)
+
+exports.ls_inventory:registerHook('moveItem', function(payload)
+    if payload.targetInventoryId and payload.targetInventoryId:match('^stash:') then
+        print(("Stash transfer: %s -> %s"):format(payload.sourceInventoryId, payload.targetInventoryId))
+    end
+end)
+```
+
+---
+
+### useItem
+
+```lua
+{
+    characterId = "ABC123",
+    itemId = 42,
+    itemName = "medkit",
+    metadata = { uses = 3 },
+    uses = 3
+}
+```
+
+**Visszatérési értékek:**
+- `false` — Használat blokkolása
+- Bármi más — Engedélyezés
+
+```lua
+exports.ls_inventory:registerHook('useItem', function(payload)
+    if payload.uses and payload.uses <= 0 then
+        return false
+    end
+end)
+
+exports.ls_inventory:registerHook('useItem', function(payload)
+    if payload.itemName == 'healing_potion' then
+        local player = LS:GetPlayer(payload.source)
+        if player and player:GetActiveCharacter() then
+            -- Egyedi logika a használat előtt
+        end
+    end
+end, {
+    itemFilter = { ['healing_potion'] = true }
+})
+```
+
+---
+
+### splitItem
+
+```lua
+{
+    source = 1,
+    characterId = "ABC123",
+    inventoryId = "character:ABC123",
+    targetInventoryId = "pocket:ABC123",
+    itemName = "ammo_pistol",
+    metadata = {},
+    splitAmount = 15,
+    totalCount = 30
+}
+```
+
+**Visszatérési értékek:**
+- `false` — Split blokkolása
+- Bármi más — Engedélyezés
+
+```lua
+exports.ls_inventory:registerHook('splitItem', function(payload)
+    if payload.splitAmount < 5 then
+        return false
+    end
+end, {
+    itemFilter = { ['ammo_pistol'] = true, ['ammo_rifle'] = true }
+})
+```
+
+---
+
+### clearInventory
+
+```lua
+{
+    characterId = "ABC123"
+}
+```
+
+**Visszatérési értékek:**
+- `false` — Kiürítés blokkolása
+- Bármi más — Engedélyezés
+
+```lua
+exports.ls_inventory:registerHook('clearInventory', function(payload)
+    print(("[WARN] Inventory clear kísérlet: %s"):format(payload.characterId))
+end)
+
+exports.ls_inventory:registerHook('clearInventory', function(payload)
+    return false
+end)
+```
+
+---
+
+## Gyakorlati példák
+
+### Anti-exploit: Fegyver korlátozás
+
+```lua
+local MaxWeapons <const> = 2
+
+exports.ls_inventory:registerHook('addItem', function(payload)
+    local inventory = exports.ls_inventory:GetPlayerInventory(payload.source)
+    if not inventory then return end
+
+    local weapons = inventory:GetItems('weapon')
+    local weaponCount = 0
+    for _ in pairs(weapons) do
+        weaponCount = weaponCount + 1
+    end
+
+    if weaponCount >= MaxWeapons then
+        return false
+    end
+end, {
+    itemFilter = {
+        ['weapon_pistol'] = true,
+        ['weapon_smg'] = true,
+        ['weapon_rifle'] = true,
+        ['weapon_shotgun'] = true
+    }
+})
+```
+
+### Item logging
+
+```lua
+exports.ls_inventory:registerHook('addItem', function(payload)
+    print(("[ITEM-LOG] ADD: %s x%d -> %s"):format(
+        payload.itemName,
+        payload.amount,
+        payload.characterId
+    ))
+end, { print = true })
+
+exports.ls_inventory:registerHook('removeItem', function(payload)
+    print(("[ITEM-LOG] REMOVE: %s x%d <- %s"):format(
+        payload.itemName,
+        payload.amount,
+        payload.characterId
+    ))
+end)
+```
+
+### Metadata injektálás
+
+```lua
+exports.ls_inventory:registerHook('addItem', function(payload)
+    payload.metadata.craftedBy = payload.characterId
+    payload.metadata.craftedAt = os.time()
+    return payload.metadata
+end, {
+    itemFilter = { ['lockpick'] = true, ['repairkit'] = true }
+})
+```
+
+### Stash védelme
+
+```lua
+exports.ls_inventory:registerHook('moveItem', function(payload)
+    if not payload.isCrossInventory then
+        return
+    end
+
+    local targetId = payload.targetInventoryId or ""
+    if targetId:match('^stash:evidence') then
+        return false
+    end
+end, {
+    inventoryFilter = { 'evidence' }
+})
+```
+
+### Időzített item korlátozás
+
+```lua
+local tradeBlocked = false
+
+exports.ls_inventory:registerHook('moveItem', function(payload)
+    if tradeBlocked and payload.isCrossInventory then
+        return false
+    end
+end)
+
+RegisterCommand('toggletrade', function()
+    tradeBlocked = not tradeBlocked
+    print(("Trade block: %s"):format(tostring(tradeBlocked)))
+end)
+```
+
+---
+
+## Fontos tudnivalók
+
+- A hook-ok a regisztrálás sorrendjében futnak le
+- Ha bármelyik hook `false`-t ad vissza, az akció azonnal blokkolódik (a többi hook nem fut le)
+- Az `addItem` hook-nál a visszaadott metadata tábla lecseréli az eredeti metadata-t — a következő hook már a módosított metadata-t kapja
+- Hook hiba (error) esetén a hook kihagyásra kerül, az akció nem blokkolódik
+- Lassú hook-ok (>100ms) figyelmeztetést kapnak a konzolban
+- A hook-ok automatikusan eltávolításra kerülnek, ha a regisztráló resource leáll

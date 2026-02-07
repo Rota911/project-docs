@@ -1,0 +1,256 @@
+# Events
+
+Az ls_inventory két event rendszert biztosít:
+
+1. **Server Events** — Hagyományos FiveM event-ek amelyek item akciók után triggerelődnek
+2. **Inventory Event System** — Export-alapú listener rendszer részletesebb adatokkal
+
+---
+
+## Server Events
+
+Ezek a hagyományos FiveM event-ek `AddEventHandler`-rel hallgathatók. Az inventory rendszer automatikusan triggereli őket a megfelelő akciók után.
+
+### ls_inventory:server:onItemUsed
+
+Item használat után triggerelődik.
+
+```lua
+AddEventHandler('ls_inventory:server:onItemUsed', function(source, characterId, itemId, itemName, itemDef)
+    print(("Játékos %d használta: %s (ID: %d)"):format(source, itemName, itemId))
+    print(("Kategória: %s"):format(itemDef.category or "N/A"))
+end)
+```
+
+**Paraméterek:**
+- `source` (number) — Játékos server ID
+- `characterId` (string) — Karakter azonosító
+- `itemId` (number) — Item ID
+- `itemName` (string) — Item neve
+- `itemDef` (table) — Item definíció (label, category, weight, stb.)
+
+---
+
+### ls_inventory:server:onItemDropped
+
+Item eldobása után triggerelődik.
+
+```lua
+AddEventHandler('ls_inventory:server:onItemDropped', function(source, characterId, itemId, itemName, coords)
+    print(("Játékos %d eldobta: %s"):format(source, itemName))
+    print(("Koordináták: %.2f, %.2f, %.2f"):format(coords.x, coords.y, coords.z))
+end)
+```
+
+**Paraméterek:**
+- `source` (number) — Játékos server ID
+- `characterId` (string) — Karakter azonosító
+- `itemId` (number) — Item ID
+- `itemName` (string) — Item neve
+- `coords` (vector3) — Eldobás koordinátái
+
+---
+
+### ls_inventory:server:onItemPickedUp
+
+Eldobott item felvétele után triggerelődik.
+
+```lua
+AddEventHandler('ls_inventory:server:onItemPickedUp', function(source, characterId, itemName)
+    print(("Játékos %d felvette: %s"):format(source, itemName))
+end)
+```
+
+**Paraméterek:**
+- `source` (number) — Játékos server ID
+- `characterId` (string) — Karakter azonosító
+- `itemName` (string) — Item neve
+
+---
+
+### ls_inventory:server:onItemGiven
+
+Item átadása másik játékosnak után triggerelődik.
+
+```lua
+AddEventHandler('ls_inventory:server:onItemGiven', function(source, fromCharId, toCharId, itemId, itemName)
+    print(("Átadás: %s -> %s, item: %s"):format(fromCharId, toCharId, itemName))
+end)
+```
+
+**Paraméterek:**
+- `source` (number) — Küldő játékos server ID
+- `fromCharId` (string) — Küldő karakter azonosító
+- `toCharId` (string) — Fogadó karakter azonosító
+- `itemId` (number) — Item ID
+- `itemName` (string) — Item neve
+
+---
+
+## Inventory Event System
+
+Az export-alapú event rendszer részletesebb adatokat biztosít és lehetővé teszi az akciók blokkolását is (`return false`).
+
+### Event típusok
+
+| Event | Leírás |
+|---|---|
+| `itemAdded` | Item hozzáadva az inventory-hoz |
+| `itemRemoved` | Item eltávolítva az inventory-ból |
+| `itemMoved` | Item áthelyezve (slot vagy inventory között) |
+| `itemUsed` | Item használva |
+| `itemSplit` | Stack szétválasztva |
+| `itemStacked` | Itemek össze-stackelve |
+| `inventoryOpened` | Inventory megnyitva |
+| `inventoryClosed` | Inventory bezárva |
+| `inventoryCleared` | Inventory kiürítve |
+
+### InventoryEventData struktúra
+
+Minden event callback megkapja az alábbi struktúrát:
+
+```lua
+{
+    source = 1,                          -- Játékos server ID (ha van)
+    characterId = "ABC123",              -- Karakter azonosító (ha van)
+    inventoryId = "character:ABC123",    -- Inventory azonosító (ha van)
+    itemId = 42,                         -- Item ID (ha van)
+    itemName = "water",                  -- Item neve (ha van)
+    metadata = {},                       -- Item metadata (ha van)
+    quantity = 1,                        -- Mennyiség (ha van)
+    timestamp = 1700000000               -- Unix timestamp (automatikus)
+}
+```
+
+Nem minden mező van kitöltve minden event típusnál. Csak a releváns mezők kapnak értéket.
+
+---
+
+### OnInventoryEvent
+
+Egy adott event típusra listener regisztrálása.
+
+```lua
+local handlerId = exports.ls_inventory:OnInventoryEvent(eventType, callback)
+```
+
+**Paraméterek:**
+- `eventType` (string) — Event típus (lásd fenti táblázat)
+- `callback` (function) — `fun(data: InventoryEventData): boolean|nil` — Ha `false`-t ad vissza, az akció blokkolódik
+
+**Visszatérési érték:** `string` — Handler ID (eltávolításhoz)
+
+```lua
+local handlerId = exports.ls_inventory:OnInventoryEvent('itemAdded', function(data)
+    print(("Item hozzáadva: %s x%d a %s inventory-hoz"):format(
+        data.itemName, data.quantity, data.inventoryId
+    ))
+end)
+```
+
+```lua
+exports.ls_inventory:OnInventoryEvent('itemRemoved', function(data)
+    if data.itemName == 'evidence' then
+        print(("[LOG] Bizonyíték eltávolítva - karakter: %s"):format(data.characterId))
+    end
+end)
+```
+
+```lua
+exports.ls_inventory:OnInventoryEvent('inventoryOpened', function(data)
+    print(("Játékos %d megnyitotta az inventory-t: %s"):format(data.source, data.inventoryId))
+end)
+```
+
+---
+
+### OnAnyInventoryEvent
+
+Összes event típusra globális listener regisztrálása.
+
+```lua
+local handlerId = exports.ls_inventory:OnAnyInventoryEvent(callback)
+```
+
+**Paraméterek:**
+- `callback` (function) — `fun(eventType: string, data: InventoryEventData): boolean|nil`
+
+**Visszatérési érték:** `string` — Handler ID
+
+```lua
+exports.ls_inventory:OnAnyInventoryEvent(function(eventType, data)
+    print(("[Inventory] %s - item: %s, karakter: %s"):format(
+        eventType,
+        data.itemName or "N/A",
+        data.characterId or "N/A"
+    ))
+end)
+```
+
+### Logging példa
+
+```lua
+local LoggedEvents <const> = {
+    itemAdded = true,
+    itemRemoved = true,
+    itemUsed = true,
+    inventoryCleared = true
+}
+
+exports.ls_inventory:OnAnyInventoryEvent(function(eventType, data)
+    if not LoggedEvents[eventType] then
+        return
+    end
+
+    local logMessage = ("[INV-LOG] %s | Karakter: %s | Item: %s | Mennyiség: %s"):format(
+        eventType,
+        data.characterId or "?",
+        data.itemName or "?",
+        tostring(data.quantity or "?")
+    )
+
+    print(logMessage)
+end)
+```
+
+---
+
+### OffInventoryEvent
+
+Event listener eltávolítása handler ID alapján.
+
+```lua
+local success = exports.ls_inventory:OffInventoryEvent(handlerId)
+```
+
+**Paraméterek:**
+- `handlerId` (string) — A regisztráláskor kapott handler ID
+
+**Visszatérési érték:** `boolean` — Sikerült-e eltávolítani
+
+```lua
+local handlerId = exports.ls_inventory:OnInventoryEvent('itemAdded', function(data)
+    print('Item hozzáadva')
+end)
+
+Wait(60000)
+
+local removed = exports.ls_inventory:OffInventoryEvent(handlerId)
+print(("Handler eltávolítva: %s"):format(tostring(removed)))
+```
+
+---
+
+## Hooks vs Events
+
+| | Hooks (`registerHook`) | Events (`OnInventoryEvent`) |
+|---|---|---|
+| **Mikor fut** | Az akció **előtt** (pre-action) | Az akció **után** (post-action) |
+| **Blokkolhatja az akciót** | ✅ `return false` | ⚠️ Csak egyes event-eknél |
+| **Módosíthatja az adatot** | ✅ (addItem metadata) | ❌ |
+| **Szűrők** | ✅ itemFilter, inventoryFilter | ❌ |
+| **Automatikus cleanup** | ✅ onResourceStop | ❌ Manuális |
+| **Használati eset** | Akció megelőzés, módosítás | Logging, utólagos feldolgozás |
+
+> Ha egy akciót **meg akarsz akadályozni vagy módosítani**, használj [Hooks](/resources/core/ls_inventory/server/hooks)-ot.
+> Ha egy akció **után** szeretnél reagálni (pl. logging, értesítés), használj Events-et.

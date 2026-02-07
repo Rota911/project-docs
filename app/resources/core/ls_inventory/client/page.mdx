@@ -1,0 +1,302 @@
+# Client
+
+## Exports
+
+### GetItemDef
+
+Item definíció lekérése a cache-ből.
+
+```lua
+local itemDef = exports.ls_inventory:GetItemDef(itemName)
+```
+
+**Paraméterek:**
+- `itemName` (string) — Az item neve
+
+**Visszatérési érték:** `table|nil` — Az item definíció vagy nil
+
+```lua
+local def = exports.ls_inventory:GetItemDef('water')
+if def then
+    print(def.label)    -- "Víz"
+    print(def.weight)   -- 500
+    print(def.category) -- "consumable"
+end
+```
+
+---
+
+### GetAllItems
+
+Összes item definíció lekérése.
+
+```lua
+local items = exports.ls_inventory:GetAllItems()
+```
+
+**Visszatérési érték:** `table` — Összes item definíció
+
+```lua
+local allItems = exports.ls_inventory:GetAllItems()
+for name, def in pairs(allItems) do
+    print(name, def.label)
+end
+```
+
+---
+
+### OpenInventory
+
+Inventory UI megnyitása.
+
+```lua
+exports.ls_inventory:OpenInventory()
+```
+
+```lua
+RegisterCommand('inv', function()
+    exports.ls_inventory:OpenInventory()
+end)
+```
+
+---
+
+### OpenExternalInventory
+
+Külső inventory (stash, container) megnyitása.
+
+```lua
+exports.ls_inventory:OpenExternalInventory(inventoryId, label)
+```
+
+**Paraméterek:**
+- `inventoryId` (string) — A külső inventory azonosítója
+- `label` (string) — Az inventory megjelenített neve
+
+```lua
+exports.ls_inventory:OpenExternalInventory('stash:police_armory', 'Fegyvertár')
+```
+
+---
+
+### CloseInventory
+
+Inventory UI bezárása.
+
+```lua
+exports.ls_inventory:CloseInventory()
+```
+
+---
+
+### IsInventoryOpen
+
+Inventory nyitva van-e.
+
+```lua
+local isOpen = exports.ls_inventory:IsInventoryOpen()
+```
+
+**Visszatérési érték:** `boolean`
+
+---
+
+### IsInventoryLocked
+
+Inventory zárolva van-e (pl. animáció közben).
+
+```lua
+local isLocked = exports.ls_inventory:IsInventoryLocked()
+```
+
+**Visszatérési érték:** `boolean`
+
+---
+
+### EquipItem
+
+Item kézbe vétele.
+
+```lua
+exports.ls_inventory:EquipItem(itemId, itemName, metadata, inventoryId)
+```
+
+**Paraméterek:**
+- `itemId` (number) — Az item ID-ja
+- `itemName` (string) — Az item neve
+- `metadata` (table|nil) — Item metadata
+- `inventoryId` (string|nil) — Forrás inventory ID
+
+---
+
+### UnequipItem
+
+Kézben lévő item elrakása.
+
+```lua
+exports.ls_inventory:UnequipItem()
+```
+
+---
+
+### HasItemInHand
+
+Van-e item a kézben.
+
+```lua
+local hasItem = exports.ls_inventory:HasItemInHand()
+```
+
+**Visszatérési érték:** `boolean`
+
+---
+
+### GetItemInHand
+
+Kézben lévő item adatainak lekérése.
+
+```lua
+local item = exports.ls_inventory:GetItemInHand()
+```
+
+**Visszatérési érték:** `table|nil` — `{ itemId, itemName, metadata, inventoryId }` vagy nil
+
+```lua
+local item = exports.ls_inventory:GetItemInHand()
+if item then
+    print(("Kézben: %s (ID: %d)"):format(item.itemName, item.itemId))
+end
+```
+
+---
+
+### UseItemInHand
+
+Kézben lévő item használata.
+
+```lua
+exports.ls_inventory:UseItemInHand()
+```
+
+---
+
+## Events
+
+### ls_inventory:openInventory
+
+Inventory megnyitása szerver oldalról.
+
+```lua
+TriggerClientEvent('ls_inventory:openInventory', source)
+```
+
+---
+
+### ls_inventory:openExternalInventory
+
+Külső inventory megnyitása szerver oldalról.
+
+```lua
+TriggerClientEvent('ls_inventory:openExternalInventory', source, inventoryId, label)
+```
+
+---
+
+### ls_inventory:closeInventory
+
+Inventory bezárása szerver oldalról.
+
+```lua
+TriggerClientEvent('ls_inventory:closeInventory', source)
+```
+
+---
+
+### ls_inventory:refreshInventory
+
+Inventory UI frissítése (pl. szerver oldali változás után).
+
+```lua
+TriggerClientEvent('ls_inventory:refreshInventory', source)
+```
+
+---
+
+### ls_inventory:client:equipItem
+
+Item kézbe vétetése szerver oldalról.
+
+```lua
+TriggerClientEvent('ls_inventory:client:equipItem', source, {
+    itemId = 123,
+    itemName = 'water',
+    metadata = {},
+    inventoryId = 'character:ABC123'
+})
+```
+
+---
+
+### ls_inventory:client:itemConsumed
+
+Item elhasználódott értesítés (ha kézben volt, leteszi).
+
+```lua
+TriggerClientEvent('ls_inventory:client:itemConsumed', source, {
+    itemId = 123,
+    itemName = 'water'
+})
+```
+
+---
+
+### ls_inventory:client:weaponSlotCleared
+
+Fegyver slot kiürült értesítés.
+
+```lua
+TriggerClientEvent('ls_inventory:client:weaponSlotCleared', source, {
+    slotType = 'primary',
+    itemName = 'weapon_pistol'
+})
+```
+
+---
+
+### Item Use Events
+
+Az inventory a `useItem` callback után item típus alapján client event-et triggerel:
+
+| Event | Leírás |
+|---|---|
+| `ls_inventory:useConsumable` | Fogyasztható item (étel, ital) |
+| `ls_inventory:useMedical` | Gyógyszer, elsősegély |
+| `ls_inventory:equipWeapon` | Fegyver felszerelése |
+| `ls_inventory:equipArmor` | Páncél felszerelése |
+| `ls_inventory:usePhone` | Telefon használata |
+| `ls_inventory:useTool` | Eszköz használata |
+| `ls_inventory:useRepairKit` | Javító készlet |
+| `ls_inventory:useFlashlight` | Zseblámpa |
+| `ls_inventory:useBinoculars` | Távcső |
+| `ls_inventory:useRadio` | Rádió |
+
+Minden event megkapja a `data` táblát `itemName` és `metadata` mezőkkel:
+
+```lua
+RegisterNetEvent('ls_inventory:useConsumable', function(data)
+    print(data.itemName)  -- pl. 'water'
+    print(data.metadata)  -- item metadata
+end)
+```
+
+Ezek az events local event-eket is triggerelnek amire hallgathatsz:
+
+```lua
+AddEventHandler('ls_inventory:weaponEquipped', function(itemName, weaponHash)
+    print(("Fegyver equipálva: %s (%s)"):format(itemName, weaponHash))
+end)
+
+AddEventHandler('ls_inventory:toolUsed', function(itemName, metadata)
+    print(("Eszköz használva: %s"):format(itemName))
+end)
+```
