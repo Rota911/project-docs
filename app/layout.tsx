@@ -7,11 +7,12 @@ import Image from "next/image";
 
 export const metadata = {};
 
+
 const navbar = (
      <Navbar
           logo={
                <div className="flex flex-row gap-2 items-center justify-center">
-                    <Image src={"/logo.gif"} alt="PLS Logo" width={32} height={32} />
+                    <Image src={"/logo.gif"} alt="PLS Logo " width={32} height={32} />
                     <span>
                          <b>Project | Los Santos</b>
                     </span>
