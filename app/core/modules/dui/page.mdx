@@ -1,134 +1,47 @@
-# DUI modul
+# DUI
 
-A DUI (Drawing User Interface) modul lehetővé teszi HTML tartalom megjelenítését 3D térben.
+Client-side DUI (Direct User Interface) wrapper for `ls_marker`. Access via `LS.Dui`.
 
-## Funkciók
+> Requires `ls_marker` to be started.
 
-### Create
-
-DUI létrehozása.
+## Create
 
 ```lua
-local dui = LS.Dui:Create({
-    url = 'https://example.com',
-    width = 1920,
-    height = 1080,
-    position = vector3(0.0, 0.0, 0.0),
-    rotation = vector3(0.0, 0.0, 0.0),
-    scale = vector3(1.0, 1.0, 1.0)
-})
+---@param data DuiProperties
+---@return DuiInstance|nil
+LS.Dui:Create(data)
 ```
 
-**Paraméterek:**
-- `data` (table): DUI beállítások
-  - `url` (string): Megjelenítendő URL
-  - `width` (number): Szélesség pixelben
-  - `height` (number): Magasság pixelben
-  - `position` (vector3): 3D pozíció
-  - `rotation` (vector3): Forgatás
-  - `scale` (vector3): Méretezés
+Creates a new DUI instance rendered in 3D space via `ls_marker`.
 
-**Visszatérési érték:**
-- `DuiInstance`: DUI objektum
-
-**Példa:**
+## Remove
 
 ```lua
--- Weboldal megjelenítése térben
-local billboard = LS.Dui:Create({
-    url = 'https://example.com/dashboard',
-    width = 1920,
-    height = 1080,
-    position = vector3(100.0, 200.0, 30.0),
-    rotation = vector3(0.0, 0.0, 90.0),
-    scale = vector3(2.0, 2.0, 1.0)
-})
-
--- Videó lejátszás
-local videoScreen = LS.Dui:Create({
-    url = 'https://youtube.com/embed/VIDEO_ID',
-    width = 1280,
-    height = 720,
-    position = vector3(50.0, 60.0, 25.0),
-    rotation = vector3(0.0, 0.0, 0.0),
-    scale = vector3(3.0, 3.0, 1.0)
-})
-```
-
-### Remove
-
-DUI eltávolítása.
-
-```lua
+---@param dui DuiInstance
 LS.Dui:Remove(dui)
 ```
 
-**Paraméterek:**
-- `dui` (DuiInstance): A DUI objektum
+Destroys the DUI instance and frees its resources.
 
-**Példa:**
-
-```lua
-local dui = LS.Dui:Create({...})
-
--- Később törlés
-Wait(10000)
-LS.Dui:Remove(dui)
-```
-
-## Gyakorlati példák
-
-### Billboard reklám
+## Types
 
 ```lua
-local billboards = {
-    {pos = vector3(100, 200, 30), rot = vector3(0, 0, 90)},
-    {pos = vector3(150, 250, 30), rot = vector3(0, 0, 180)}
-}
-
-for i, data in ipairs(billboards) do
-    LS.Dui:Create({
-        url = 'https://myserver.com/ads/billboard' .. i .. '.html',
-        width = 1920,
-        height = 1080,
-        position = data.pos,
-        rotation = data.rot,
-        scale = vector3(5.0, 3.0, 1.0)
-    })
-end
+---@class DuiProperties
+---@field url string
+---@field width number
+---@field height number
+---@field coords vector3
+---@field rotation? vector3
+---@field scale? number
+---@field [string] any
 ```
-
-### Interaktív térkép
 
 ```lua
-local mapDui = LS.Dui:Create({
-    url = 'https://myserver.com/map',
-    width = 1920,
-    height = 1080,
-    position = vector3(441.0, -981.0, 31.0),  -- Rendőrség
-    rotation = vector3(0.0, 0.0, 0.0),
-    scale = vector3(2.0, 2.0, 1.0)
-})
+---@class DuiInstance
+---@field handle number
+---@field txd number
+---@field txn string
+---@field [string] any
 ```
 
-### Video lejátszás klubban
-
-```lua
-local clubScreen = LS.Dui:Create({
-    url = 'https://youtube.com/embed/dQw4w9WgXcQ?autoplay=1',
-    width = 1920,
-    height = 1080,
-    position = vector3(120.5, -1281.5, 30.0),  -- Vanilla Unicorn
-    rotation = vector3(0.0, 0.0, 270.0),
-    scale = vector3(4.0, 2.0, 1.0)
-})
-
--- 3 perc után törlés
-SetTimeout(180000, function()
-    LS.Dui:Remove(clubScreen)
-end)
-```
-
-## Megjegyzés
-
-A DUI modul az `ls_marker` resource-t használja, amely külön telepítendő!
+All creation and lifecycle calls proxy to `exports["ls_marker"]`.

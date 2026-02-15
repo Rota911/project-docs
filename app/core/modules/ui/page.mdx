@@ -1,141 +1,113 @@
-# UI modul
+# UI
 
-Az UI modul a `ls_ui` resource funkcióit teszi elérhetővé a core-on keresztül.
+Client and server-side UI wrapper for `ls_ui`. Access via `LS.UI`.
 
-> **Típusok:** Lásd [Notification](/core/types#notification), [TextUI](/core/types#textui) és [ProgressbarData](/core/types#progressbardata) a részletes típusdefiníciókért.
+> Requires `ls_ui` to be started.
 
-## Funkciók
+## Client
 
 ### TextUI
 
-Szöveges UI elem megjelenítése.
-
 ```lua
-LS.UI:TextUI({
-    id = 'mytext',
-    text = 'Nyomj [E] a használathoz',
-    position = 'top-center'
-})
+---@param data TextUI | TextUI[]
+LS.UI:TextUI(data)
 ```
 
-**Paraméterek:**
-- `data` (table|table[]): TextUI adat(ok)
-  - `id` (string): Egyedi azonosító
-  - `text` (string): Megjelenítendő szöveg
-  - `position` (string): Pozíció
-
-### HideTextUI
-
-TextUI elrejtése.
-
 ```lua
-LS.UI:HideTextUI('mytext')
--- vagy több egyszerre
-LS.UI:HideTextUI({'id1', 'id2'})
+---@param id string | string[]
+LS.UI:HideTextUI(id)
 ```
 
-### PatchTextUI
-
-TextUI módosítása.
-
 ```lua
-LS.UI:PatchTextUI({
-    id = 'mytext',
-    text = 'Új szöveg'
-})
+---@param data TextUI
+LS.UI:PatchTextUI(data)
 ```
-
-### HideAllTextUIs
-
-Összes TextUI elrejtése.
 
 ```lua
 LS.UI:HideAllTextUIs()
 ```
 
-### Notification
-
-Értesítés megjelenítése.
+#### TextUI Type
 
 ```lua
-LS.UI:Notification({
-    title = 'Siker',
-    description = 'Művelet sikeres',
-    type = 'success',
-    duration = 5000
-})
+---@class TextUI
+---@field id string
+---@field keyText string?
+---@field text string
+---@field color string?
+---@field keyStyle "square" | "hexagon" | "circle"?
+---@field position "left-center" | "right-center" | "bottom-center"?
 ```
 
-**Paraméterek:**
-- `data` (table): Notification adat
-  - `title` (string): Cím
-  - `description` (string): Leírás
-  - `type` (string): Típus ('success', 'error', 'info', 'warning')
-  - `duration` (number): Időtartam milliszekundumban
+### Notification
+
+```lua
+---@param data Notification
+LS.UI:Notification(data)
+```
+
+#### Notification Type
+
+```lua
+---@class Notification
+---@field title string?
+---@field message string?
+---@field color string?
+---@field icon string?
+---@field type "info"|"error"|"warning"|"success"?
+---@field duration number?
+---@field badges table?
+---@field progressType "hexagon"|"circle"?
+---@field hideProgress boolean?
+---@field position "top-right"|"top-left"|"top-center"|"bottom-right"|"bottom-left"?
+```
 
 ### InputDialog
 
-Input dialog megjelenítése.
+Returns `nil` if the user cancels.
 
 ```lua
-local result = LS.UI:InputDialog({
-    title = 'Adatok megadása',
-    inputs = {
-        {type = 'text', label = 'Név', placeholder = 'Add meg a neved'},
-        {type = 'number', label = 'Mennyiség', placeholder = '0', min = 1, max = 100}
-    }
-})
-
-if result then
-    print('Név:', result[1])
-    print('Mennyiség:', result[2])
-end
+---@param data table
+---@return table|nil
+LS.UI:InputDialog(data)
 ```
-
-### CloseInputDialog
-
-Input dialog bezárása.
 
 ```lua
 LS.UI:CloseInputDialog()
 ```
 
-## Példák
-
-### Interakciós pont
+### Screen Fade
 
 ```lua
-CreateThread(function()
-    local zone = lib.zones.sphere({
-        coords = vector3(0.0, 0.0, 0.0),
-        radius = 2.0,
-        onEnter = function()
-            LS.UI:TextUI({
-                id = 'shop',
-                text = 'Nyomj [E] a bolt megnyitásához',
-                position = 'top-center'
-            })
-        end,
-        onExit = function()
-            LS.UI:HideTextUI('shop')
-        end
-    })
-end)
+---@param duration number
+---@param headerMessage? string
+LS.UI:ScreenFadeOut(duration, headerMessage)
 ```
-
-### Sikeres művelet értesítés
 
 ```lua
-RegisterNetEvent('item:purchased', function(itemName)
-    LS.UI:Notification({
-        title = 'Vásárlás',
-        description = 'Sikeresen megvásároltad: ' .. itemName,
-        type = 'success',
-        duration = 3000
-    })
-end)
+---@param duration number
+LS.UI:ScreenFadeIn(duration)
 ```
 
-## Megjegyzés
+## Server
 
-Az UI modul az `ls_ui` resource-t használja, amely külön telepítendő!
+### Notification
+
+```lua
+---@param playerSrc number
+---@param data Notification
+LS.UI:Notification(playerSrc, data)
+```
+
+### Interaction Notification
+
+```lua
+---@param playerSrc number
+---@param data table
+LS.UI:InteractionNotification(playerSrc, data)
+```
+
+```lua
+---@param playerSrc number
+LS.UI:CloseInteractionNotification(playerSrc)
+```

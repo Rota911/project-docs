@@ -1,6 +1,5 @@
 export default {
-  index: 'Kezdőlap',
-  core: 'Core',
-  resources: 'Resources'
-}
-
+    index: "Home",
+    core: "LS Core",
+    resources: "Resources",
+};

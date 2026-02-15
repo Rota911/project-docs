@@ -1,0 +1,198 @@
+# Interaction
+
+Client-side interaction system for zones, entities, models, and global options. Access via `LS.Interact`.
+
+> Requires `ls_interaction` to be started.
+
+## Zone Interactions
+
+### AddPolyZone
+
+```lua
+---@param data ZoneOption
+---@return number zoneId
+LS.Interact:AddPolyZone(data)
+```
+
+### AddBoxZone
+
+```lua
+---@param data ZoneOption
+---@return number zoneId
+LS.Interact:AddBoxZone(data)
+```
+
+### AddSphereZone
+
+```lua
+---@param data ZoneOption
+---@return number zoneId
+LS.Interact:AddSphereZone(data)
+```
+
+### ZoneExists
+
+```lua
+---@param zoneId number|string
+---@return boolean
+LS.Interact:ZoneExists(zoneId)
+```
+
+### RemoveZone
+
+```lua
+---@param zoneId number|string
+---@param suppressWarning? boolean
+LS.Interact:RemoveZone(zoneId, suppressWarning)
+```
+
+## Global Options
+
+Add interaction options that appear on all entities of a given type.
+
+### Ped
+
+```lua
+---@param options InteractionOption|InteractionOption[]
+---@param optionType? 'target'|'interaction'
+LS.Interact:AddGlobalPed(options, optionType)
+```
+
+```lua
+---@param names string|string[]
+LS.Interact:RemoveGlobalPed(names)
+```
+
+### Vehicle
+
+```lua
+---@param options InteractionOption|InteractionOption[]
+---@param optionType? 'target'|'interaction'
+LS.Interact:AddGlobalVehicle(options, optionType)
+```
+
+```lua
+---@param names string|string[]
+LS.Interact:RemoveGlobalVehicle(names)
+```
+
+### Object
+
+```lua
+---@param options InteractionOption|InteractionOption[]
+---@param optionType? 'target'|'interaction'
+LS.Interact:AddGlobalObject(options, optionType)
+```
+
+```lua
+---@param names string|string[]
+LS.Interact:RemoveGlobalObject(names)
+```
+
+### Player
+
+```lua
+---@param options InteractionOption|InteractionOption[]
+---@param optionType? 'target'|'interaction'
+LS.Interact:AddGlobalPlayer(options, optionType)
+```
+
+```lua
+---@param names string|string[]
+LS.Interact:RemoveGlobalPlayer(names)
+```
+
+### Global (All Entities)
+
+```lua
+---@param options InteractionOption|InteractionOption[]
+---@param optionType? 'target'|'interaction'
+LS.Interact:AddGlobalOption(options, optionType)
+```
+
+```lua
+---@param names string|string[]
+LS.Interact:RemoveGlobalOption(names)
+```
+
+## Model Options
+
+```lua
+---@param models string|number|(string|number)[]
+---@param options InteractionOption|InteractionOption[]
+---@param optionType? 'target'|'interaction'
+LS.Interact:AddModel(models, options, optionType)
+```
+
+```lua
+---@param models string|number|(string|number)[]
+---@param names? string|string[] -- nil removes all options
+LS.Interact:RemoveModel(models, names)
+```
+
+## Entity Options
+
+### Networked Entities
+
+```lua
+---@param netIds number|number[]
+---@param options InteractionOption|InteractionOption[]
+---@param optionType? 'target'|'interaction'
+LS.Interact:AddEntity(netIds, options, optionType)
+```
+
+```lua
+---@param netIds number|number[]
+---@param names? string|string[]
+LS.Interact:RemoveEntity(netIds, names)
+```
+
+### Local Entities
+
+```lua
+---@param entityIds number|number[]
+---@param options InteractionOption|InteractionOption[]
+---@param optionType? 'target'|'interaction'
+LS.Interact:AddLocalEntity(entityIds, options, optionType)
+```
+
+```lua
+---@param entityIds number|number[]
+---@param names? string|string[]
+LS.Interact:RemoveLocalEntity(entityIds, names)
+```
+
+## Query
+
+### GetTargetOptions
+
+```lua
+---@param entity? number
+---@param entityType? number -- 1=ped, 2=vehicle, 3=object
+---@param model? number
+---@return TargetOptionsResult
+LS.Interact:GetTargetOptions(entity, entityType, model)
+```
+
+### GetActiveInteraction
+
+```lua
+---@return number|nil entity
+LS.Interact:GetActiveInteraction()
+```
+
+## DUI Management
+
+```lua
+---@param entity number
+LS.Interact:DestroyInteractionDui(entity)
+```
+
+```lua
+LS.Interact:DestroyAllInteractionDuis()
+```
+
+```lua
+---@return number
+LS.Interact:GetActiveDuiCount()
+```

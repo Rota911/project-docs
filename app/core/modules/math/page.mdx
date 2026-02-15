@@ -1,0 +1,139 @@
+# Math
+
+Shared extensions to Lua's `math` library. Loaded automatically — all functions are available on the global `math` and via `LS.Math`.
+
+## math.toscalars
+
+Parses a string into a set of scalar values.
+
+```lua
+---@param input string
+---@param min? number
+---@param max? number
+---@param round? boolean
+---@return number? ...
+math.toscalars(input, min, max, round)
+```
+
+## math.tovector
+
+Converts a string or table to a vector type.
+
+```lua
+---@param input string|table
+---@param min? number
+---@param max? number
+---@param round? boolean|number -- if number, only round the first N values
+---@return number|vector2|vector3|vector4
+math.tovector(input, min, max, round)
+```
+
+Tables with `x/y/z/w` keys or array indices are both supported.
+
+## math.normaltorotation
+
+Converts a surface normal vector3 into a rotation vector3 (pitch, yaw, 0).
+
+```lua
+---@param input vector3
+---@return vector3
+math.normaltorotation(input)
+```
+
+## math.torgba
+
+Parses input into a `vector4` with RGB values clamped to 0–255 and alpha to 0–1.
+
+```lua
+---@param input string|table
+---@return vector4
+math.torgba(input)
+```
+
+## math.hextorgb
+
+```lua
+---@param input string -- e.g. "#FF00AA"
+---@return integer r, integer g, integer b
+math.hextorgb(input)
+```
+
+## math.tohex
+
+```lua
+---@param n number|string
+---@param upper? boolean
+---@return string -- e.g. "0xff"
+math.tohex(n, upper)
+```
+
+## math.groupdigits
+
+Formats a number with grouped digits.
+
+```lua
+---@param number number
+---@param seperator? string -- default ","
+---@return string
+math.groupdigits(number, seperator)
+```
+
+```lua
+math.groupdigits(1234567) -- "1,234,567"
+```
+
+## math.clamp
+
+```lua
+---@param val number
+---@param lower number
+---@param upper number
+---@return number
+math.clamp(val, lower, upper)
+```
+
+Boundaries are swapped automatically if `lower > upper`.
+
+## math.round
+
+```lua
+---@param value number|string
+---@param places? number|string -- decimal places, default 0
+---@return number
+math.round(value, places)
+```
+
+## math.interp
+
+Single-step interpolation between two values.
+
+```lua
+---@generic T : number|vector2|vector3|vector4
+---@param start T
+---@param finish T
+---@param factor integer -- 0 to 1
+---@return T
+math.interp(start, finish, factor)
+```
+
+## math.lerp
+
+Creates a per-frame iterator that linearly interpolates between two values over a duration.
+
+```lua
+---@generic T : number|table|vector2|vector3|vector4
+---@param start T
+---@param finish T
+---@param duration number -- ms
+---@return fun(): T, number -- value, step (0–1)
+math.lerp(start, finish, duration)
+```
+
+```lua
+for value, step in math.lerp(vec3(0, 0, 0), vec3(100, 100, 100), 2000) do
+    SetEntityCoords(entity, value.x, value.y, value.z)
+end
+-- loop ends when step reaches 1, final value is always exactly `finish`
+```
+
+When `T` is `table`, each key is interpolated individually (tables must share the same keys).

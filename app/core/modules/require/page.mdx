@@ -1,0 +1,88 @@
+# Require
+
+Shared module loading system that replaces the native `require`. Access via `LS.require` or the global `require`.
+
+## require()
+
+```lua
+---@param modName string
+---@return unknown
+require(modName)
+```
+
+Loads the given module and caches the result. Subsequent calls return the cached value.
+
+- Searches `package.path` patterns: `./?.lua`, `./?/init.lua`
+- Supports cross-resource loading with `@resourceName/path`
+- Detects circular dependencies and errors
+- Native modules (e.g. `glm`) are resolved first
+
+```lua
+local utils = require 'shared.utils'
+local remote = require '@other_resource/modules/helper'
+```
+
+## LS.require:Load()
+
+Loads and executes a Lua file without caching. Each call re-executes the chunk.
+
+```lua
+---@param filePath string
+---@param env? table
+---@return unknown
+LS.require:Load(filePath, env)
+```
+
+## LS.require:LoadJson()
+
+Loads and decodes a JSON file relative to the calling resource.
+
+```lua
+---@param filePath string
+---@return table
+LS.require:LoadJson(filePath)
+```
+
+```lua
+local config = LS.require:LoadJson('data/config')
+-- loads @current_resource/data/config.json
+```
+
+## package
+
+The module system exposes a `package` table compatible with Lua conventions:
+
+```lua
+---@class package
+---@field path string -- './?.lua;./?/init.lua'
+---@field preload table<string, function>
+---@field loaded table<string, any> -- read-only view of loaded modules
+---@field searchers PackageSearcher[]
+```
+
+### package.searchpath()
+
+```lua
+---@param name string
+---@param path string
+---@return string? filename
+---@return string? errmsg
+package.searchpath(name, path)
+```
+
+### package.searchers
+
+Ordered list of search strategies:
+
+1. Native Lua `require` (for built-in modules like `glm`)
+2. `package.preload` table
+3. File system search via `LoadResourceFile`
+
+## Resolution
+
+When `require('foo.bar')` is called:
+
+1. Dots are converted to `/` → `foo/bar`
+2. The calling resource is detected from the call stack
+3. Patterns from `package.path` are tried: `foo/bar.lua`, `foo/bar/init.lua`
+4. The file is loaded via `LoadResourceFile` from the resolved resource

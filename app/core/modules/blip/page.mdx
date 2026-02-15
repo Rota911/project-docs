@@ -1,464 +1,107 @@
-# Blip modul
+# Blips
 
-A Blip modul lehetővé teszi térképi blipek létrehozását, kezelését és testreszabását.
+Client-side map blip manager with category toggling. Access via `LS.Blips`.
 
-## Funkciók
-
-### Create
-
-Új blip létrehozása a térképen.
+## Create
 
 ```lua
-local blip = LS.Blips:Create({
-    position = vector3(x, y, z),
-    settings = {
-        sprite = 1,
-        color = 1,
-        text = 'Blip név',
-        scale = 1.0,
-        short = true,
-        category = 'shops',
-        heading = false,
-        tick = false
-    }
-})
+---@param data { position: vector3, settings?: BlipSettings }
+---@return Blip|nil
+LS.Blips:Create(data)
 ```
 
-**Paraméterek:**
-- `data` (table): Blip adatok
-  - `position` (vector3): A blip pozíciója
-  - `settings` (table, opcionális): Blip beállítások
-    - `sprite` (number): Blip sprite ID
-    - `color` (number): Blip szín ID
-    - `text` (string): Blip neve
-    - `scale` (number): Blip mérete (alapértelmezett: 1.0)
-    - `short` (boolean): Csak közeli távolságban látható
-    - `category` (string): Kategória neve
-    - `heading` (boolean): Irány jelző megjelenítése
-    - `tick` (boolean): Pipa ikon megjelenítése
-
-**Visszatérési érték:**
-- `Blip`: A blip objektum
-
-**Példák:**
+## Remove
 
 ```lua
--- Egyszerű blip
-local myBlip = LS.Blips:Create({
-    position = vector3(0.0, 0.0, 0.0),
-    settings = {
-        sprite = 1,
-        color = 2,
-        text = 'Fontos hely'
-    }
-})
-
--- Bolt blip kategóriával
-local shopBlip = LS.Blips:Create({
-    position = vector3(25.7, -1347.3, 29.49),
-    settings = {
-        sprite = 52,
-        color = 2,
-        text = '24/7 Bolt',
-        scale = 0.8,
-        short = true,
-        category = 'shops'
-    }
-})
-
--- Garázs blip iránymutató jellel
-local garageBlip = LS.Blips:Create({
-    position = vector3(215.0, -810.0, 30.7),
-    settings = {
-        sprite = 50,
-        color = 3,
-        text = 'Garázs',
-        heading = true
-    }
-})
+---@param blipId number
+---@return boolean
+LS.Blips:Remove(blipId)
 ```
 
-### Remove
-
-Blip törlése azonosító alapján.
+## Get
 
 ```lua
-local success = LS.Blips:Remove(blipId)
+---@param blipId number
+---@return Blip|nil
+LS.Blips:Get(blipId)
 ```
 
-**Paraméterek:**
-- `blipId` (number): A blip egyedi azonosítója
-
-**Visszatérési érték:**
-- `boolean`: Sikeres volt-e a törlés
-
-**Példa:**
+## ToggleCategory
 
 ```lua
-local blip = LS.Blips:Create({
-    position = vector3(0.0, 0.0, 0.0),
-    settings = { sprite = 1, text = 'Teszt' }
-})
-
--- Később törlés
-LS.Blips:Remove(blip.id)
-```
-
-### Get
-
-Blip lekérése azonosító alapján.
-
-```lua
-local blip = LS.Blips:Get(blipId)
-```
-
-**Paraméterek:**
-- `blipId` (number): A blip egyedi azonosítója
-
-**Visszatérési érték:**
-- `Blip|nil`: A blip objektum vagy nil ha nem található
-
-**Példa:**
-
-```lua
-local blip = LS.Blips:Get(123456)
-if blip then
-    print('Blip megtalálva:', blip.settings.text)
-end
-```
-
-### ToggleCategory
-
-Teljes kategória elrejtése vagy megjelenítése.
-
-```lua
+---@param category string
+---@param hide boolean
 LS.Blips:ToggleCategory(category, hide)
 ```
 
-**Paraméterek:**
-- `category` (string): A kategória neve
-- `hide` (boolean): true = elrejt, false = megjelenít
+Hides or shows all blips with the given category. New blips created in a hidden category are auto-hidden.
 
-**Példa:**
+## GetCategories
 
 ```lua
--- Összes 'shops' kategóriájú blip elrejtése
-LS.Blips:ToggleCategory('shops', true)
-
--- Összes 'jobs' kategóriájú blip megjelenítése
-LS.Blips:ToggleCategory('jobs', false)
+---@return table<string, boolean>
+LS.Blips:GetCategories()
 ```
 
-### GetCategories
+Returns a set of all category names currently in use.
 
-Az összes létező kategória lekérése.
+## Blip Instance
 
-```lua
-local categories = LS.Blips:GetCategories()
-```
+Returned by `Create`. Each blip has a unique numeric `id` and a native `handle`.
 
-**Visszatérési érték:**
-- `table`: Kategóriák listája (key = kategória név, value = true)
-
-**Példa:**
-
-```lua
-local categories = LS.Blips:GetCategories()
-for category, _ in pairs(categories) do
-    print('Kategória:', category)
-end
-```
-
-## Blip objektum metódusok
-
-Miután létrehoztál egy blipet, a következő metódusok érhetők el rajta:
-
-### Show
-
-Blip megjelenítése a térképen.
+### Show / Hide
 
 ```lua
 blip:Show()
-```
-
-**Példa:**
-
-```lua
-local blip = LS.Blips:Create({
-    position = vector3(0.0, 0.0, 0.0),
-    settings = { sprite = 1 }
-})
-
-blip:Hide()  -- Elrejtés
-Wait(5000)
-blip:Show()  -- Újra megjelenítés
-```
-
-### Hide
-
-Blip elrejtése a térképről.
-
-```lua
 blip:Hide()
 ```
 
-**Példa:**
-
-```lua
-blip:Hide()
-```
+`Show` is blocked if the blip's category is currently hidden.
 
 ### SetWayPoint
 
-Waypoint (navigációs cél) beállítása a blip pozíciójára.
-
 ```lua
-blip:SetWayPoint()
-```
-
-**Példa:**
-
-```lua
-local blip = LS.Blips:Create({
-    position = vector3(100.0, 200.0, 30.0),
-    settings = { sprite = 1, text = 'Célpont' }
-})
-
--- GPS útvonal beállítása
 blip:SetWayPoint()
 ```
 
 ### SetRoute
 
-Útvonal rajzolása a bliphez.
-
 ```lua
+---@param color? number
 blip:SetRoute(color)
-```
-
-**Paraméterek:**
-- `color` (number, opcionális): Az útvonal színe
-
-**Példa:**
-
-```lua
--- Alapértelmezett színű útvonal
-blip:SetRoute()
-
--- Piros színű útvonal
-blip:SetRoute(6)
 ```
 
 ### UpdateLocation
 
-Blip pozíciójának frissítése.
-
 ```lua
+---@param position vector2|vector3
 blip:UpdateLocation(position)
-```
-
-**Paraméterek:**
-- `position` (vector2|vector3): Az új pozíció
-
-**Példa:**
-
-```lua
-local blip = LS.Blips:Create({
-    position = vector3(0.0, 0.0, 0.0),
-    settings = { sprite = 1, text = 'Mozgó cél' }
-})
-
--- Pozíció frissítése
-CreateThread(function()
-    while true do
-        Wait(1000)
-        local newPos = GetEntityCoords(someEntity)
-        blip:UpdateLocation(newPos)
-    end
-end)
 ```
 
 ### Destroy
 
-Blip törlése.
-
 ```lua
 blip:Destroy()
 ```
 
-**Példa:**
+Removes the native blip and unregisters it from the manager.
+
+## BlipSettings
 
 ```lua
-blip:Destroy()
+---@class BlipSettings
+---@field sprite? number
+---@field color? number
+---@field short? boolean
+---@field scale? number
+---@field heading? boolean
+---@field category? string|number
+---@field tick? boolean
+---@field text? string
 ```
-
-## Blip sprite-ok
-
-Gyakran használt blip sprite-ok:
-
-| Sprite ID | Leírás |
-|-----------|--------|
-| 1 | Standard kör |
-| 40 | Rendőrség |
-| 50 | Garázs |
-| 52 | Bolt |
-| 60 | Kórház |
-| 71 | Munka |
-| 108 | Helikopter |
-| 225 | Repülőgép |
-| 280 | Fegyverbolt |
-| 357 | Munkapad |
-| 402 | Lőfegyver |
-| 475 | Ajándék |
-| 501 | Rendőr autó |
-| 523 | Mentő |
-| 566 | Cél |
-
-Teljes lista: [GTA 5 Blip Sprites](https://docs.fivem.net/docs/game-references/blips/)
-
-## Blip színek
-
-Gyakran használt blip színek:
-
-| Color ID | Szín |
-|----------|------|
-| 0 | Fehér |
-| 1 | Piros |
-| 2 | Zöld |
-| 3 | Kék |
-| 4 | Sárga (player) |
-| 5 | Sárga |
-| 18 | Lila |
-| 25 | Pink |
-| 26 | Narancssárga |
-| 27 | Barna |
-| 29 | Világoskék |
-| 40 | Szürke |
-| 60 | Fekete |
 
 ## Events
 
-### Core:Client:ToggleBlipCategory
-
-Kategória elrejtése/megjelenítése event-en keresztül.
-
-```lua
-TriggerEvent('Core:Client:ToggleBlipCategory', 'shops', true)
-```
-
-**Példa:**
-
-```lua
--- Összes bolt blip elrejtése
-TriggerEvent('Core:Client:ToggleBlipCategory', 'shops', true)
-
--- Összes munka blip megjelenítése
-TriggerEvent('Core:Client:ToggleBlipCategory', 'jobs', false)
-```
-
-## Gyakorlati példák
-
-### Dinamikus játékos követő blip
-
-```lua
-local playerBlips = {}
-
--- Játékos blip létrehozása
-RegisterNetEvent('createPlayerBlip', function(playerId, playerName)
-    local targetPed = GetPlayerPed(GetPlayerFromServerId(playerId))
-    
-    playerBlips[playerId] = LS.Blips:Create({
-        position = GetEntityCoords(targetPed),
-        settings = {
-            sprite = 1,
-            color = 4,
-            text = playerName,
-            short = false
-        }
-    })
-    
-    -- Pozíció frissítés thread
-    CreateThread(function()
-        while playerBlips[playerId] do
-            Wait(500)
-            if DoesEntityExist(targetPed) then
-                playerBlips[playerId]:UpdateLocation(GetEntityCoords(targetPed))
-            end
-        end
-    end)
-end)
-
--- Játékos blip törlése
-RegisterNetEvent('removePlayerBlip', function(playerId)
-    if playerBlips[playerId] then
-        playerBlips[playerId]:Destroy()
-        playerBlips[playerId] = nil
-    end
-end)
-```
-
-### Bolt rendszer blipekkel
-
-```lua
-local shops = {
-    {pos = vector3(25.7, -1347.3, 29.49), name = '24/7 Supermarket'},
-    {pos = vector3(-3038.93, 585.95, 7.9), name = '24/7 Supermarket'},
-    {pos = vector3(-3241.93, 1001.46, 12.83), name = '24/7 Supermarket'},
-}
-
--- Blipek létrehozása
-for i, shop in ipairs(shops) do
-    LS.Blips:Create({
-        position = shop.pos,
-        settings = {
-            sprite = 52,
-            color = 2,
-            text = shop.name,
-            scale = 0.7,
-            short = true,
-            category = 'shops'
-        }
-    })
-end
-
--- Blipek ki/be kapcsolása paranccsal
-RegisterCommand('toggleshops', function()
-    local categories = LS.Blips:GetCategories()
-    if categories['shops'] then
-        -- Toggle logic
-        LS.Blips:ToggleCategory('shops', not hiddenShops)
-        hiddenShops = not hiddenShops
-    end
-end)
-```
-
-### Misszió blip útvonallal
-
-```lua
-local missionBlip = LS.Blips:Create({
-    position = vector3(1000.0, 2000.0, 30.0),
-    settings = {
-        sprite = 566,
-        color = 5,
-        text = 'Misszió célpont',
-        scale = 1.2,
-        tick = true
-    }
-})
-
--- Útvonal beállítása pirosra
-missionBlip:SetRoute(6)
-
--- Misszió befejezése után törlés
-RegisterNetEvent('missionComplete', function()
-    missionBlip:Destroy()
-end)
-```
-
-## Jó tudni
-
-- A blipek automatikusan kapnak egyedi ID-t (111111-999999 között)
-- A kategóriák segítségével csoportosíthatod és egyszerre kezelheted a blipeket
-- Az elrejtett kategóriába tartozó blipek automatikusan elrejtve jönnek létre
-- A blip objektumok referenciát tárolnak, így bármikor módosíthatók
-- A `short` beállítás hasznos kisebb, helyi célpontokhoz
+| Event | Parameters | Description |
+|-------|-----------|-------------|
+| `Core:Client:ToggleBlipCategory` | `category: string, hide: boolean` | Toggles category visibility |

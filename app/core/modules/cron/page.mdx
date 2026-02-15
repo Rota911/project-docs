@@ -1,0 +1,82 @@
+# Cron
+
+Server-side cron scheduler for recurring tasks. Access via `LS.Cron`.
+
+## Cron:New()
+
+```lua
+---@param expression string
+---@param job fun(task: CronTask, date: osdate)
+---@param options? { debug?: boolean, maxDelay?: number }
+---@return CronTask
+LS.Cron:New(expression, job, options)
+```
+
+Creates a new cronjob. The `expression` follows standard cron syntax: `minute hour day month weekday`.
+
+| Field | Values | Special |
+|-------|--------|---------|
+| minute | 0–59 | `*`, `*/n`, `n-n`, `n,n` |
+| hour | 0–23 | `*`, `*/n`, `n-n`, `n,n` |
+| day | 1–31, `L` (last day) | `*`, `*/n`, `n-n`, `n,n` |
+| month | 1–12, `jan`–`dec` | `*`, `*/n`, `n-n`, `n,n` |
+| weekday | 0–7 (0/7=Sun), `sun`–`sat` | `*`, `n-n`, `mon-fri` |
+
+**Options:**
+
+- `debug` — logs scheduling info to console
+- `maxDelay` — max seconds a task can be overdue and still execute (default `1`, set `0` to disable)
+
+```lua
+LS.Cron:New('*/5 * * * *', function(task, date)
+    print('Runs every 5 minutes')
+end)
+
+LS.Cron:New('0 0 * * *', function(task, date)
+    print('Runs at midnight')
+end, { debug = true })
+
+LS.Cron:New('30 12 L * *', function(task, date)
+    print('Runs at 12:30 on the last day of each month')
+end)
+```
+
+## CronTask
+
+Returned by `Cron:New()`.
+
+```lua
+---@class CronTask
+---@field id number
+---@field expression string
+---@field isActive boolean
+---@field lastRun? number
+---@field debug? boolean
+---@field maxDelay? number
+```
+
+### task:Run()
+
+Starts (or restarts) the task loop.
+
+```lua
+task:Run()
+```
+
+### task:Stop()
+
+Stops the task from executing.
+
+```lua
+task:Stop()
+```
+
+### task:GetTimeAsString()
+
+```lua
+---@param timestamp? number -- defaults to next scheduled time
+---@return string -- e.g. "Monday 14:30, 05 January 2025"
+task:GetTimeAsString(timestamp)
+```
+
+Stopped tasks are automatically rescheduled at midnight (`0 0 * * *`).

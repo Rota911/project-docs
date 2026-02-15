@@ -1,9 +1,9 @@
 export default {
-  index: '',
-  player: 'Játékos class',
-  character: 'Karakter class',
-  group: 'Group class',
-  routing: 'Routing rendszer',
-  admin: 'Admin rendszer',
-  configs: 'Config fájlok'
-}
+    index: "Overview",
+    player: "Player",
+    character: "Character",
+    group: "Group",
+    routing: "Routing",
+    admin: "Admin",
+    configs: "Configuration",
+};

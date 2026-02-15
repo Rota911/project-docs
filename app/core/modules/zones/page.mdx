@@ -1,0 +1,155 @@
+# Zones
+
+Shared zone system with poly, box, and sphere shapes. Integrates with the [Grid](/core/modules/grid) for spatial queries. Access via `LS.Zones`.
+
+Client-side zones automatically track `onEnter`, `onExit`, and `inside` callbacks. Server-side zones only support `contains` checks.
+
+## Poly
+
+```lua
+---@param data PolyZone
+---@return CZone
+LS.Zones:Poly(data)
+```
+
+```lua
+---@class PolyZone : ZoneProperties
+---@field points vector3[]
+---@field thickness? number -- default 4
+```
+
+```lua
+local zone = LS.Zones:Poly({
+    points = {
+        vector3(0, 0, 0),
+        vector3(10, 0, 0),
+        vector3(10, 10, 0),
+        vector3(0, 10, 0),
+    },
+    thickness = 4,
+    onEnter = function(self)
+        print('Entered poly zone', self.id)
+    end,
+    onExit = function(self)
+        print('Exited poly zone', self.id)
+    end,
+    inside = function(self)
+        -- runs every frame while inside
+    end,
+})
+```
+
+## Box
+
+```lua
+---@param data BoxZone
+---@return CZone
+LS.Zones:Box(data)
+```
+
+```lua
+---@class BoxZone : ZoneProperties
+---@field coords vector3
+---@field size? vector3 -- default vec3(2, 2, 2), total dimensions (halved internally)
+---@field rotation? number|vector3|vector4|matrix -- default 0, rotation around Z axis
+```
+
+## Sphere
+
+```lua
+---@param data SphereZone
+---@return CZone
+LS.Zones:Sphere(data)
+```
+
+```lua
+---@class SphereZone : ZoneProperties
+---@field coords vector3
+---@field radius? number -- default 2
+```
+
+## ZoneProperties
+
+All zone types share these optional fields:
+
+```lua
+---@class ZoneProperties
+---@field debug? boolean
+---@field debugColour? vector4 -- r, g, b, a (0–255, alpha 0–255)
+---@field onEnter? fun(self: CZone) -- client only
+---@field onExit? fun(self: CZone) -- client only
+---@field inside? fun(self: CZone) -- client only, runs every frame
+---@field [string] any -- custom data preserved on the zone
+```
+
+## CZone
+
+Returned by all creation methods.
+
+```lua
+---@class CZone
+---@field id number
+---@field __type 'poly'|'sphere'|'box'
+---@field coords vector3 -- centroid
+---@field radius number -- bounding radius
+---@field distance number -- distance from player (client)
+---@field insideZone boolean -- whether player is currently inside (client)
+```
+
+### zone:contains()
+
+```lua
+---@param coords? vector3
+---@param updateDistance? boolean
+---@return boolean
+zone:contains(coords, updateDistance)
+```
+
+### zone:remove()
+
+Removes the zone from the system and the grid.
+
+```lua
+zone:remove()
+```
+
+### zone:setDebug()
+
+Client only. Enables or disables debug rendering.
+
+```lua
+---@param enable? boolean
+---@param colour? { r: number, g: number, b: number, a: number }
+zone:setDebug(enable, colour)
+```
+
+## Query Functions
+
+```lua
+---@return table<number, CZone>
+LS.Zones:GetAllZones()
+```
+
+```lua
+---@return table<number, CZone> -- zones the player is currently inside (client only)
+LS.Zones:GetCurrentZones()
+```
+
+```lua
+---@return table<number, CZone> -- zones near the player's grid cell (client only)
+LS.Zones:GetNearbyZones()
+```
+
+```lua
+---@param zoneId number
+---@return boolean
+LS.Zones:ZoneExist(zoneId)
+```
+
+## Global Table
+
+All zones are also accessible via `_ENV.Zones` (a `table<number, CZone>` keyed by zone ID).
+
+## Tick Behavior
+
+The client zone thread runs every `300ms`, checking nearby zones from the grid. When a player is inside any zone that has `inside` or `debug` set, a per-frame `SetInterval` tick starts. It stops automatically when no zones require it.

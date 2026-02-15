@@ -1,0 +1,63 @@
+# Raycast
+
+Client-side raycast utilities. Access via `LS.Raycast`.
+
+## FromCoords
+
+```lua
+---@param coords vector3
+---@param destination vector3
+---@param flags? ShapetestFlags -- default 511 (INCLUDE_ALL)
+---@param ignore? ShapetestIgnore -- default 4 (NO_COLLISION)
+---@return boolean hit
+---@return number entityHit
+---@return vector3 endCoords
+---@return vector3 surfaceNormal
+---@return number materialHash
+LS.Raycast:FromCoords(coords, destination, flags, ignore)
+```
+
+## FromCamera
+
+Casts a ray from the final rendered camera position in its forward direction.
+
+```lua
+---@param flags? ShapetestFlags -- default 511
+---@param ignore? ShapetestIgnore -- default 4
+---@param distance? number -- default 10
+---@return boolean hit
+---@return number entityHit
+---@return vector3 endCoords
+---@return vector3 surfaceNormal
+---@return number materialHash
+LS.Raycast:FromCamera(flags, ignore, distance)
+```
+
+## ShapetestFlags
+
+```lua
+---@alias ShapetestFlags integer
+---| 1   INCLUDE_MOVER
+---| 2   INCLUDE_VEHICLE
+---| 4   INCLUDE_PED
+---| 8   INCLUDE_RAGDOLL
+---| 16  INCLUDE_OBJECT
+---| 32  INCLUDE_PICKUP
+---| 64  INCLUDE_GLASS
+---| 128 INCLUDE_RIVER
+---| 256 INCLUDE_FOLIAGE
+---| 511 INCLUDE_ALL
+```
+
+## ShapetestIgnore
+
+```lua
+---@alias ShapetestIgnore
+---| 1 GLASS
+---| 2 SEE_THROUGH
+---| 3 GLASS | SEE_THROUGH
+---| 4 NO_COLLISION
+---| 7 GLASS | SEE_THROUGH | NO_COLLISION
+```
+
+Both functions internally use `GetShapeTestResultIncludingMaterial`, so `materialHash` is always returned. The calling ped (`cache.ped`) is automatically excluded from the test.

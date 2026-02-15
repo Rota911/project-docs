@@ -1,0 +1,232 @@
+# Peds
+
+Client and server-side ped creation and management with grid-based auto-spawn/despawn. Access via `LS.Peds`.
+
+> Requires `ox_target` for target options. Requires `ls_appearance` for appearance data.
+
+## Client
+
+### Create
+
+```lua
+---@param data PedCreateData
+---@return Ped|nil
+LS.Peds:Create(data)
+```
+
+```lua
+---@class PedCreateData
+---@field model string|number
+---@field position vector4
+---@field pedType? number -- default 4
+---@field appearance? table -- ls_appearance format
+---@field settings? PedSettings
+---@field anim? table|string -- AnimData table or scenario name string
+---@field target? table -- ox_target options
+```
+
+The `id` is auto-generated as `{resource}_{n}`. Peds are registered in the spatial grid and auto-spawned/despawned based on proximity (100 units).
+
+### Remove
+
+```lua
+---@param id string
+---@return boolean
+LS.Peds:Remove(id)
+```
+
+### Get
+
+```lua
+---@param id string
+---@return Ped|nil
+LS.Peds:Get(id)
+```
+
+## Ped Instance
+
+### Spawn / Despawn
+
+```lua
+---@return boolean
+ped:Spawn()
+```
+
+```lua
+---@return boolean
+ped:Despawn()
+```
+
+Normally handled automatically by the grid proximity thread. Manual calls are valid.
+
+### Settings
+
+```lua
+---@param settings? PedSettings
+ped:SetSettings(settings)
+```
+
+```lua
+---@class PedSettings
+---@field invincible? boolean
+---@field freeze? boolean
+---@field ignore? boolean -- blocks non-temporary events, disables damage
+---@field collision? boolean -- disables collision with player
+---@field dead? boolean -- kills the ped on spawn
+---@field hidden? boolean -- spawns invisible
+```
+
+### Animation
+
+```lua
+ped:PlayAnim()
+```
+
+Plays the animation defined in `ped.anim`. Supports anim table `{ dict, name, options }`, scenario table `{ scenario }`, or a scenario string.
+
+```lua
+---@param animData table|string
+ped:SetAnim(animData)
+```
+
+```lua
+ped:ResetAnim()
+```
+
+Resets to the animation set at creation time (`baseAnim`).
+
+### Visibility
+
+```lua
+ped:Show()
+ped:Hide(instant)
+```
+
+`Hide` fades out alpha over 300ms unless `instant` is `true`. Both toggle collision.
+
+### Target
+
+```lua
+---@param options table -- ox_target options
+ped:AddTarget(options)
+```
+
+```lua
+ped:RemoveTarget()
+```
+
+### Queries
+
+```lua
+---@return boolean
+ped:IsSpawned()
+```
+
+```lua
+---@return number|nil
+ped:GetEntity()
+```
+
+## Server
+
+### Create
+
+Creates a ped and syncs to all clients via `Core:Client:Ped:Create`.
+
+```lua
+---@param data table -- { model, position, ... }
+---@return string|nil pedId
+LS.Peds:Create(data)
+```
+
+### CreateHostile
+
+Creates hostile NPC(s) for a mission. See [HostilePed](#hostilepeds).
+
+```lua
+---@param missionID string
+---@param model string|table
+---@param position? vector4
+---@param weapon? number
+---@param maxHP? number
+---@param killOnSight? boolean
+---@param accuracy? number
+---@return table<HostilePed>
+LS.Peds:CreateHostile(missionID, model, position, weapon, maxHP, killOnSight, accuracy)
+```
+
+When `model` is a table, it should be an array of `{ model, position, weapon, maxHP, killOnSight, accuracy }` entries.
+
+### Remove
+
+```lua
+---@param id string
+---@param netID? number -- if provided, removes a single hostile ped from a mission
+---@return boolean
+LS.Peds:Remove(id, netID)
+```
+
+### Get
+
+```lua
+---@param id string
+---@return table|nil
+LS.Peds:Get(id)
+```
+
+### GetAll
+
+```lua
+---@return table
+LS.Peds:GetAll()
+```
+
+### Update
+
+Updates ped data and re-syncs to all clients (remove + recreate).
+
+```lua
+---@param id string
+---@param data table
+---@return boolean
+LS.Peds:Update(id, data)
+```
+
+## HostilePeds
+
+Server-side hostile NPC manager. Hostile peds store `hostileNPC` state bag data on the entity and are network-aware.
+
+```lua
+---@class HostilePed
+---@field missionID string
+---@field model string
+---@field position vector4
+---@field weapon? number
+---@field maxHP? number
+---@field killOnSight? boolean
+---@field accuracy? number
+---@field entity? number
+---@field netID? number
+```
+
+### Instance Methods
+
+```lua
+---@return boolean
+hostilePed:Spawn()
+hostilePed:Despawn()
+```
+
+```lua
+---@return number|nil
+hostilePed:GetEntity()
+hostilePed:GetNetworkID()
+```
+
+## Events
+
+| Event | Side | Description |
+|-------|------|-------------|
+| `Core:Client:Ped:Create` | Client | Server-synced ped creation |
+| `Core:Client:Ped:Remove` | Client | Server-synced ped removal |
+| `Core:Client:Ped:Sync` | Client | Full ped registry sync on character load |

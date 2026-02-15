@@ -1,5 +1,6 @@
 export default {
-  modules: 'Modulok',
-  types: 'Típusok',
-  internal: 'Belső rendszerek'
-}
+    index: "Getting Started",
+    modules: "Modules",
+    internal: "Server API",
+    types: "Type Reference",
+};

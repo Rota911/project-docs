@@ -1,0 +1,80 @@
+# Keybinds
+
+Client-side keybind registration and control action management. Access via `LS.Keybinds`.
+
+## Add
+
+Registers a new key mapping. If the `id` already exists, updates the callbacks instead of re-registering.
+
+```lua
+---@param id string
+---@param key string
+---@param pad? string -- default "keyboard"
+---@param category? string
+---@param desc? string
+---@param keydownCb? function
+---@param keyupCb? function
+LS.Keybinds:Add(id, key, pad, category, desc, keydownCb, keyupCb)
+```
+
+```lua
+LS.Keybinds:Add('open_menu', 'F5', nil, 'General', 'Open Menu', function()
+    -- key pressed
+end, function()
+    -- key released
+end)
+```
+
+Keybinds only fire when `LocalPlayer.state.isLoggedIn` is `true` and the key is not disabled.
+
+## Enable / Disable
+
+```lua
+---@param key? string|string[] -- nil = all keys
+LS.Keybinds:Enable(key)
+```
+
+```lua
+---@param key? string|string[] -- nil = all keys
+LS.Keybinds:Disable(key)
+```
+
+```lua
+---@param key string
+---@return boolean
+LS.Keybinds:IsDisabled(key)
+```
+
+## DisableControlAction
+
+Disable native GTA control actions. Disabled controls are enforced every frame automatically.
+
+```lua
+---@param Group number|table
+---@param Key? number
+---@param Disable? boolean
+LS.Keybinds:DisableControlAction(Group, Key, Disable)
+```
+
+Accepts a single control or a table of controls:
+
+```lua
+LS.Keybinds:DisableControlAction(0, 24, true)
+
+LS.Keybinds:DisableControlAction({
+    { Group = 0, Key = 24, Disable = true },
+    { Group = 0, Key = 25, Disable = true },
+})
+```
+
+## Convenience Methods
+
+```lua
+---@param disable boolean
+LS.Keybinds:DisableMouse(disable)    -- LookLeftRight, LookUpDown, VehicleMouseControlOverride
+LS.Keybinds:DisableMove(disable)     -- MoveLeftRight, MoveUpDown, Duck
+LS.Keybinds:DisableSprint(disable)   -- Sprint
+LS.Keybinds:DisableJumping(disable)  -- Jump
+LS.Keybinds:DisableDrive(disable)    -- VehMoveLeftRight, VehMoveUpDown, VehAccelerate, VehBrake, VehExit
+LS.Keybinds:DisableCombat(disable)   -- Attack, Aim, MeleeAttack1, MeleeAttack2, MeleeAttackAlternate
+```

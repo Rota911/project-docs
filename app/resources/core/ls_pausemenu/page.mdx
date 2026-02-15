@@ -1,0 +1,67 @@
+# ls_pausemenu
+
+Egyedi pause menü rendszer React alapú UI-jal, amely felváltja a GTA V alapértelmezett pause menüjét.
+
+## Áttekintés
+
+Az `ls_pausemenu` egy teljesen egyedi pause menü, amely a natív GTA V ESC menüt helyettesíti. A resource NUI-alapú felületet használ saját megjelenéssel és funkciókkal.
+
+## Függőségek
+
+- `ls_core`
+
+## Fájl struktúra
+
+```
+ls_pausemenu/
+  client/
+    main.lua               -- Kliens oldali pause menü kezelés
+  web/
+    dist/
+      index.html           -- Build-elt NUI felület
+      assets/
+        *.js               -- Build-elt JavaScript
+        *.css              -- Build-elt stílusok
+        *.jpg              -- Képek
+    public/
+      *.png                -- Publikus képek
+```
+
+## Főbb funkciók
+
+- 🎮 **Egyedi ESC menü** — GTA V natív pause menü helyettesítése
+- 🎨 **React UI** — Modern, egyedi megjelenésű felület
+- 🖼️ **Egyedi háttér** — Saját háttérképek és vizuális elemek
+- 🔗 **LS Core integráció** — Framework funkciók elérése a menüből
+
+## NUI
+
+A pause menü egy pre-built React alkalmazás, amelyet a `web/dist/` mappából tölt be:
+
+```lua
+-- fxmanifest.lua
+ui_page 'web/dist/index.html'
+
+files {
+    'web/dist/index.html',
+    'web/dist/assets/*.js',
+    'web/dist/assets/*.css',
+    'web/dist/assets/*.jpg',
+    'web/public/*.png',
+}
+```
+
+## Kliens oldal
+
+A kliens oldali logika kezeli:
+- A natív pause menü letiltását
+- Az egyedi NUI megnyitását/bezárását ESC gombra
+- A fókusz kezelést (NUI focus)
+- A játék állapot szinkronizálását a UI-jal
+
+## Jó tudni
+
+- A resource a natív GTA V pause menüt teljesen felváltja
+- A UI pre-built formában van a `web/dist/` mappában
+- Az `ls_core` init script biztosítja a framework funkciókat (cache, LS global, stb.)
+- A menü csak bejelentkezett (`isLoggedIn`) állapotban érhető el

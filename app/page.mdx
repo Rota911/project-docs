@@ -1,3 +1,32 @@
-# Project Los Santos - Dokumentáció
+# Project Los Santos
 
-Üdvözöllek a Project Los Santos dokumentációs oldalán!
+Internal documentation for the Project Los Santos FiveM framework.
+
+## Overview
+
+This documentation covers the full server architecture, including the core framework (`ls_core`), all loadable modules, server-side class systems, and standalone resources.
+
+## Structure
+
+| Section | Description |
+|---------|-------------|
+| [LS Core](/core) | Init system, module loader, cache, and global utilities |
+| [Modules](/core/modules) | Client, server, and shared modules available via `LS.ModuleName` |
+| [Server API](/core/internal) | Player, Character, Group classes and ACL |
+| [Type Reference](/core/types) | LuaDoc annotation definitions for all classes and aliases |
+| [Resources](/resources) | Documentation for standalone resources (inventory, UI, markers, etc.) |
+
+## Quick Reference
+
+Add the following to any resource to access the full LS Core API:
+
+```lua
+-- fxmanifest.lua
+fx_version 'cerulean'
+game 'gta5'
+lua54 'yes'
+
+shared_script '@ls_core/init.lua'
+```
+
+This exposes the `LS` global, the `cache` table, and the `require` function to your resource.

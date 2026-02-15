@@ -1,413 +1,319 @@
-# Camera modul
+# Camera
 
-A Camera modul lehetővé teszi scriptelt kamerák létrehozását és vezérlését különféle effektekkel.
+Client-side scripted camera system with transitions, follow, orbit, pan, dolly, and mouse control. Access via `LS.Camera`.
 
-## Funkciók
-
-### Create
-
-Új kamera létrehozása.
+## Create
 
 ```lua
-local camera = LS.Camera:Create({
-    coords = vector3(x, y, z),
-    rotation = vector3(pitch, roll, yaw),
-    fov = 50.0,
-    activate = true,
-    activateDelay = 0,
-    attach = {
-        entity = entityId,
-        offset = vector3(0, 0, 0),
-        isRelative = true,
-        point = true
-    }
-})
+---@param data? CameraConstructorData
+---@return Camera
+LS.Camera:Create(data)
 ```
 
-**Paraméterek:**
-- `data` (table): Kamera beállítások
-  - `coords` (vector3, opcionális): Kezdő pozíció
-  - `rotation` (vector3, opcionális): Kezdő forgatás
-  - `fov` (number, opcionális): Látószög (Field of View)
-  - `activate` (boolean, opcionális): Automatikus aktiválás
-  - `activateDelay` (number, opcionális): Aktiválás késleltetése (ms)
-  - `attach` (table, opcionális): Entity-hez csatolás
-    - `entity` (number): Entity ID
-    - `offset` (vector3): Eltolás
-    - `isRelative` (boolean): Relatív pozícionálás
-    - `point` (boolean): Ráirányítás az entity-re
-
-**Visszatérési érték:**
-- `Camera`: Kamera objektum
-
-**Példa:**
+```lua
+---@class CameraConstructorData
+---@field attach? CameraConstructorAttach
+---@field coords? vector3
+---@field rotation? vector3
+---@field fov? number
+---@field activate? boolean
+---@field activateDelay? number
+```
 
 ```lua
--- Egyszerű kamera
+---@class CameraConstructorAttach
+---@field entity number
+---@field offset? vector3
+---@field isRelative? boolean
+---@field point? boolean -- if true, camera points at the entity
+```
+
+```lua
 local cam = LS.Camera:Create({
-    coords = vector3(0.0, 0.0, 100.0),
-    rotation = vector3(0.0, 0.0, 0.0),
-    fov = 50.0,
-    activate = true
-})
-
--- Kamera csatolva járműhöz
-local vehicle = GetVehiclePedIsIn(cache.ped, false)
-local vehicleCam = LS.Camera:Create({
-    attach = {
-        entity = vehicle,
-        offset = vector3(0.0, -5.0, 2.0),
-        isRelative = true,
-        point = true
-    },
-    activate = true
+    coords = vector3(0.0, 0.0, 50.0),
+    rotation = vector3(-30.0, 0.0, 0.0),
+    fov = 60.0,
+    activate = true,
 })
 ```
 
-## Kamera objektum metódusok
+## Camera Instance
 
-### Activate
+All methods below are called on the camera object returned by `Create`.
 
-Kamera aktiválása.
-
-```lua
-camera:Activate(delay)
-```
-
-**Paraméterek:**
-- `delay` (number, opcionális): Késleltetés milliszekundumban
-
-**Példa:**
+### Lifecycle
 
 ```lua
-camera:Activate()  -- Azonnal
-camera:Activate(2000)  -- 2 másodperc késleltetéssel
+---@param delay? number -- ms before activating
+cam:Activate(delay)
 ```
-
-### Deactivate
-
-Kamera deaktiválása.
 
 ```lua
-camera:Deactivate()
+cam:Deactivate()
 ```
-
-### Point
-
-Kamera ráirányítása célpontra.
 
 ```lua
-camera:Point(target, offset)
+---@return boolean
+cam:IsActive()
 ```
-
-**Paraméterek:**
-- `target` (vector3|number): Célpont koordináták vagy entity ID
-- `offset` (vector3, opcionális): Eltolás (csak entity esetén)
-
-**Példa:**
 
 ```lua
--- Koordinátára
-camera:Point(vector3(100.0, 200.0, 30.0))
-
--- Entity-re
-local ped = cache.ped
-camera:Point(ped)
-
--- Entity-re eltolással
-camera:Point(ped, vector3(0.0, 0.0, 1.0))
+cam:Destroy()
 ```
 
-### Attach
+`Destroy` stops all running threads (follow, orbit, pan, dolly, shake, mouse control, transition), deactivates the camera, and renders gameplay cam.
 
-Kamera hozzácsatolása entity-hez.
+### Position & Rotation
 
 ```lua
-camera:Attach(entity, offset, isRelative, point)
+---@param coords vector3
+cam:SetCoords(coords)
 ```
-
-**Paraméterek:**
-- `entity` (number): Entity ID
-- `offset` (vector3): Eltolás
-- `isRelative` (boolean): Relatív pozícionálás
-- `point` (boolean, opcionális): Automatikus ráirányítás
-
-**Példa:**
 
 ```lua
-local vehicle = GetVehiclePedIsIn(cache.ped, false)
-camera:Attach(vehicle, vector3(0.0, -3.0, 1.5), true, true)
+---@return vector3
+cam:GetCoords()
 ```
-
-### SetCoords / GetCoords
-
-Kamera pozíció beállítása/lekérése.
 
 ```lua
-camera:SetCoords(vector3(x, y, z))
-local pos = camera:GetCoords()
+---@param rotation vector3
+cam:SetRotation(rotation)
 ```
-
-### SetRotation / GetRotation
-
-Kamera forgatás beállítása/lekérése.
 
 ```lua
-camera:SetRotation(vector3(pitch, roll, yaw), rotationOrder)
-local rot = camera:GetRotation(rotationOrder)
+---@return vector3
+cam:GetRotation()
 ```
 
-**Paraméterek:**
-- `rotation` (vector3): Forgatás (pitch, roll, yaw)
-- `rotationOrder` (number, opcionális): Forgatási sorrend (alapértelmezett: 2)
-
-### SetFov / GetFov
-
-Látószög beállítása/lekérése.
+### Field of View
 
 ```lua
-camera:SetFov(50.0)
-local fov = camera:GetFov()
+---@param fov number
+cam:SetFov(fov)
 ```
-
-### TransitionTo
-
-Sima átmenet új pozícióra és forgatásra.
 
 ```lua
-camera:TransitionTo(coords, rotation, duration, easeType)
+---@return number
+cam:GetFov()
 ```
 
-**Paraméterek:**
-- `coords` (vector3): Cél koordináták
-- `rotation` (vector3): Cél forgatás
-- `duration` (number): Átmenet időtartama (ms)
-- `easeType` (string, opcionális): Easing típus
-
-**Példa:**
+### Point & Attach
 
 ```lua
-camera:TransitionTo(
-    vector3(100.0, 200.0, 50.0),
-    vector3(0.0, 0.0, 180.0),
-    3000,
-    'InOutQuad'
-)
+---@param coords vector3
+cam:Point(coords)
 ```
+
+```lua
+---@param entity number
+---@param offset? vector3
+---@param isRelative? boolean
+cam:Attach(entity, offset, isRelative)
+```
+
+### LookAt
+
+Points the camera at a coordinate or entity. Optionally interpolates over `duration`.
+
+```lua
+---@param target vector3|number -- coords or entity
+---@param duration? number -- ms, instant if nil
+cam:LookAt(target, duration)
+```
+
+### Freeze
+
+```lua
+---@param state boolean
+cam:Freeze(state)
+```
+
+### Transition
+
+```lua
+---@param data { coords?: vector3, rotation?: vector3, fov?: number, duration: number, easing?: string }
+cam:TransitionTo(data)
+```
+
+Smoothly transitions camera properties over `duration` ms.
 
 ### InterpolateTo
 
-Interpoláció másik kamerához.
-
 ```lua
-camera:InterpolateTo(targetCamera, duration, easeType)
+---@param targetCam Camera
+---@param duration number
+---@param easeLocation? number
+---@param easeRotation? number
+cam:InterpolateTo(targetCam, duration, easeLocation, easeRotation)
 ```
+
+Uses native `SetCamActiveWithInterp` to blend between two cameras.
 
 ### Shake
 
-Kamera rázkódás effekt.
-
 ```lua
-camera:Shake(intensity, duration, shakeType)
+---@param shakeType string -- e.g. "HAND_SHAKE", "SMALL_EXPLOSION_SHAKE"
+---@param amplitude number
+---@param duration? number -- ms, indefinite if nil
+cam:Shake(shakeType, amplitude, duration)
 ```
 
-**Paraméterek:**
-- `intensity` (number): Intenzitás (0.0 - 1.0)
-- `duration` (number): Időtartam milliszekundumban
-- `shakeType` (string, opcionális): Rázkódás típusa
-
-**Példa:**
-
 ```lua
--- Enyhe rázkódás
-camera:Shake(0.3, 2000)
-
--- Erős rázkódás
-camera:Shake(1.0, 5000, 'DRUNK_SHAKE')
+cam:StopShake()
 ```
 
-### StopShake
-
-Rázkódás leállítása.
+### Depth of Field & Effects
 
 ```lua
-camera:StopShake()
+---@param nearDof number
+---@param nearFocus number
+---@param farFocus number
+---@param farDof number
+cam:SetDepthOfField(nearDof, nearFocus, farFocus, farDof)
 ```
-
-### SetDepthOfField
-
-Mélységélesség (Depth of Field) beállítása.
 
 ```lua
-camera:SetDepthOfField(nearDOF, farDOF, strength)
+---@param strength number
+cam:SetMotionBlur(strength)
 ```
-
-**Paraméterek:**
-- `nearDOF` (number): Közeli távolság
-- `farDOF` (number): Távoli távolság
-- `strength` (number): Erősség
-
-### SetMotionBlur
-
-Motion blur (mozgáselmosódás) beállítása.
 
 ```lua
-camera:SetMotionBlur(strength)
+---@param distance number
+cam:SetNearClip(distance)
 ```
-
-### SetNearClip / SetFarClip
-
-Vágási síkok beállítása.
 
 ```lua
-camera:SetNearClip(0.1)
-camera:SetFarClip(10000.0)
+---@param distance number
+cam:SetFarClip(distance)
 ```
 
-### IsActive
-
-Ellenőrzi, hogy a kamera aktív-e.
+### Follow Entity
 
 ```lua
-local active = camera:IsActive()
+---@param entity number
+---@param offset? vector3
+---@param isRelative? boolean
+---@param updateInterval? number -- ms, default 0
+cam:FollowEntity(entity, offset, isRelative, updateInterval)
 ```
-
-### Destroy
-
-Kamera törlése.
 
 ```lua
-camera:Destroy()
+cam:StopFollow()
 ```
 
-## Gyakorlati példák
-
-### Cinematic cutscene
+### Mouse Control
 
 ```lua
-local function PlayCutscene()
-    local cam = LS.Camera:Create({
-        coords = vector3(100.0, 200.0, 50.0),
-        rotation = vector3(-10.0, 0.0, 0.0),
-        fov = 60.0,
-        activate = true
-    })
-    
-    -- Széles látószög kezdéskor
-    cam:SetFov(80.0)
-    
-    -- Sima átmenet közelire
-    Wait(1000)
-    cam:TransitionTo(
-        vector3(110.0, 210.0, 48.0),
-        vector3(-5.0, 0.0, 45.0),
-        4000,
-        'InOutQuad'
-    )
-    
-    -- Zoom in
-    Wait(2000)
-    cam:SetFov(40.0)
-    
-    Wait(3000)
-    cam:Destroy()
-end
+---@param options? { sensitivity?: number, invertY?: boolean, minPitch?: number, maxPitch?: number }
+cam:EnableMouseControl(options)
 ```
-
-### Jármű bemutató kamera
 
 ```lua
-local function ShowVehicle(vehicle)
-    local vehicleCoords = GetEntityCoords(vehicle)
-    
-    local cam = LS.Camera:Create({
-        coords = vehicleCoords + vector3(5.0, 5.0, 2.0),
-        fov = 50.0,
-        activate = true
-    })
-    
-    cam:Point(vehicle)
-    
-    -- Körbejárás a jármű körül
-    CreateThread(function()
-        local angle = 0
-        while cam:IsActive() do
-            angle = angle + 0.5
-            local rad = math.rad(angle)
-            local x = vehicleCoords.x + math.cos(rad) * 8.0
-            local y = vehicleCoords.y + math.sin(rad) * 8.0
-            local z = vehicleCoords.z + 2.0
-            
-            cam:SetCoords(vector3(x, y, z))
-            cam:Point(vehicle)
-            
-            Wait(0)
-        end
-    end)
-    
-    -- 10 másodperc után leállítás
-    Wait(10000)
-    cam:Destroy()
-end
+cam:DisableMouseControl()
 ```
-
-### Robbanás effekt
 
 ```lua
-local function ExplosionEffect(coords)
-    local cam = LS.Camera:Create({
-        coords = GetEntityCoords(cache.ped),
-        rotation = GetGameplayCamRot(2),
-        fov = GetGameplayCamFov(),
-        activate = true
-    })
-    
-    -- Rázkódás
-    cam:Shake(0.8, 2000, 'LARGE_EXPLOSION_SHAKE')
-    
-    -- Motion blur
-    cam:SetMotionBlur(0.5)
-    
-    Wait(2000)
-    cam:Destroy()
-end
+---@return boolean
+cam:IsMouseControlEnabled()
 ```
 
-### Első személyű cutscene
+### Orbit
 
 ```lua
-local function FirstPersonCutscene()
-    local ped = cache.ped
-    
-    local cam = LS.Camera:Create({
-        attach = {
-            entity = ped,
-            offset = vector3(0.0, 0.0, 0.6),  -- Fej magasság
-            isRelative = true,
-            point = false
-        },
-        fov = 70.0,
-        activate = true
-    })
-    
-    -- Kamera követi a ped fejét
-    CreateThread(function()
-        while cam:IsActive() do
-            local pedRot = GetEntityRotation(ped, 2)
-            cam:SetRotation(pedRot)
-            Wait(0)
-        end
-    end)
-    
-    Wait(5000)
-    cam:Destroy()
-end
+---@param target vector3|number -- coords or entity
+---@param radius number
+---@param speed? number -- degrees per frame
+---@param height? number
+cam:Orbit(target, radius, speed, height)
 ```
 
-## Jó tudni
+```lua
+cam:StopOrbit()
+```
 
-- A kamera automatikusan kezeli az aktiválást és deaktiválást
-- A `Destroy()` metódus automatikusan deaktiválja a kamerát
-- Több kamera is létrehozható, de egyszerre csak egy lehet aktív
-- Az átmenetek során a kamera továbbra is vezérelhető
-- A rázkódás és motion blur effektek kombinálhatók
+### Pan
+
+```lua
+---@param startCoords vector3
+---@param endCoords vector3
+---@param duration number -- ms
+---@param lookAt? vector3
+cam:Pan(startCoords, endCoords, duration, lookAt)
+```
+
+```lua
+cam:StopPan()
+```
+
+### Dolly
+
+```lua
+---@param direction vector3
+---@param speed number
+---@param duration? number -- ms, indefinite if nil
+---@param lookAt? vector3
+cam:Dolly(direction, speed, duration, lookAt)
+```
+
+```lua
+cam:StopDolly()
+```
+
+### Save / Restore State
+
+```lua
+cam:SaveState()
+```
+
+```lua
+---@param duration? number -- ms, interpolate if provided
+cam:RestoreState(duration)
+```
+
+### Blend
+
+Blends between two sets of camera properties.
+
+```lua
+---@param from { coords: vector3, rotation: vector3, fov: number }
+---@param to { coords: vector3, rotation: vector3, fov: number }
+---@param duration number -- ms
+cam:Blend(from, to, duration)
+```
+
+### Timeline
+
+Creates a keyframe-based camera animation sequence.
+
+```lua
+---@return CameraTimeline
+cam:CreateTimeline()
+```
+
+```lua
+local tl = cam:CreateTimeline()
+
+tl:AddKeyframe({
+    coords = vector3(0, 0, 50),
+    rotation = vector3(-30, 0, 0),
+    fov = 60,
+    duration = 2000,
+})
+
+tl:AddKeyframe({
+    coords = vector3(100, 100, 50),
+    rotation = vector3(-10, 0, 90),
+    fov = 45,
+    duration = 3000,
+})
+
+tl:Play(function()
+    print('Timeline finished')
+end)
+```
+
+```lua
+tl:Stop()
+tl:Reset()
+tl:Clear()
+```

@@ -1,0 +1,50 @@
+# Objects
+
+Client and server-side object management wrapper for `ls_objects`. Access via `LS.Objects`.
+
+> Requires `ls_objects` to be started.
+
+## Create
+
+```lua
+---@param data ObjectDataServer
+---@return Object|nil
+LS.Objects:Create(data)
+```
+
+## Remove
+
+```lua
+---@param id string
+---@return boolean
+LS.Objects:Remove(id)
+```
+
+## Get
+
+```lua
+---@param id string
+---@return Object|nil
+LS.Objects:Get(id)
+```
+
+## Placer (Client Only)
+
+Opens an interactive object placement mode.
+
+```lua
+---@param data PlacementData
+---@return Placer|nil
+LS.Objects:Placer(data)
+```
+
+## Context
+
+| Method | Client | Server |
+|--------|--------|--------|
+| `Create` | ✓ | ✓ |
+| `Remove` | ✓ | ✓ |
+| `Get` | ✓ | ✓ |
+| `Placer` | ✓ | ✗ |
+
+All methods proxy to `exports.ls_objects`. See the `ls_objects` resource for the full `ObjectDataServer` and `PlacementData` type definitions.

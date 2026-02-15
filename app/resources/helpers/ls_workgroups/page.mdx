@@ -1,0 +1,214 @@
+# ls_workgroups
+
+Ideiglenes munkacsoport rendszer, amely lehetővé teszi játékosok számára csoportok létrehozását, meghívást és közös munkavégzést.
+
+## Áttekintés
+
+Az `ls_workgroups` egy dinamikus party/munkacsoport rendszer. A csoportok runtime-ban jönnek létre, nem perzisztensek — ha a vezető kijelentkezik vagy minden tag elhagyja, a csoport megszűnik. Ha egy tag kijelentkezik, 5 perce van visszacsatlakozni, mielőtt automatikusan eltávolítják.
+
+## Függőségek
+
+- `ls_core`
+
+## Server API
+
+### Workgroup:Create
+
+Új munkacsoport létrehozása.
+
+```lua
+---@param playerSource number A létrehozó source-a
+---@param groupLimit number Maximális tagszám
+---@return Workgroup|nil
+Workgroup:Create(playerSource, groupLimit)
+```
+
+```lua
+local workgroup = Workgroup:Create(source, 5)
+if workgroup then
+    print('Munkacsoport létrehozva:', workgroup.id)
+end
+```
+
+### Workgroup:GetGroup
+
+Munkacsoport lekérése azonosító alapján.
+
+```lua
+---@param groupId string Munkacsoport azonosító
+---@return Workgroup|nil
+Workgroup:GetGroup(groupId)
+```
+
+### Workgroup:GetByMember
+
+Munkacsoport lekérése egy tag azonosítója alapján.
+
+```lua
+---@param identifier number|string Karakter azonosító vagy source
+---@return Workgroup|nil
+Workgroup:GetByMember(identifier)
+```
+
+```lua
+local workgroup = Workgroup:GetByMember(source)
+if workgroup then
+    print('Munkacsoport:', workgroup.id)
+end
+```
+
+### Workgroup:RemoveGroup
+
+Munkacsoport törlése és minden tag eltávolítása.
+
+```lua
+---@param groupId string Munkacsoport azonosító
+Workgroup:RemoveGroup(groupId)
+```
+
+## Workgroup instance
+
+### GetMembers
+
+Tagok lekérése.
+
+```lua
+---@param key? string Visszaadott mező (pl. 'charId', 'source')
+---@return table
+workgroup:GetMembers(key)
+```
+
+### AddMember
+
+Tag hozzáadása a csoporthoz.
+
+```lua
+---@param identifier number|string Karakter azonosító
+---@return boolean success
+---@return string|nil reason
+workgroup:AddMember(identifier)
+```
+
+### RemoveMember
+
+Tag eltávolítása a csoportból.
+
+```lua
+---@param charId number Karakter ID
+---@param silent? boolean Ne küldjön értesítést
+workgroup:RemoveMember(charId, silent)
+```
+
+### GetLeader
+
+Vezető adatainak lekérése.
+
+```lua
+---@param key? string Visszaadott mező (pl. 'source', 'charId')
+---@return any
+workgroup:GetLeader(key)
+```
+
+### GetLimit
+
+Maximális tagszám lekérése.
+
+```lua
+---@return number
+workgroup:GetLimit()
+```
+
+### UpdateMemberInfo
+
+Tag adatainak frissítése (pl. reconnect után).
+
+```lua
+---@param charId number Karakter ID
+workgroup:UpdateMemberInfo(charId)
+```
+
+## Csatlakozási folyamat
+
+A csatlakozás callback-alapú, a vezető jóváhagyását igényli:
+
+1. Játékos küld egy `Workgroups:Server:RequestJoin` callback-et a `groupId`-val
+2. Szerver ellenőrzi a limitet és hogy a játékos nincs-e már csoportban
+3. Szerver küld egy `Workgroups:Client:JoinRequested` callback-et a vezetőnek
+4. Vezető elfogadja vagy elutasítja
+5. Eredmény visszaérkezik a kérelmezőhöz
+
+```lua
+-- Kliens: csatlakozási kérelem küldése
+local success, reason = LS.Callback:Await('Workgroups:Server:RequestJoin', false, groupId)
+if success then
+    print('Sikeresen csatlakoztál')
+else
+    print('Hiba:', reason)
+end
+```
+
+## Parancsok
+
+| Parancs | Jogosultság | Leírás |
+|---------|-------------|--------|
+| `/createGroup <target> [limit]` | admin | Munkacsoport létrehozása |
+
+## Események
+
+### Server
+
+| Event | Paraméterek | Leírás |
+|-------|-------------|--------|
+| `Workgroups:Server:Created` | `workgroup` | Munkacsoport létrehozva |
+| `Workgroups:Server:Removed` | `groupId` | Munkacsoport törölve |
+
+## Karakter adat
+
+A munkacsoport azonosítója a karakter `workgroup` mezőjében tárolódik:
+
+```lua
+local character = GetCharacter(source)
+local groupId = character:GetData('workgroup')
+```
+
+## Automatikus takarítás
+
+- **Kijelentkezésnél:** a karakter workgroup adata eltárolódik 5 percig
+- **Visszacsatlakozásnál:** automatikusan frissíti a tag adatait a csoportban
+- **5 perc után:** ha nem csatlakozik vissza, eltávolítják a csoportból
+- A takarítás `LS.Cron`-nal fut percenként
+
+## Példák
+
+### Munkacsoport létrehozása és tagok kezelése
+
+```lua
+-- Szerver: munkacsoport létrehozása
+local workgroup = Workgroup:Create(source, 4)
+
+-- Tag hozzáadása
+local character = GetCharacter(targetSource)
+local success, reason = workgroup:AddMember(character.charId)
+
+-- Tagok listázása
+local members = workgroup:GetMembers()
+for _, member in ipairs(members) do
+    print(member.name, member.source)
+end
+
+-- Vezető source lekérése
+local leaderSource = workgroup:GetLeader('source')
+```
+
+### Munkacsoport ellenőrzése
+
+```lua
+-- Játékos munkacsoportjának lekérése
+local workgroup = Workgroup:GetByMember(source)
+
+if workgroup then
+    local memberCount = #workgroup:GetMembers()
+    local limit = workgroup:GetLimit()
+    print(('Tagok: %d/%d'):format(memberCount, limit))
+end
+```

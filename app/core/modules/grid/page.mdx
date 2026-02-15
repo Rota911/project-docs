@@ -1,0 +1,81 @@
+# Grid
+
+Shared spatial grid system for efficient proximity queries. Access via `LS.Grid`.
+
+Based on PolyZone's grid system. The grid divides the GTA map into cells and allows fast lookup of nearby entries without iterating all entries.
+
+## AddEntry
+
+```lua
+---@param entry { coords: vector, length?: number, width?: number, radius?: number, [string]: any }
+LS.Grid:AddEntry(entry)
+```
+
+If `length`/`width` are not provided, they default to `radius * 2`. One of `radius` or `length`+`width` must be set.
+
+## RemoveEntry
+
+```lua
+---@param entry table
+---@return boolean success
+LS.Grid:RemoveEntry(entry)
+```
+
+Pass the same table reference that was added.
+
+## GetNearbyEntries
+
+```lua
+---@param point vector
+---@param filter? fun(entry: GridEntry): boolean
+---@return GridEntry[]
+LS.Grid:GetNearbyEntries(point, filter)
+```
+
+Returns all entries whose grid cells overlap with the cell at `point`. Results are cached until the player moves to a different cell or the filter changes.
+
+```lua
+local entries = LS.Grid:GetNearbyEntries(GetEntityCoords(cache.ped), function(entry)
+    return entry.type == 'shop'
+end)
+```
+
+## GetCell
+
+```lua
+---@param point vector
+---@return GridEntry[]
+LS.Grid:GetCell(point)
+```
+
+Returns all entries in the exact cell at `point`.
+
+## GetCellPosition
+
+```lua
+---@param point vector
+---@return number cellX, number cellY
+LS.Grid:GetCellPosition(point)
+```
+
+## GridEntry
+
+```lua
+---@class GridEntry
+---@field coords vector
+---@field length? number
+---@field width? number
+---@field radius? number
+---@field [string] any
+```
+
+Any additional fields on the entry table are preserved and returned in queries. The grid itself does not use them.
+
+## Internal
+
+Map bounds used for cell calculation:
+
+| Axis | Min | Max | Cells |
+|------|-----|-----|-------|
+| X | -3700 | 4500 | 34 |
+| Y | -4400 | 8000 | 50 |

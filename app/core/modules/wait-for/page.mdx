@@ -1,0 +1,34 @@
+# WaitFor
+
+Shared utility that yields the current thread until a callback returns a non-nil value. Access via `LS:WaitFor`.
+
+## LS:WaitFor()
+
+```lua
+---@generic T
+---@param cb fun(): T?
+---@param errMessage? string
+---@param timeout? number|false -- default 1000ms, pass false to wait indefinitely
+---@return T
+---@async
+LS:WaitFor(cb, errMessage, timeout)
+```
+
+Calls `cb` every frame (`Wait(0)`) until it returns a non-nil value. If `timeout` ms elapse before that happens, throws an error with `errMessage`.
+
+If `cb` returns non-nil on the first call, the function returns immediately without yielding.
+
+```lua
+local vehicle = LS:WaitFor(function()
+    local veh = GetVehiclePedIsIn(cache.ped, false)
+    if veh ~= 0 then return veh end
+end, 'Player never entered a vehicle', 5000)
+```
+
+## Parameters
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `cb` | `fun(): T?` | — | Polled every frame. Return non-nil to resolve. |
+| `errMessage` | `string?` | `"failed to resolve callback"` | Error message on timeout. |
+| `timeout` | `number\|false` | `1000` | Max wait in ms. `false` = no timeout. |

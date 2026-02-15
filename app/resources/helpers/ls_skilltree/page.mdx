@@ -1,0 +1,187 @@
+# ls_skilltree
+
+Karakter képességfa rendszer NUI-alapú felülettel, amely lehetővé teszi karakterek számára képességpontok elosztását és node-ok feloldását.
+
+## Áttekintés
+
+Az `ls_skilltree` egy RPG-stílusú képességfa rendszer, ahol a karakterek képességpontokat szerezhetnek és azokat különböző node-okba fektethetik. A rendszer szerver oldali validációval és React alapú UI-jal rendelkezik.
+
+## Függőségek
+
+- `ls_core`
+- `oxmysql`
+
+## Fájl struktúra
+
+```
+ls_skilltree/
+  client/
+    nui.lua                -- NUI callback kezelés
+    main.lua               -- Kliens oldali logika
+  server/
+    main.lua               -- Szerver oldali logika és NUI callback-ek
+    utils.lua              -- Szerver oldali segédfunkciók
+    modules/
+      *.lua                -- Szerver modulok
+  shared/
+    *.lua                  -- Közös konfigurációk és típusok
+  types/
+    *.lua                  -- LuaDoc típusdefiníciók
+  web/
+    *.html                 -- NUI felület (pre-built)
+    assets/
+      *.js                 -- Build-elt JavaScript
+      *.css                -- Build-elt stílusok
+```
+
+## Főbb funkciók
+
+- 🌳 **Képességfa rendszer** — Node-alapú fa struktúra képességpontokkal
+- 🔓 **Node feloldás** — Szerver oldali validációval védett node unlock
+- 💰 **Képességpontok** — Karakterenként nyilvántartott pont rendszer
+- 🔄 **Respec** — Képességek újraelosztása (tervezett funkció)
+- 🎨 **React UI** — Vizuális fa megjelenítés NUI-n keresztül
+
+## Server API
+
+### ST:Get
+
+Képességfa lekérése azonosító alapján.
+
+```lua
+---@param treeId string Képességfa azonosító
+---@return SkillTree|nil
+local tree = ST:Get(treeId)
+```
+
+### tree:UnlockNode
+
+Node feloldása a képességfában.
+
+```lua
+---@param nodeId string Node azonosító
+---@return boolean success
+---@return string|nil message
+local success, msg = tree:UnlockNode(nodeId)
+```
+
+### tree:GetCharacterData
+
+Karakter képességfa adatainak lekérése.
+
+```lua
+---@param charId number Karakter ID
+---@param treeId string Képességfa azonosító
+---@return table characterTreeData
+local data = tree:GetCharacterData(charId, treeId)
+-- data.points = number (elérhető képességpontok)
+```
+
+## NUI Callback-ek
+
+A szerver oldali NUI callback-ek a `regServerNuiCallback` segédfunkciót használják:
+
+### UnlockNode
+
+Node feloldása a kliensről.
+
+```lua
+-- Kliens → Szerver NUI Callback
+-- Params: { treeId = string, nodeId = string }
+-- Visszatérés: { success = boolean, msg = string, error = boolean, msgType = string }
+```
+
+### requestSkillPoints
+
+Elérhető képességpontok lekérése.
+
+```lua
+-- Kliens → Szerver NUI Callback
+-- Params: { treeId = string }
+-- Visszatérés: { points = number, msg? = string }
+```
+
+### Respec
+
+Képességek újraelosztása (jelenleg nem implementált).
+
+```lua
+-- Kliens → Szerver NUI Callback
+-- Params: { treeId = string }
+-- Visszatérés: { success = boolean }
+```
+
+## Karakter adatok
+
+A képességfa adatok karakterenként tárolódnak az adatbázisban, és tartalmazzák:
+
+- **Feloldott node-ok** — Mely képességeket oldotta fel a karakter
+- **Képességpontok** — Jelenleg elérhető pontok száma
+- **Fa állapot** — Az adott fa teljes állapota a karakter szemszögéből
+
+```lua
+local character = GetCharacter(source)
+local tree = ST:Get('combat')
+local charData = tree:GetCharacterData(character.charId, 'combat')
+
+print('Elérhető pontok:', charData.points)
+```
+
+## NUI
+
+A képességfa felület egy pre-built React alkalmazás:
+
+```lua
+-- fxmanifest.lua
+ui_page 'html/index.html'
+
+files {
+    'html/index.html',
+    'html/assets/*.js',
+    'html/assets/*.css',
+}
+```
+
+A UI vizuálisan megjeleníti a fa struktúrát, az elérhető/feloldott node-okat és a pontegyenleget.
+
+## Példák
+
+### Képességpont hozzáadása
+
+```lua
+local character = GetCharacter(source)
+local tree = ST:Get('combat')
+local charData = tree:GetCharacterData(character.charId, 'combat')
+
+-- Pont hozzáadása (pl. szintlépéskor)
+charData.points = charData.points + 1
+```
+
+### Node feloldás ellenőrzése
+
+```lua
+local tree = ST:Get('survival')
+local success, msg = tree:UnlockNode('node_fishing_2')
+
+if success then
+    LS.UI:Notification(source, {
+        type = 'success',
+        title = 'Képesség',
+        message = 'Képesség sikeresen feloldva!'
+    })
+else
+    LS.UI:Notification(source, {
+        type = 'error',
+        title = 'Képesség',
+        message = msg or 'Nem sikerült feloldani a képességet.'
+    })
+end
+```
+
+## Jó tudni
+
+- A node feloldás szerver oldalon validálódik, kliens oldali manipuláció nem lehetséges
+- A respec funkció jelenleg fejlesztés alatt áll
+- A képességpontok az adatbázisban perzisztálódnak
+- A UI fejlesztői módban `http://localhost:5173` címen érhető el (Vite dev server)
+- A `use_experimental_fxv2_oal` flag engedélyezve van

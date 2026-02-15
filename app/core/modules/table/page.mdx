@@ -1,0 +1,103 @@
+# Table
+
+Shared extensions to Lua's `table` library. Loaded automatically — all functions are available on the global `table` and via `LS.Table`.
+
+## table.contains
+
+```lua
+---@param tbl table
+---@param value any
+---@return boolean
+table.contains(tbl, value)
+```
+
+If `value` is a table, checks that every element in `value` exists in `tbl`.
+
+## table.matches
+
+```lua
+---@param t1 any
+---@param t2 any
+---@return boolean
+table.matches(t1, t2)
+```
+
+Deep equality check. Recursively compares keys and values.
+
+## table.deepclone
+
+```lua
+---@generic T
+---@param tbl T
+---@return T
+table.deepclone(tbl)
+```
+
+Recursively clones a table so no references are shared.
+
+## table.merge
+
+```lua
+---@param t1 table
+---@param t2 table
+---@param addDuplicateNumbers? boolean -- default true
+---@return table -- t1 (mutated)
+table.merge(t1, t2, addDuplicateNumbers)
+```
+
+Merges `t2` into `t1` in-place. When both values for a key are numbers and `addDuplicateNumbers` is true, they are summed. Nested tables are merged recursively.
+
+## table.shuffle
+
+```lua
+---@param tbl table
+---@return table -- same table, shuffled in-place
+table.shuffle(tbl)
+```
+
+Fisher-Yates shuffle.
+
+## table.map
+
+```lua
+---@param tbl table
+---@param fn fun(value: any, key: any): any
+---@return table
+table.map(tbl, fn)
+```
+
+Returns a new table with every value replaced by the result of `fn(value, key)`.
+
+## table.getIndex
+
+```lua
+---@param tbl table
+---@param value any
+---@return number|nil
+table.getIndex(tbl, value)
+```
+
+Linear search for `value` in an array-like table. Returns the index or `nil`.
+
+## table.freeze
+
+```lua
+---@generic T : table
+---@param tbl T
+---@return T
+table.freeze(tbl)
+```
+
+Makes a table read-only. Setting any key raises an error. Unfrozen tables nested inside are still mutable.
+
+## table.isfrozen
+
+```lua
+---@param tbl table
+---@return boolean
+table.isfrozen(tbl)
+```
+
+Returns `true` if the table was frozen via `table.freeze`.
+
+> `rawset` is also patched — it respects frozen tables and will error on write.

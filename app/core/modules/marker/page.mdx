@@ -1,0 +1,241 @@
+# Marker
+
+Client-side marker system wrapper for `ls_marker`. Access via `LS.Marker`.
+
+> Requires `ls_marker` to be started.
+
+## Create
+
+```lua
+---@param data table
+---@return table|nil
+LS.Marker:Create(data)
+```
+
+```lua
+---@param data table
+---@return table|nil
+LS.Marker:CreateGround(data)
+```
+
+```lua
+---@param data table
+---@return table|nil
+LS.Marker:CreateGroundPoly(data)
+```
+
+```lua
+---@param data table
+---@return table|nil
+LS.Marker:CreateWaypoint(data)
+```
+
+```lua
+---@param data table
+---@return table|nil
+LS.Marker:CreateMark(data)
+```
+
+## Lookup
+
+```lua
+---@param id string
+---@return table|nil
+LS.Marker:Get(id)
+```
+
+```lua
+---@return table
+LS.Marker:GetAll()
+```
+
+```lua
+---@param markerType string
+---@return table
+LS.Marker:GetByType(markerType)
+```
+
+```lua
+---@return number
+LS.Marker:GetCount()
+```
+
+```lua
+---@param id string
+---@return boolean
+LS.Marker:Exists(id)
+```
+
+```lua
+---@param id string
+---@return table|nil
+LS.Marker:GetMarkerInfo(id)
+```
+
+## Lifecycle
+
+```lua
+---@param id string
+---@return boolean
+LS.Marker:Enable(id)
+```
+
+```lua
+---@param id string
+---@return boolean
+LS.Marker:Disable(id)
+```
+
+```lua
+---@param id string
+---@return boolean
+LS.Marker:Delete(id)
+```
+
+## State & Distance
+
+```lua
+---@param id string
+---@return "default"|"active"|"error"|nil
+LS.Marker:GetMarkerState(id)
+```
+
+```lua
+---@param id string
+---@return boolean
+LS.Marker:IsMarkerActive(id)
+```
+
+```lua
+---@param id string
+---@return boolean
+LS.Marker:IsPlayerInside(id)
+```
+
+```lua
+---@param id string
+---@return number
+LS.Marker:GetDistanceToMarker(id)
+```
+
+```lua
+---@param id string
+---@return table|nil
+LS.Marker:GetMarkerBounds(id)
+```
+
+## Nearest Marker
+
+```lua
+---@param position? vector3
+---@param markerType? string
+---@param maxDistance? number
+---@return string|nil markerId
+---@return table|nil markerInst
+---@return number|nil distance
+LS.Marker:GetNearestMarker(position, markerType, maxDistance)
+```
+
+## Vehicles
+
+```lua
+---@param id string
+---@return number|nil vehicleId
+LS.Marker:GetActiveVehicle(id)
+```
+
+```lua
+---@param id string
+---@return table
+LS.Marker:GetVehiclesInside(id)
+```
+
+```lua
+---@param id string
+---@return boolean
+LS.Marker:HasVehiclesInside(id)
+```
+
+```lua
+---@param id string
+---@return table
+LS.Marker:GetParkedVehicles(id)
+```
+
+```lua
+---@param id string
+---@param vehicle? number
+---@return table|nil
+LS.Marker:GetWheelInfo(id, vehicle)
+```
+
+## Visuals
+
+```lua
+---@param id string
+---@param label string
+LS.Marker:SetLabel(id, label)
+```
+
+```lua
+---@param id string
+---@param iconName string
+LS.Marker:SetIcon(id, iconName)
+```
+
+```lua
+---@param id string
+---@param colors table
+LS.Marker:SetColors(id, colors)
+```
+
+```lua
+---@param id string
+---@param color string
+---@param duration? number
+LS.Marker:Flash(id, color, duration)
+```
+
+```lua
+---@param id string
+---@param position vector3
+---@return boolean
+LS.Marker:SetPosition(id, position)
+```
+
+```lua
+---@param id string
+---@param key string
+---@param value any
+---@return boolean
+LS.Marker:UpdateVisual(id, key, value)
+```
+
+```lua
+---@param id string
+---@param data table
+---@return boolean
+LS.Marker:UpdateVisuals(id, data)
+```
+
+## Sync
+
+Cross-resource marker synchronization.
+
+```lua
+---@param markerId string
+---@param markerType string
+---@param data table
+LS.Marker:SyncRegister(markerId, markerType, data)
+```
+
+```lua
+---@param markerId string
+LS.Marker:SyncUnregister(markerId)
+```
+
+```lua
+---@param markerId string
+---@return boolean
+LS.Marker:IsSyncedFromOther(markerId)
+```

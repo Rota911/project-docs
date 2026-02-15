@@ -1,0 +1,109 @@
+# Logger
+
+Shared logging system with colored output, per-resource config, and level muting. Access via `LS.Logger`.
+
+## Log Methods
+
+All log methods accept variadic arguments. Tables are auto-serialized. The last argument can be a settings table.
+
+```lua
+---@param ... any
+---@return Logger
+LS.Logger:Info(...)
+LS.Logger:Error(...)
+LS.Logger:Success(...)
+LS.Logger:Warn(...)
+LS.Logger:Warning(...)  -- alias for Warn
+LS.Logger:Debug(...)    -- only runs when sv_environment is "DEV"
+```
+
+## Settings Table
+
+Pass as the last argument to any log method to control prefixes and suppression.
+
+```lua
+---@class LoggerLSettings
+---@field prefixes string[]?
+---@field subPrefix string?
+---@field id string?
+
+LS.Logger:Info('Player connected', {
+    settings = {
+        prefixes = { 'MyResource', 'Connection' },
+        subPrefix = 'Init',
+        id = 'conn_log'
+    }
+})
+```
+
+Output: `[INFO] [MyResource] [Connection] [Init] Player connected`
+
+## Configuration
+
+### Per-Resource Config
+
+```lua
+---@class LoggerResourceConfig
+---@field enabled boolean
+---@field prefixes string[]?
+
+---@param resourceName string
+---@param config LoggerResourceConfig
+LS.Logger:SetResourceConfig(resourceName, config)
+```
+
+### Enable / Disable
+
+```lua
+---@param resourceName string
+---@param enabled boolean
+LS.Logger:SetEnabled(resourceName, enabled)
+```
+
+### Mute Specific Levels
+
+```lua
+---@alias logLevel "info"|"error"|"success"|"warn"|"debug"
+
+---@param resourceName string
+---@param level logLevel
+---@param muted boolean
+LS.Logger:SetLevelMuted(resourceName, level, muted)
+```
+
+### Suppress by ID
+
+```lua
+---@param id string
+---@param suppress boolean
+LS.Logger:SuppressId(id, suppress)
+```
+
+### Add Prefix
+
+```lua
+---@param resourceName string
+---@param prefix string
+LS.Logger:AddPrefix(resourceName, prefix)
+```
+
+## Serialization
+
+```lua
+---@param value any
+---@param indent? number
+---@return string
+LS.Logger:Serialize(value, indent)
+```
+
+## Server Commands
+
+Available in-game when `sv_environment` is `DEV`:
+
+| Command | Description |
+|---------|-------------|
+| `/logger:suppress <id> [state]` | Suppress/unsuppress a log ID |
+| `/logger:toggle <resource> <state>` | Enable/disable logger for a resource |
+| `/logger:mute <resource> <level> [state]` | Mute/unmute a log level |
+| `/logger:config <resource> [enabled] [web]` | Set full resource config |
+| `/logger:status [resource]` | Show logger status |
