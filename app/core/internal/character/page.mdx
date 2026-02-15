@@ -1,7 +1,3 @@
-# Character
-
-Server-side class representing an active character. Created when a player selects a character via `Player:SetActiveCharacter`. Handles coordinates, groups, routing, data persistence, and logout.
-
 ## Retrieving a Character
 
 ```lua
@@ -66,28 +62,6 @@ Persists current position, statuses, groups, and skills to the database.
 character:Save()
 ```
 
-### Unload
-
-Logs the character out. If not `instant`, triggers a client-side logout progressbar first.
-
-```lua
----@param instant? boolean  -- skip the logout progressbar
----@return boolean success
-character:Unload(instant)
-```
-
-Sequence:
-1. Calls `Core:Client:Logout` callback (unless instant)
-2. Fades screen out on client
-3. Clears state bag values (`charId`, `name`, `stateId`)
-4. Saves current coords, teleports to loading position
-5. Sets player as logged out
-6. Saves character to database
-7. Removes from `Private.Characters`
-8. Fires `Core:Client:CharacterLogout` and `Core:Server:CharacterLogout`
-
----
-
 ## Data
 
 ### SetData
@@ -136,8 +110,6 @@ Returns current coordinates from the ped entity. Falls back to stored position i
 character:GetCoords(_type)
 ```
 
-Also updates `Private.Characters[charId].position` as a side effect.
-
 ---
 
 ## Groups
@@ -154,24 +126,6 @@ Adds, changes, or removes a group on this character. Delegates to `Group:AddMemb
 ---@return string|nil reason
 character:SetGroup(group, rank, silent)
 ```
-
-### SetGroupInternal
-
-Low-level group setter. Directly modifies `Private.Characters[charId].groups` without going through the Group class. Used internally by the Group class to avoid recursion.
-
-```lua
----@param group string
----@param rank? string       -- nil or 'none' to remove
----@param silent? boolean
----@return boolean success
----@return string|nil reason
-character:SetGroupInternal(group, rank, silent)
-```
-
-Fires these events (unless silent):
-- `Core:Client:CharacterDataChanged` (key `'groups'`)
-- `Core:Client:CharacterGroupChanged` (group, rank, allGroups)
-- `Core:Server:CharacterGroupChanged` (source, charId, group, rank, allGroups)
 
 ### HasGroup
 
@@ -226,23 +180,6 @@ character:GlobalRoute()
 ```
 
 ---
-
-## Constructor
-
-The Character object is constructed internally when `Player:SetActiveCharacter` is called.
-
-```lua
--- Internal call
-local character, clientData = require 'core.server.player.modules.characterClass'(playerSrc, characterData)
-Private.Characters[character.charId] = character
-```
-
-The constructor:
-- Builds `fullName` from first/middle/last name
-- Sets state bag values: `charId`, `name`, `stateId`
-- Calls `GlobalRoute()` after a short delay
-
-The second return value (`clientData`) is a sanitized copy sent to the client via `Core:Client:CharacterLoaded`.
 
 ## State Bag
 

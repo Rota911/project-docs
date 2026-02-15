@@ -132,16 +132,6 @@ External resources can register themselves as LS modules, making them accessible
 LS:RegisterModule('MyModule', 'my_resource', 'optional/path')
 ```
 
-The module must follow the standard file structure:
-
-```
-my_resource/
-  optional/path/
-    client.lua    -- client-side module code
-    server.lua    -- server-side module code
-    shared.lua    -- shared module code
-```
-
 Once registered, any resource can access it:
 
 ```lua

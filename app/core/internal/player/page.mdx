@@ -1,7 +1,3 @@
-# Player
-
-Server-side class representing a connected player. Manages authentication state, admin permissions, duty, points, and character selection.
-
 ## Retrieving a Player
 
 ```lua
@@ -47,15 +43,6 @@ Triggers a client event on this player.
 ---@param eventName string
 ---@param ... any
 player:Event(eventName, ...)
-```
-
-### SetAsLoggedIn
-
-Sets the login state and syncs `isLoggedIn` to the player's state bag.
-
-```lua
----@param state boolean
-player:SetAsLoggedIn(state)
 ```
 
 ### SetGroup

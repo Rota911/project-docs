@@ -1,4 +1,4 @@
 export default {
-    client: "Client",
     server: "Server",
+    client: "Client",
 };

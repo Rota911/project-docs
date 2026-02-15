@@ -68,14 +68,3 @@ LS.Grid:GetCellPosition(point)
 ---@field radius? number
 ---@field [string] any
 ```
-
-Any additional fields on the entry table are preserved and returned in queries. The grid itself does not use them.
-
-## Internal
-
-Map bounds used for cell calculation:
-
-| Axis | Min | Max | Cells |
-|------|-----|-----|-------|
-| X | -3700 | 4500 | 34 |
-| Y | -4400 | 8000 | 50 |

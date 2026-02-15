@@ -37,14 +37,3 @@ Opens an interactive object placement mode.
 ---@return Placer|nil
 LS.Objects:Placer(data)
 ```
-
-## Context
-
-| Method | Client | Server |
-|--------|--------|--------|
-| `Create` | ✓ | ✓ |
-| `Remove` | ✓ | ✓ |
-| `Get` | ✓ | ✓ |
-| `Placer` | ✓ | ✗ |
-
-All methods proxy to `exports.ls_objects`. See the `ls_objects` resource for the full `ObjectDataServer` and `PlacementData` type definitions.

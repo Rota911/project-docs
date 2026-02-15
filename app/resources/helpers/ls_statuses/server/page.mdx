@@ -1,0 +1,113 @@
+# Server
+
+## StatusHandler
+
+```lua
+local StatusHandler = require 'server.handlers.statusHandler'
+```
+
+### Register
+
+```lua
+---@param name string
+---@param statusData StatusData
+---@return boolean
+StatusHandler:Register('radiation', {
+    baseValue = 0,
+    icon = 'IconRadioactiveFilled',
+    color = 'lime',
+    flash = true,
+    modify = 0.5,
+    options = {
+        hide = true,
+        inverted = true,
+        order = 8,
+        protected = true
+    }
+})
+```
+
+### Get
+
+```lua
+---@param status? string
+---@return table
+local allStatuses = StatusHandler:Get()
+local singleStatus = StatusHandler:Get('hunger')
+```
+
+### Modify:Add
+
+```lua
+---@param identifier number|string
+---@param status string
+---@param value number
+---@return boolean
+StatusHandler.Modify:Add(source, 'hunger', 25)
+```
+
+### Modify:Remove
+
+```lua
+---@param identifier number|string
+---@param status string
+---@param value number
+---@return boolean
+StatusHandler.Modify:Remove(source, 'hunger', 10)
+```
+
+### Modify:Set
+
+```lua
+---@param identifier number|string
+---@param status string
+---@param value number
+---@return boolean
+StatusHandler.Modify:Set(source, 'hunger', 100)
+```
+
+## Types
+
+### StatusData
+
+```lua
+---@class StatusData
+---@field baseValue number|boolean
+---@field icon string
+---@field color string
+---@field flash boolean
+---@field modify? number
+---@field options? StatusOptions
+```
+
+### StatusOptions
+
+```lua
+---@class StatusOptions
+---@field noReset? boolean
+---@field inverted? boolean
+---@field hide? boolean
+---@field order? number
+---@field protected? boolean
+```
+
+## Built-in Statuses
+
+| Status | Base | Decay | Color | Inverted |
+|---|---|---|---|---|
+| `thirst` | 100 | 1.66%/min | indigo | ✗ |
+| `hunger` | 100 | 1.66%/min | yellow | ✗ |
+| `stress` | 0 | 1.66%/min | red | ✓ |
+| `drunk` | 0 | 3.33%/min | pink | ✓ |
+| `oxygen-tank` | 0 | — | white | ✓ |
+
+## Temporary Statuses
+
+| Status | Base | Decay | Description |
+|---|---|---|---|
+| `oxygen` | 100 | — | Oxygen level |
+| `stamina` | 100 | — | Stamina level |
+| `heal_ticks` | 0 | 50%/min | HP regen |
+| `speed_ticks` | 0 | 50%/min | Speed boost |
+| `pursuit-modes` | 3 | — | Patrol mode (1-5) |
+| `godmode` | false | — | God mode flag |

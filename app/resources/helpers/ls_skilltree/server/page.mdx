@@ -1,0 +1,174 @@
+# Server
+
+## ST Module
+
+### ST:Create
+
+```lua
+---@param data SkillTree
+---@return SkillTreeInstance|nil
+local tree = ST:Create({
+    id = "combat",
+    name = "Combat",
+    nodes = {
+        ["node1"] = {
+            preRequsites = {},
+            children = { "node2" },
+            lock = {},
+            unlocked = false,
+            label = "Basic Combat",
+            description = "Learn basic combat skills",
+            cost = 1
+        },
+        ["node2"] = {
+            preRequsites = { "node1" },
+            children = {},
+            lock = {},
+            unlocked = false,
+            label = "Advanced Combat",
+            description = "Learn advanced combat skills",
+            cost = 2
+        }
+    },
+    xpGrowth = 1.15,
+    baseXp = 500
+})
+```
+
+### ST:Register
+
+```lua
+---@param tree SkillTreeInstance
+---@return boolean
+ST:Register(tree)
+```
+
+### ST:Get
+
+```lua
+---@param id string
+---@return SkillTreeInstance|nil
+local tree = ST:Get("combat")
+```
+
+### ST:Remove
+
+```lua
+---@param id string
+---@return boolean
+ST:Remove("combat")
+```
+
+### ST:GetCharacterSkills
+
+```lua
+---@param charId number
+---@return CharSkills|table
+local skills = ST:GetCharacterSkills(charId)
+```
+
+## Instance Functions
+
+### tree:Register
+
+```lua
+---@return boolean
+tree:Register()
+```
+
+### tree:Unregister
+
+```lua
+---@return boolean
+tree:Unregister()
+```
+
+### tree:InitCharacter
+
+```lua
+---@param charId number
+tree:InitCharacter(charId)
+```
+
+### tree:CalculateNextXp
+
+```lua
+---@param currentLevel number
+---@return number
+local requiredXp = tree:CalculateNextXp(currentLevel)
+```
+
+### tree:AddXP
+
+```lua
+---@param charId number
+---@param amount number
+---@return boolean leveledUp
+local leveledUp = tree:AddXP(charId, 200)
+```
+
+### tree:UnlockNode
+
+```lua
+---@param charId number
+---@param nodeId string
+---@return boolean success
+---@return string|nil reason
+local success, reason = tree:UnlockNode(charId, "node1")
+```
+
+| Reason | Description |
+|---|---|
+| `invalid_node` | Node does not exist in the tree |
+| `missing_prerequisite` | A prerequisite node is not unlocked |
+| `not_enough_points` | Character does not have enough skill points |
+| `locked_by_other_node` | Another unlocked node blocks this one |
+
+### tree:GetCharacterData
+
+```lua
+---@param charId number
+---@param treeId? string
+---@return CharSkills
+local data = tree:GetCharacterData(charId, "combat")
+```
+
+## Types
+
+### SkillTree
+
+```lua
+---@class SkillTree
+---@field id TreeId
+---@field name TreeId
+---@field nodes table<nodeId, SkillNode>
+---@field xpGrowth number
+---@field baseXp number
+```
+
+### SkillNode
+
+```lua
+---@class SkillNode
+---@field id string
+---@field preRequsites nodeId[]
+---@field children nodeId[]
+---@field lock nodeId[]
+---@field unlocked boolean
+---@field label string
+---@field description string
+---@field cost number
+```
+
+### CharSkills
+
+```lua
+---@alias CharSkills table<TreeId, { xp: number, level: number, points: number, requireXp: number, unlockedNodes: table<string, boolean> }>
+```
+
+## Events
+
+| Event | Parameters | Description |
+|---|---|---|
+| `SkillTree:Server:Register` | `treeId` | Fired when a skill tree is registered |
+| `SkillTree:Server:Remove` | `treeId` | Fired when a skill tree is removed |

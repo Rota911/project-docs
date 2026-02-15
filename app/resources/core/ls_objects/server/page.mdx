@@ -1,0 +1,98 @@
+# Server
+
+## Exports
+
+### Create
+
+```lua
+---@param data ObjectDataServer
+---@return ObjectServer|nil
+exports.ls_objects:Create({
+    model = 'prop_box_wood02a',
+    position = vector3(100.0, 200.0, 100.0),
+    rotation = vector3(0.0, 0.0, 45.0),
+    matrix = nil,
+    metadata = {
+        owner = 'player_1',
+        locked = true
+    },
+    serverSided = true,
+    isTemp = false,
+    route = 0
+})
+```
+
+### Remove
+
+```lua
+---@param id string
+---@return boolean
+exports.ls_objects:Remove('core_perm_123')
+```
+
+### Get
+
+```lua
+---@param id string
+---@return ObjectServer|nil
+local object = exports.ls_objects:Get('core_perm_123')
+```
+
+## Events
+
+### Objects:Server:Remove
+
+```lua
+TriggerEvent('Objects:Server:Remove', 'core_perm_123')
+```
+
+## Callbacks
+
+### Objects:Server:Create
+
+```lua
+local id = LS.Callback:Await('Objects:Server:Create', nil, {
+    model = 'prop_box_wood02a',
+    position = vector3(100.0, 200.0, 100.0),
+    rotation = vector3(0.0, 0.0, 45.0),
+    metadata = { owner = 'player_1' },
+    serverSided = false,
+    isTemp = false,
+    route = 0
+})
+```
+
+## Types
+
+### ObjectDataServer
+
+```lua
+---@class ObjectDataServer
+---@field model string
+---@field position vector3
+---@field rotation vector3
+---@field matrix table|nil
+---@field metadata table|nil
+---@field serverSided boolean|nil
+---@field isTemp boolean|nil
+---@field route number|nil
+```
+
+### ObjectServer
+
+```lua
+---@class ObjectServer
+---@field id string
+---@field model string
+---@field position vector3
+---@field rotation vector3
+---@field matrix table|nil
+---@field metadata table
+---@field serverSided boolean
+---@field isTemp boolean
+---@field route number
+---@field entity number
+---@field resource string
+---@field created string
+---@field creator { playerId: number, charId: string }
+```

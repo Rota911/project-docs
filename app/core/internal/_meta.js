@@ -1,9 +1,8 @@
 export default {
-    index: "Overview",
+    index: "API",
     player: "Player",
     character: "Character",
     group: "Group",
     routing: "Routing",
     admin: "Admin",
-    configs: "Configuration",
 };

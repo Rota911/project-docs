@@ -1,0 +1,23 @@
+# Client
+
+## Exports
+
+### Open
+
+```lua
+exports.ls_skilltree:Open()
+```
+
+### Close
+
+```lua
+exports.ls_skilltree:Close()
+```
+
+## Events
+
+| Event | Parameters | Description |
+|---|---|---|
+| `SkillTree:Client:Load` | `{ trees: SkillTree[], skills: CharSkills }` | Fired when skill trees and character skills are loaded |
+| `SkillTree:Client:Register` | `treeData: SkillTree` | Fired when a new skill tree is registered |
+| `SkillTree:Client:Remove` | `treeId: string` | Fired when a skill tree is removed |

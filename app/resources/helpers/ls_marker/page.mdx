@@ -1,12 +1,5 @@
 # ls_marker
 
-Az **ls_marker** egy DUI-alapú marker rendszer FiveM fejlesztéshez, amely lehetővé teszi 3D markerek, parkolóhelyek, waypoint-ok létrehozását és kezelését programozottan.
-
-## Áttekintés
-
-A resource egy teljes marker kezelő rendszert biztosít amely DUI-val rajzolódik ki, testreszabható markerek megjelenítéséhez a játékban.
-
-
 ### Marker típusok
 
   waypoint \
@@ -692,32 +685,3 @@ if marker then
   print("Enabled:", marker.enabled)
 end
 ```
-
-## Technikai részletek
-
-### DUI Rendering
-
-A resource React + TypeScript alapú NUI-t használ a markerek megjelenítéséhez. Minden marker típus egy külön React komponenst használ:
-
-- **waypoint.tsx** - Távolság-alapú körök
-- **MarkRoute.tsx** - Nyíl és gyémánt formák Tabler ikonokkal
-- **GroundRoute.tsx** - Téglalap alakú parkolók
-- **GroundPolyRoute.tsx** - Polygon alapú parkolók
-
-### Kerék detektálás
-
-A ground és groundpoly markerek minden kerék pozícióját ellenőrzik:
-- Minimum 4 kereket igényel
-- Minden keréknek a marker területén belül kell lennie
-- Z koordináta tolerancia figyelembe vétellel
-
-### Színátmenetek
-
-A parkoló markerek automatikusan váltják a színüket:
-- **Fehér/Szürke** - Üres
-- **Zöld** - Minden kerék bent (teljesen beparkolva)
-- **Narancssárga** - Részben bent (nem minden kerék)
-
----
-
-**Megjegyzés:** A resource folyamatos fejlesztés alatt áll. Az API változhat jövőbeli verziókban.

@@ -1,0 +1,55 @@
+# Server
+
+## Notification
+
+```lua
+---@param playerSrc number
+---@param data Notification
+LS.UI:Notification(1, {
+    title = 'Siker',
+    message = 'Az akcio sikeresen vegzodott',
+    type = 'success',
+    duration = 3000
+})
+```
+
+## InteractionNotification
+
+```lua
+---@param playerSrc number
+---@param data InteractionNotification
+---@return boolean
+LS.UI:InteractionNotification(1, {
+    title = 'Nyomj E-t',
+    description = 'Az interakciohoz',
+    icon = 'hand-paper'
+})
+```
+
+## CloseInteractionNotification
+
+```lua
+---@param playerSrc number
+LS.UI:CloseInteractionNotification(1)
+```
+
+## Types
+
+### Notification
+
+```lua
+---@class Notification
+---@field title string
+---@field message string
+---@field type 'success'|'error'|'info'|'warning'
+---@field duration number
+```
+
+### InteractionNotification
+
+```lua
+---@class InteractionNotification
+---@field title string
+---@field description string
+---@field icon string
+```

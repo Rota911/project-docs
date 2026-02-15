@@ -1,0 +1,48 @@
+# Client
+
+## Exports
+
+### Placer
+
+```lua
+---@param data PlacementData
+---@return Placer|nil
+exports.ls_objects:Placer({
+    model = 'prop_box_wood02a',
+    position = vector3(100.0, 200.0, 100.0),
+    rotation = vector3(0.0, 0.0, 45.0),
+    metadata = { custom = 'value' }
+})
+```
+
+### Create
+
+```lua
+---@param data ObjectDataClient
+---@return ObjectClient|nil
+exports.ls_objects:Create({
+    model = 'prop_box_wood02a',
+    position = vector3(100.0, 200.0, 100.0),
+    rotation = vector3(0.0, 0.0, 45.0),
+    matrix = nil,
+    metadata = { custom = 'value' },
+    serverSided = false,
+    isTemp = true,
+    route = 0
+})
+```
+
+### Remove
+
+```lua
+---@param id string
+exports.ls_objects:Remove('core_perm_123')
+```
+
+### Get
+
+```lua
+---@param id string
+---@return ObjectClient|nil
+local object = exports.ls_objects:Get('core_perm_123')
+```

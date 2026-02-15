@@ -1,0 +1,59 @@
+# Server
+
+## Callbacks
+
+### Identity:Server:CreateCharacter
+
+```lua
+---@param source number
+---@param data CharacterCreateData
+---@return boolean
+LS.Callback:Register('Identity:Server:CreateCharacter', function(source, data)
+    local player = LS:GetPlayer(source)
+    if not player then return false end
+
+    local success = player:CreateCharacter(data)
+    return success
+end)
+```
+
+### CharacterCreateData
+
+```lua
+{
+    first_name = string,
+    middle_name = string,
+    last_name = string,
+    birth_date = string,
+    gender = string,
+    nationality = string,
+    specialization = string,
+    appearance = table
+}
+```
+
+## GlobalState
+
+```lua
+GlobalState['FinishButtonEnabled'] = true
+```
+
+## Events
+
+| Event | Parameters | Description |
+|---|---|---|
+| `Core:Server:CharacterLoaded` | `source, charId` | Character selected and loaded |
+| `Core:Server:CharacterLogout` | `source, charId` | Character unloaded |
+| `Core:Server:CharacterCreated` | `source, characterData` | New character created |
+
+## Reopen Character Selector
+
+```lua
+local player = GetPlayer(source)
+if not player then return end
+
+local Database = require 'core.server.player.modules.database'
+local characters = next(player.characters) and Database:GetCharacters(player.characters) or {}
+
+TriggerClientEvent('Core:Client:OpenCharacterSelector', source, characters)
+```

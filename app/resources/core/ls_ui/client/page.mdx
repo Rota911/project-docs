@@ -1,0 +1,115 @@
+# Client
+
+## TextUI
+
+```lua
+---@param data TextUI | TextUI[]
+LS.UI:TextUI({
+    id = 'example_textui',
+    text = 'Nyomj [E]-t az interakcióhoz',
+    position = 'center-bottom',
+    icon = 'hand-paper',
+    duration = 5000
+})
+```
+
+## HideTextUI
+
+```lua
+---@param id string | string[]
+LS.UI:HideTextUI('example_textui')
+```
+
+## PatchTextUI
+
+```lua
+---@param data TextUI
+LS.UI:PatchTextUI({
+    id = 'example_textui',
+    text = 'Módosított szöveg'
+})
+```
+
+## HideAllTextUIs
+
+```lua
+LS.UI:HideAllTextUIs()
+```
+
+## Notification
+
+```lua
+---@param data Notification
+LS.UI:Notification({
+    title = 'Siker',
+    message = 'Az akcio sikeresen vegzodott',
+    type = 'success',
+    duration = 3000
+})
+```
+
+## InputDialog
+
+```lua
+---@param data InputDialog
+---@return string|nil
+local input = LS.UI:InputDialog({
+    title = 'Szoveg bevitele',
+    placeholder = 'Irj valamit...',
+    maxLength = 50
+})
+```
+
+## CloseInputDialog
+
+```lua
+LS.UI:CloseInputDialog()
+```
+
+## ScreenFadeOut
+
+```lua
+---@param duration number
+---@param headerMessage string|nil
+LS.UI:ScreenFadeOut(1000, 'Betöltés...')
+```
+
+## ScreenFadeIn
+
+```lua
+---@param duration number
+LS.UI:ScreenFadeIn(1000)
+```
+
+## Types
+
+### TextUI
+
+```lua
+---@class TextUI
+---@field id string
+---@field text string
+---@field position string
+---@field icon? string
+---@field duration? number
+```
+
+### Notification
+
+```lua
+---@class Notification
+---@field title string
+---@field message string
+---@field type 'success'|'error'|'info'|'warning'
+---@field duration number
+```
+
+### InputDialog
+
+```lua
+---@class InputDialog
+---@field title string
+---@field placeholder string
+---@field maxLength number
+---@field default? string
+```

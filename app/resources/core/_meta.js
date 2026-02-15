@@ -5,8 +5,5 @@ export default {
     ls_density: "ls_density",
     ls_inventory: "ls_inventory",
     ls_objects: "ls_objects",
-    ls_pausemenu: "ls_pausemenu",
-    ls_radio: "ls_radio",
     ls_ui: "ls_ui",
-    ls_voip: "ls_voip",
 };

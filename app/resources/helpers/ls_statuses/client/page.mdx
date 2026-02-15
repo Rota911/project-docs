@@ -1,0 +1,21 @@
+# Client
+
+## Events
+
+### Statuses:Client:StatusUpdate
+
+```lua
+AddEventHandler('Statuses:Client:StatusUpdate', function(statuses)
+    -- statuses = { hunger = 85.3, thirst = 72.1, stress = 12.5, ... }
+end)
+```
+
+### Core:Client:CharacterDataChanged
+
+```lua
+RegisterNetEvent('Core:Client:CharacterDataChanged', function(key, value)
+    if key == 'statuses' then
+        -- value = { hunger = 85.0, thirst = 72.0, ... }
+    end
+end)
+```

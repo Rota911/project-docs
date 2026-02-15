@@ -1,43 +1,3 @@
-# Server API
-
-Internal class systems that manage players, characters, groups, and permissions on the server side.
-
-## Architecture
-
-```
-core/server/
-  player/
-    loading.lua            -- Connection and join handling
-    functions/
-      getPlayer.lua        -- GetPlayer() global
-      getCharacter.lua     -- GetCharacter() global
-      getCharacters.lua    -- GetCharacters() global
-    modules/
-      playerClass.lua      -- Player class constructor and methods
-      characterClass.lua   -- Character class constructor and methods
-      database.lua         -- Player/character DB queries
-  group/
-    main.lua               -- Group loading and init
-    modules/
-      class.lua            -- Group class constructor and methods
-      database.lua         -- Group DB queries
-  acl/
-    server.lua             -- ACE/Principal helpers
-  admin/
-    main.lua               -- Admin system init
-    modules/
-      command.lua          -- LS:Command registration
-      function.lua         -- LS:RegisterFunction / LS:ExecuteFunction
-  routing/
-    main.lua               -- Routing bucket management
-  anim/
-    main.lua               -- Server-side animation prop sync
-```
-
-## Lookup Functions
-
-These are globally available on the server.
-
 ### GetPlayer
 
 ```lua
@@ -61,17 +21,6 @@ Identifier type is resolved automatically:
 ---@param identifier number|string  -- source (1-4 digits) or charId
 ---@return Character|nil
 local character = GetCharacter(identifier)
-```
-
-### Storage
-
-All live data is stored in `Private` tables:
-
-```lua
-Private.Players     ---@type table<number, Player>     -- keyed by playerId
-Private.Characters  ---@type table<number, Character>  -- keyed by charId
-Private.Groups      ---@type table<string, Group>      -- keyed by group id string
-Private.GroupTypes   ---@type table<string, table>      -- group type configs
 ```
 
 ## ACL
@@ -125,7 +74,3 @@ end)
 | `Core:Client:CharacterDataChanged` | `key, value` | Character field updated |
 | `Core:Client:CharacterGroupChanged` | `group, rank, allGroups` | Group change notification |
 | `Core:Client:ScriptRestart` | none | ls_core restarted |
-
-## Auto-Save
-
-Characters are automatically saved every 5 minutes via `LS.Cron`. A save also runs on `txAdmin:events:serverShuttingDown` and 10 seconds before a scheduled restart.

@@ -337,36 +337,3 @@ function PlayAnimation(ped, animDict, animName, options)
     return LS.Anim:Play(ped, animDict, animName, options)
 end
 ```
-
-### IDE támogatás
-
-Ha Visual Studio Code-ot használsz a LuaLS extension-nel:
-
-1. Telepítsd a **Lua Language Server** extension-t
-2. A típusok automatikusan elérhetők lesznek
-3. IntelliSense támogatás paraméterekhez és visszatérési értékekhez
-
-### Egyéni típusok létrehozása
-
-```lua
----@class MyCustomType
----@field name string
----@field value number
----@field options table?
-
----@param data MyCustomType
----@return boolean
-function ProcessData(data)
-    print(data.name, data.value)
-    return true
-end
-```
-
-## Jó tudni
-
-- A típusdefiníciók csak fejlesztési időben aktívak, futásidőben nincs hatásuk
-- Segítenek elkerülni a típushibákat
-- Javítják az IDE kódkiegészítését
-- Dokumentációként is szolgálnak
-- A `?` opcionális mezőt jelöl
-- A `|` alternatív típusokat jelöl (union types)
