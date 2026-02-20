@@ -1,4 +1,5 @@
 export default {
+    rpc: "RPC",
     callback: "Callback",
     ui: "UI",
     logger: "Logger",

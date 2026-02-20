@@ -1,0 +1,321 @@
+# RPC
+
+Bidirectional, typed communication layer between **NUI (React)**, **Lua client**, and **Lua server**. Replaces raw `SendNUIMessage` / `RegisterNUICallback` / `TriggerServerEvent` with a structured call/response system.
+
+> Package: [`@matehun/rpc`](https://www.npmjs.com/package/@matehun/rpc)
+>
+> ```
+> bun add @matehun/rpc
+> ```
+
+---
+
+## Communication Paths
+
+| # | From | To | Method |
+|---|------|----|--------|
+| 1 | NUI | Client | `rpc.call()` → `Rpc:Register()` |
+| 2 | Client | NUI | `Rpc:Send()` → `useNuiEvent()` |
+| 3 | Client | NUI (await) | `Rpc:Call()` |
+| 4 | Client | Server (await) | `Rpc:CallServer()` |
+| 5 | Client | Server (fire) | `Rpc:SendServer()` |
+| 6 | NUI | Server (via proxy) | `rpc.callServer()` → `Rpc:Register()` |
+| 7 | Server | Client NUI | `Rpc:Send(src)` → `useNuiEvent()` |
+| 8 | Server | All NUIs | `Rpc:SendAll()` → `useNuiEvent()` |
+| 9 | Server | Client (await) | `Rpc:Call(src)` → `Rpc:RegisterHandler()` |
+
+Access the module via `LS.rpc` on both client and server.
+
+---
+
+## Lua — Client
+
+### `Rpc:Register(route, handler)`
+
+Registers a **NUI-callable** handler. When NUI calls `rpc.call(route, payload)` it hits this. Also handles the `callServer` proxy under the hood.
+
+```lua
+---@param route string
+---@param handler fun(data: table): any
+Rpc:Register('getVehicleSpeed', function(data)
+    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+    if not DoesEntityExist(vehicle) then error('Not in a vehicle') end
+    return { kmh = math.floor(GetEntitySpeed(vehicle) * 3.6) }
+end)
+```
+
+### `Rpc:RegisterHandler(route, handler)`
+
+Registers a **server-callable** handler. Server uses `Rpc:Call(src, route)` to invoke this and await its return value.
+
+```lua
+---@param route string
+---@param handler fun(data: table): any
+Rpc:RegisterHandler('getClientPosition', function(data)
+    local coords = GetEntityCoords(PlayerPedId())
+    return { x = coords.x, y = coords.y, z = coords.z }
+end)
+```
+
+### `Rpc:Send(action, data)`
+
+Pushes a message to NUI. Fire-and-forget — no response. NUI listens with `useNuiEvent`.
+
+```lua
+---@param action string
+---@param data? table
+Rpc:Send('updateHud', { health = 80, armour = 50 })
+```
+
+### `Rpc:Call(action, data, timeout)`
+
+Sends a message to NUI and **awaits** a response back. NUI must post back to `__rpc:response` using the `__rpcId` it receives.
+
+```lua
+---@param action string
+---@param data? table
+---@param timeout? number
+---@return any
+local result = Rpc:Call('getCurrentFormData', { form = 'characterCreator' }, 8000)
+```
+
+### `Rpc:CallServer(route, data, timeout)`
+
+Calls a **server-side** `Rpc:Register` handler and **awaits** the response. Wraps the call in `pcall` to handle errors.
+
+```lua
+---@param route string
+---@param data? table
+---@param timeout? number
+---@return any
+local ok, result = pcall(function()
+    return Rpc:CallServer('getPlayerInfo', {})
+end)
+```
+
+### `Rpc:SendServer(route, data)`
+
+Fires to a server handler with **no response**. The server-side handler `id` will be `nil`, so no result is sent back.
+
+```lua
+---@param route string
+---@param data? table
+Rpc:SendServer('logAction', { action = 'openedShop', meta = { shop = 'ammunition' } })
+```
+
+---
+
+## Lua — Server
+
+### `Rpc:Register(route, handler)`
+
+Registers a handler that clients (via `Rpc:CallServer`) or NUI (via `rpc.callServer` proxy) can invoke. First argument is always the player `source`.
+
+```lua
+---@param route string
+---@param handler fun(source: number, data: table): any
+Rpc:Register('getPlayerInfo', function(src, data)
+    return {
+        name   = GetPlayerName(src),
+        source = src,
+        ping   = GetPlayerPing(src),
+    }
+end)
+```
+
+Errors thrown inside the handler are caught automatically and returned to the caller as `{ success = false, data = "<message>" }`.
+
+### `Rpc:Send(source, action, data)`
+
+Pushes a message to **one** client's NUI. NUI listens with `useNuiEvent`.
+
+```lua
+---@param source number
+---@param action string
+---@param data? table
+Rpc:Send(src, 'notification', { type = 'success', message = 'Welcome!' })
+```
+
+### `Rpc:SendAll(action, data)`
+
+Broadcasts a message to **every** client's NUI.
+
+```lua
+---@param action string
+---@param data? table
+Rpc:SendAll('serverAnnouncement', { message = 'Restart in 5 minutes.' })
+```
+
+### `Rpc:Call(source, route, data, timeout)`
+
+Calls a **client-side** `Rpc:RegisterHandler` handler and **awaits** the response. Validates the player exists before sending.
+
+```lua
+---@param source number
+---@param route string
+---@param data? table
+---@param timeout? number
+---@return any
+local ok, result = pcall(function()
+    return Rpc:Call(targetSrc, 'getClientPosition', {}, 5000)
+end)
+```
+
+---
+
+## TypeScript / NUI — `@matehun/rpc`
+
+### Setup — `RpcProvider`
+
+Wrap your app once. It creates the `RpcClient` backed by `FiveMTransport` automatically. Pass a `MockTransport` during local development.
+
+```tsx
+import { RpcProvider, MockTransport } from '@matehun/rpc'
+
+const mock = new MockTransport()
+mock.on('getVehicleSpeed', () => ({ kmh: 120 }))
+
+export default function App() {
+    return (
+        <RpcProvider mock={import.meta.env.DEV ? mock : undefined}>
+            <UI />
+        </RpcProvider>
+    )
+}
+```
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `resourceName` | `string` | `GetParentResourceName()` | FiveM resource name used in fetch URL |
+| `timeoutMs` | `number` | `10000` | Global timeout for all calls |
+| `mock` | `MockTransport` | — | Replaces real transport in dev |
+
+---
+
+### `useRpcQuery`
+
+Calls a Lua handler **on mount** and tracks loading/error state. Use `server: true` to route through the `callServer` proxy.
+
+```tsx
+const { data, loading, error, refetch } = useRpcQuery<{ kmh: number }>(
+    'getVehicleSpeed',
+    {},
+    { server: false }
+)
+```
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `enabled` | `boolean` | Set `false` to skip the initial call |
+| `server` | `boolean` | Routes through `Rpc:CallServer` on the client |
+| `timeout` | `number` | Override per-call timeout |
+
+---
+
+### `useRpcMutation`
+
+**Manually triggered** call. Returns `mutate`, `loading`, `error`, and `reset`.
+
+```tsx
+const { mutate, loading, error } = useRpcMutation<{ itemName: string }, { count: number }>(
+    'getItemCount',
+    { server: true }
+)
+
+const handleCheck = async () => {
+    const result = await mutate({ itemName: 'water' })
+    if (result) console.log(result.count)
+}
+```
+
+---
+
+### `useNuiEvent`
+
+Listens for messages pushed by `Rpc:Send` or `Rpc:SendAll` from Lua. The handler ref is kept stable — safe to use inside effects.
+
+```tsx
+useNuiEvent<{ health: number; armour: number }>('updateHud', (data) => {
+    setHud(data)
+})
+```
+
+---
+
+### `useRpc`
+
+Returns the raw `RpcClient` instance from context. Use when the higher-level hooks don't fit.
+
+```tsx
+const rpc = useRpc()
+
+const handleClose = async () => {
+    await rpc.send('closeUI', {})
+}
+```
+
+---
+
+### `RpcClient` — direct usage (no React)
+
+When React is not involved, instantiate directly.
+
+```ts
+import { RpcClient, FiveMTransport } from '@matehun/rpc'
+
+const transport = new FiveMTransport()
+const rpc = new RpcClient(transport, { timeoutMs: 8000 })
+
+const result = await rpc.call<{ kmh: number }>('getVehicleSpeed', {})
+
+rpc.register('closeUI', (data) => {
+    setVisible(false)
+})
+
+rpc.dispose()
+```
+
+| Method | Description |
+|--------|-------------|
+| `call(route, payload, options)` | Calls a Lua `Rpc:Register` handler, awaits response |
+| `callServer(route, payload, options)` | Routes through the client proxy to a server handler |
+| `send(route, payload)` | Fire-and-forget to Lua |
+| `register(action, handler)` | Handles incoming `Rpc:Send` / `Rpc:Call` messages |
+| `dispose()` | Removes the `message` listener and clears all handlers |
+
+---
+
+### `MockTransport`
+
+Simulates Lua responses in-browser without a running FiveM server.
+
+```ts
+import { MockTransport } from '@matehun/rpc'
+
+const mock = new MockTransport({ latency: 80 })
+
+mock.on('getPlayerInfo', (payload) => ({
+    name: 'TestPlayer',
+    source: 1,
+    ping: 12,
+}))
+
+const unregister = mock.on('getItemCount', async (payload) => {
+    return { count: 5 }
+})
+```
+
+Default simulated latency is `50ms`. Pass `{ latency: 0 }` to disable.
+
+---
+
+## Default Timeout
+
+All calls default to **10 000 ms**. Overridable at three levels:
+
+1. `RpcProvider` prop — `timeoutMs`
+2. Per hook — `options.timeout`
+3. Lua side — `timeout` parameter on `Call` / `CallServer`
+```
+
+Now let me update the `_meta.js` to register the new page:
