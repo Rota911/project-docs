@@ -1,0 +1,315 @@
+# Drop System
+
+A Drop System lehetővé teszi itemek eldobását a 3D világba. Minden drop egy saját inventory-val rendelkezik (`drop:<uuid>`), és az itemek külön-külön propként jelennek meg a világban. A dropok **nem perzisztensek** — szerver újraindításkor minden drop törlődik.
+
+---
+
+## Konfiguráció
+
+```lua
+Config.DropSystem = {
+    LoadDistance  = 50.0,    -- Prop betöltési távolság (statikus, csak induláskor olvasódik)
+    PickupDistance = 2.0,    -- Interakció távolság
+    FallbackModel  = "prop_cs_cardbox_01", -- Ha az itemnek nincs prop modellje
+    DefaultLifetime = 1800,  -- Automatikus törlés másodpercben (0 = soha)
+    DefaultGridWidth  = 6,
+    DefaultGridHeight = 4,
+    PropSpacing    = 0.35,   -- Propok közötti távolság (spirál elrendezés)
+    CleanupInterval = 60,    -- Lejárt dropok ellenőrzési intervalluma (mp)
+}
+```
+
+> A `LoadDistance` csak egyszer olvasódik be kliens oldalon. Módosítása csak szerver újraindítással lép érvénybe.
+
+---
+
+## CreateDrop
+
+Drop létrehozása a világban.
+
+```lua
+local result = exports.ls_inventory:CreateDrop(target, source, options)
+```
+
+**Paraméterek:**
+- `target` (`vector3 | number | string`) — Hol jöjjön létre a drop
+- `source` (`table | string`) — Mit tartalmazzon a drop
+- `options` (`table|nil`) — Opcionális beállítások
+
+**Visszatérési érték:** `table` — Result objektum
+
+```lua
+{
+    ok = true,
+    data = {
+        dropId      = "xxxxxxxx-xxxx-4xxx-...",
+        inventoryId = "drop:xxxxxxxx-xxxx-4xxx-...",
+        coords      = vector3(...)
+    }
+}
+```
+
+---
+
+### Target típusok
+
+| Típus | Leírás |
+|---|---|
+| `vector3` | Pontos koordináta |
+| `number` | Szerver player ID — a játékos előtt jön létre |
+| `string` (szám) | CharacterId (pl. `"10046"`) — játékos elé kerül |
+| `string` (identifier) | License azonosító (pl. `"license:abc123"`) |
+
+---
+
+### Source típusok
+
+**Item lista** — Új itemek kerülnek a dropba:
+
+```lua
+---@class DropItemEntry
+---@field itemName string
+---@field count?    number   -- alapértelmezett: 1
+---@field metadata? table
+---@field uses?     number
+```
+
+**Inventory azonosító** — Meglévő inventory tartalmából épül fel a drop:
+
+```lua
+"character:10046"
+"stash:28231"
+```
+
+Ha `options.clearSource = true`, az eredeti inventory kiürül (mozgatás). Ha `false` vagy nil, az inventory megmarad (klónozás).
+
+---
+
+### Options
+
+```lua
+---@class DropOptions
+---@field heading?     number   -- Prop iránya (alapértelmezett: játékos iránya)
+---@field lifetime?    number   -- Lejárati idő mp-ben (0 = soha)
+---@field clearSource? boolean  -- Inventory forrás ürítése (alapértelmezett: false)
+---@field gridWidth?   number
+---@field gridHeight?  number
+---@field label?       string   -- Megjelenített név az UI-ban
+```
+
+---
+
+### Példák
+
+```lua
+-- Item lista, pontos koordinátára
+exports.ls_inventory:CreateDrop(
+    vector3(200.0, -900.0, 30.0),
+    {
+        { itemName = "water",   count = 3 },
+        { itemName = "bandage", count = 5, metadata = { quality = "high" } },
+    },
+    { label = "Segélykészlet", lifetime = 600 }
+)
+
+-- Játékos lába elé (szerver source ID)
+exports.ls_inventory:CreateDrop(
+    source,
+    { { itemName = "lockpick", count = 1 } }
+)
+
+-- Karakter inventory klónozása (eredeti megmarad)
+exports.ls_inventory:CreateDrop(
+    vector3(100.0, -500.0, 25.0),
+    "character:10046",
+    { clearSource = false, label = "Bizonyíték zsák" }
+)
+
+-- Stash tartalmának mozgatása dropba (stash kiürül)
+exports.ls_inventory:CreateDrop(
+    vector3(100.0, -500.0, 25.0),
+    "stash:28231",
+    { clearSource = true }
+)
+
+-- CharacterId string-ként
+exports.ls_inventory:CreateDrop(
+    "10046",
+    { { itemName = "phone", count = 1 } }
+)
+```
+
+---
+
+## DestroyDrop
+
+Drop manuális törlése.
+
+```lua
+local ok = exports.ls_inventory:DestroyDrop(dropId)
+```
+
+**Paraméterek:**
+- `dropId` (string) — A drop UUID-ja
+
+**Visszatérési érték:** `boolean`
+
+```lua
+local result = exports.ls_inventory:CreateDrop(source, { { itemName = "water" } })
+if result.ok then
+    Wait(30000)
+    exports.ls_inventory:DestroyDrop(result.data.dropId)
+end
+```
+
+---
+
+## GetDrop
+
+Egy drop adatainak lekérése ID alapján.
+
+```lua
+local drop = exports.ls_inventory:GetDrop(dropId)
+```
+
+**Visszatérési érték:** `Drop|nil`
+
+```lua
+local drop = exports.ls_inventory:GetDrop(dropId)
+if drop then
+    print(drop.inventoryId)
+    print(drop.coords)
+    print(#drop.itemProps .. " prop a dropban")
+end
+```
+
+---
+
+## GetDropByInventoryId
+
+Drop lekérése az inventory azonosítója alapján.
+
+```lua
+local drop = exports.ls_inventory:GetDropByInventoryId(inventoryId)
+```
+
+**Paraméterek:**
+- `inventoryId` (string) — pl. `"drop:xxxxxxxx-..."`
+
+**Visszatérési érték:** `Drop|nil`
+
+```lua
+exports.ls_inventory:OnInventoryEvent('itemRemoved', function(data)
+    if data.inventoryId and data.inventoryId:sub(1, 5) == "drop:" then
+        local drop = exports.ls_inventory:GetDropByInventoryId(data.inventoryId)
+        if drop then
+            print(("Item elvéve a dropból: %s"):format(data.itemName))
+        end
+    end
+end)
+```
+
+---
+
+## GetDropsInRadius
+
+Adott körzetben lévő dropok lekérése szerver oldalon.
+
+```lua
+local drops = exports.ls_inventory:GetDropsInRadius(coords, radius)
+```
+
+**Paraméterek:**
+- `coords` (vector3) — Középpont
+- `radius` (number) — Sugár méterben
+
+**Visszatérési érték:** `Drop[]`
+
+```lua
+local drops = exports.ls_inventory:GetDropsInRadius(
+    GetEntityCoords(GetPlayerPed(source)), 10.0
+)
+
+for _, drop in ipairs(drops) do
+    print(drop.dropId, drop.label)
+end
+```
+
+---
+
+## GetAllDrops
+
+Az összes aktív drop lekérése.
+
+```lua
+local drops = exports.ls_inventory:GetAllDrops()
+```
+
+**Visszatérési érték:** `Drop[]`
+
+---
+
+## Drop struktúra
+
+```lua
+---@class Drop
+---@field dropId      string
+---@field inventoryId string       -- "drop:<uuid>"
+---@field coords      vector3
+---@field heading     number
+---@field createdAt   number       -- os.time()
+---@field lifetime    number       -- mp, 0 = soha nem jár le
+---@field label       string
+---@field gridWidth   number
+---@field gridHeight  number
+---@field itemProps   DropItemProp[]
+```
+
+```lua
+---@class DropItemProp
+---@field itemId   number
+---@field itemName string
+---@field model    string|number   -- itemDef.prop.model vagy FallbackModel
+---@field offset   vector3         -- Eltolás a drop középpontjától
+---@field heading  number
+```
+
+---
+
+## Automatikus viselkedés
+
+### Üres drop törlése
+
+Ha az összes item ki lett véve egy dropból (inventory drag-gel vagy `pickupEntireDrop` event-tel), a drop automatikusan megsemmisül és az összes kliens kap értesítést.
+
+### Lifetime lejárat
+
+A `CleanupInterval` másodpercenként fut és törli a lejárt dropokat. Az alapértelmezett `DefaultLifetime = 1800` (30 perc). `lifetime = 0` esetén a drop csak manuálisan vagy szerver újraindításkor törlődik.
+
+### Szerver újraindítás
+
+A dropok nem perzisztensek. Leálláskor:
+1. `DestroyAll()` törli az összes drop inventory-t és itemet az adatbázisból
+2. Induláskor a `PurgeStaleDropInventories()` eltávolítja az esetlegesen bentmaradt `drop:*` rekordokat
+
+---
+
+## Net Events (szerver → kliens)
+
+Ezeket az eventeket a szerver automatikusan küldi, nem kell manuálisan triggerni.
+
+| Event | Leírás |
+|---|---|
+| `ls_inventory:client:createDrop` | Új drop jött létre |
+| `ls_inventory:client:removeDrop` | Drop törlődött |
+| `ls_inventory:client:updateDrop` | Drop tartalma megváltozott (prop újrarajzolás) |
+| `ls_inventory:client:syncDrops` | Karakter betöltésekor az összes aktív drop szinkronizálása |
+| `ls_inventory:client:clearAllDrops` | Összes drop törlése (resource stop) |
+
+---
+
+## Prop elrendezés
+
+Az itemek propjai spirál mintában kerülnek elhelyezésre a drop középpontja körül, `PropSpacing` távolságra egymástól. Egy item esetén nincs eltolás. Minden prop modellje az `ItemDefinition.prop.model` mezőből jön — ha az item nem rendelkezik proppal, a `FallbackModel` kerül használatra.
+
+Az item propokra kattintva a drop inventory megnyílik (ugyanaz az `OpenExternalInventory` pipeline, mint a stasheknél).

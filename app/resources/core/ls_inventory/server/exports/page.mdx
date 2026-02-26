@@ -316,6 +316,61 @@ end
 
 ---
 
+## AddItemOrDrop
+
+Item hozzáadása a karakter inventory-jához. Ha az inventory tele van és nem fér el az összes item, a maradék automatikusan egy dropban jelenik meg a játékos lábánál.
+
+```lua
+local result = exports.ls_inventory:AddItemOrDrop(characterIdentifier, itemName, metadata, uses, amount, dropOptions)
+```
+
+**Paraméterek:**
+- `characterIdentifier` (string|number) — Karakter azonosító
+- `itemName` (string) — Item neve
+- `metadata` (table|nil) — Item metadata
+- `uses` (number|nil) — Használati számláló
+- `amount` (number|nil) — Mennyiség, alapértelmezett: `1`
+- `dropOptions` (table|nil) — Drop beállítások (lásd: [Drop System](/resources/core/ls_inventory/server/drops))
+
+**Visszatérési érték:** `table` — Result objektum
+
+```lua
+local result = exports.ls_inventory:AddItemOrDrop(charId, 'water', nil, nil, 10)
+if result.ok then
+    print(("Inventory-ba kerül: %d"):format(result.data.totalAdded))
+    print(("Dropba kerül: %d"):format(result.data.overflow))
+
+    if result.data.drop then
+        print(("Drop létrehozva: %s"):format(result.data.drop.dropId))
+    end
+end
+```
+
+**Result struktúra:**
+```lua
+{
+    ok = true,
+    data = {
+        totalAdded     = 6,      -- Inventory-ba sikerült tenni
+        totalRequested = 10,     -- Kért mennyiség
+        overflow       = 4,      -- Dropba került mennyiség
+        addResult      = { ... }, -- Az AddItem eredménye (nil ha semmi sem fért be)
+        drop           = {        -- nil ha nem kellett drop, vagy ha sikertelen
+            dropId      = "xxxxxxxx-...",
+            inventoryId = "drop:xxxxxxxx-...",
+            coords      = vector3(...)
+        },
+        dropFailed     = false    -- true ha a drop létrehozása meghiúsult
+    }
+}
+```
+
+> Ha mind az inventory tele van, mind a drop létrehozása meghiúsul (pl. offline játékos), `ok = false` kerül visszaadásra.
+
+> Csak egyetlen `itemName` stringet fogad el. Item lista esetén használd az `AddItem`-et és kezeld manuálisan az overflow-t.
+
+---
+
 ## registerHook
 
 Hook regisztrálása inventory akciókhoz. A hook a művelet végrehajtása előtt fut és blokkolhatja vagy módosíthatja azt.

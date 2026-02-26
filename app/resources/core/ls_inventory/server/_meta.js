@@ -3,4 +3,5 @@ export default {
     exports: "Exports",
     events: "Events",
     hooks: "Hooks",
+    drops: "Drop System",
 };

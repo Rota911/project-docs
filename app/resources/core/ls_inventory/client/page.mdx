@@ -180,6 +180,55 @@ exports.ls_inventory:UseItemInHand()
 
 ---
 
+### GetDropsNearby
+
+A játékos körzetében lévő összes aktív drop lekérése (`Config.DropSystem.LoadDistance` sugarán belül).
+
+```lua
+local drops = exports.ls_inventory:GetDropsNearby()
+```
+
+**Visszatérési érték:** `DropClientData[]|false` — Dropok listája, vagy `false` ha nincs a közelben egy sem, illetve ha nincs bejelentkezett karakter.
+
+```lua
+local drops = exports.ls_inventory:GetDropsNearby()
+if drops then
+    for _, drop in ipairs(drops) do
+        print(drop.dropId, drop.label, drop.inventoryId)
+    end
+end
+```
+
+---
+
+### GetDropAtCoord
+
+Adott koordináta körzetében lévő dropok lekérése.
+
+```lua
+local drops = exports.ls_inventory:GetDropAtCoord(coords, radius)
+```
+
+**Paraméterek:**
+- `coords` (vector3) — Középpont koordináta
+- `radius` (number) — Keresési sugár méterben
+
+**Visszatérési érték:** `DropClientData[]|false` — Dropok listája, vagy `false` ha nincs találat.
+
+```lua
+local coords = GetEntityCoords(cache.ped)
+local drops = exports.ls_inventory:GetDropAtCoord(coords, 5.0)
+if drops then
+    for _, drop in ipairs(drops) do
+        print(("Drop találat: %s (%.1fm)"):format(drop.label, #(coords - drop.coords)))
+    end
+end
+```
+
+> Részletes Drop System dokumentáció: [Drop System](/resources/core/ls_inventory/server/drops)
+
+---
+
 ## Events
 
 ### ls_inventory:openInventory
