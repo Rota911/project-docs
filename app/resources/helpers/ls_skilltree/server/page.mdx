@@ -4,7 +4,7 @@
 
 ### GetClass
 
-Returns a `SkillTreeManagerProxy` — the primary way to interact with the skilltree system from an external resource.
+Returns a `SkillTreeManager` — the primary way to interact with the skilltree system from an external resource.
 Register your trees inside the callback passed to `RegisterTrees`, which is fired automatically after `Skilltree:RefreshSkilltrees`.
 
 ```lua
@@ -24,11 +24,11 @@ end)
 
 ### RegisterTrees
 
-Calls the provided factory function with a ready `SkillTreeManagerProxy`.
-Handles proxy resolution internally — no manual `GetClass` or `Wait` needed.
+Calls the provided factory function with a ready `SkillTreeManager`.
+Handles resolution internally — no manual `GetClass` or `Wait` needed.
 
 ```lua
----@param fn fun(ST: SkillTreeManagerProxy)
+---@param fn fun(ST: SkillTreeManager)
 exports["ls_skilltree"]:RegisterTrees(function(ST)
     ST:CreateAndRegister({ id = "combat", ... })
 end)
@@ -36,7 +36,7 @@ end)
 
 ### CreateAndRegisterTree
 
-Flat convenience export. Creates and registers a tree in one call without needing a proxy.
+Flat convenience export. Creates and registers a tree in one call without needing a manager.
 
 ```lua
 ---@param data table
@@ -141,9 +141,9 @@ exports["ls_skilltree"]:RemoveTree("mining")
 
 ---
 
-## SkillTreeManagerProxy
+## SkillTreeManager
 
-Obtained via `GetClass()` or injected by `RegisterTrees`. All methods below are available on the proxy.
+Obtained via `GetClass()` or injected by `RegisterTrees`. All methods below are available.
 
 ### ST:Create
 
@@ -151,7 +151,7 @@ Creates a `SkillTreeInstance` and tracks it under the calling resource. Does **n
 
 ```lua
 ---@param data table
----@return SkillTreeInstanceProxy|nil
+---@return SkillTreeInstance|nil
 local tree = ST:Create({
     id       = "combat",
     name     = "Combat",
@@ -186,7 +186,7 @@ Creates and immediately registers the tree. Equivalent to `ST:Create` followed b
 
 ```lua
 ---@param data table
----@return SkillTreeInstanceProxy|nil
+---@return SkillTreeInstance|nil
 local tree = ST:CreateAndRegister({ id = "mining", ... })
 ```
 
@@ -194,7 +194,7 @@ local tree = ST:CreateAndRegister({ id = "mining", ... })
 
 ```lua
 ---@param id string
----@return SkillTreeInstanceProxy|nil
+---@return SkillTreeInstance|nil
 local tree = ST:Get("mining")
 ```
 
