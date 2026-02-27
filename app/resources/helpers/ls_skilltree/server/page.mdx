@@ -1,54 +1,216 @@
 # Server
 
-## ST Module
+## Exports
 
-### ST:Create
+### GetClass
+
+Returns a `SkillTreeManagerProxy` — the primary way to interact with the skilltree system from an external resource.
+Register your trees inside the callback passed to `RegisterTrees`, which is fired automatically after `Skilltree:RefreshSkilltrees`.
 
 ```lua
----@param data SkillTree
----@return SkillTreeInstance|nil
-local tree = ST:Create({
-    id = "combat",
-    name = "Combat",
-    nodes = {
-        ["node1"] = {
-            preRequsites = {},
-            children = { "node2" },
-            lock = {},
-            unlocked = false,
-            label = "Basic Combat",
-            description = "Learn basic combat skills",
-            cost = 1
-        },
-        ["node2"] = {
-            preRequsites = { "node1" },
-            children = {},
-            lock = {},
-            unlocked = false,
-            label = "Advanced Combat",
-            description = "Learn advanced combat skills",
-            cost = 2
-        }
-    },
-    xpGrowth = 1.15,
-    baseXp = 500
+AddEventHandler("Skilltree:RefreshSkilltrees", function()
+    exports["ls_skilltree"]:RegisterTrees(function(ST)
+        local tree = ST:CreateAndRegister({
+            id       = "mining",
+            name     = "Mining",
+            resource = GetCurrentResourceName(),
+            baseXp   = 400,
+            xpGrowth = 1.2,
+            nodes    = { ... }
+        })
+    end)
+end)
+```
+
+### RegisterTrees
+
+Calls the provided factory function with a ready `SkillTreeManagerProxy`.
+Handles proxy resolution internally — no manual `GetClass` or `Wait` needed.
+
+```lua
+---@param fn fun(ST: SkillTreeManagerProxy)
+exports["ls_skilltree"]:RegisterTrees(function(ST)
+    ST:CreateAndRegister({ id = "combat", ... })
+end)
+```
+
+### CreateAndRegisterTree
+
+Flat convenience export. Creates and registers a tree in one call without needing a proxy.
+
+```lua
+---@param data table
+---@return boolean
+local ok = exports["ls_skilltree"]:CreateAndRegisterTree({
+    id       = "farming",
+    name     = "Farming",
+    baseXp   = 300,
+    xpGrowth = 1.1,
+    nodes    = { ... }
 })
 ```
 
-### ST:Register
+### AddXP
 
 ```lua
----@param tree SkillTreeInstance
+---@param treeId string
+---@param charId number
+---@param amount number
+---@return boolean leveledUp
+local leveled = exports["ls_skilltree"]:AddXP("mining", charId, 250)
+```
+
+### UnlockNode
+
+```lua
+---@param treeId string
+---@param charId number
+---@param nodeId string
+---@return boolean success
+---@return string|nil reason
+local success, reason = exports["ls_skilltree"]:UnlockNode("mining", charId, "ore_sense")
+```
+
+### Respec
+
+```lua
+---@param treeId string
+---@param charId number
+---@return boolean success
+---@return number refundedPoints
+local success, refunded = exports["ls_skilltree"]:Respec("mining", charId)
+```
+
+### AddPoints
+
+```lua
+---@param treeId string
+---@param charId number
+---@param amount number
 ---@return boolean
-ST:Register(tree)
+local ok = exports["ls_skilltree"]:AddPoints("mining", charId, 5)
+```
+
+### GetCharacterSkills
+
+Returns the full skills table for a character across all registered trees.
+
+```lua
+---@param charId number
+---@return CharSkills
+local skills = exports["ls_skilltree"]:GetCharacterSkills(charId)
+```
+
+### GetCharacterData
+
+Returns the skill data for a specific tree.
+
+```lua
+---@param treeId string
+---@param charId number
+---@return TreeSkillData|nil
+local data = exports["ls_skilltree"]:GetCharacterData("mining", charId)
+```
+
+### GetAllIds
+
+Returns all currently registered tree IDs.
+
+```lua
+---@return string[]
+local ids = exports["ls_skilltree"]:GetAllIds()
+```
+
+### GetTree
+
+Returns `true` if the tree exists, `false` otherwise.
+
+```lua
+---@param treeId string
+---@return boolean
+local exists = exports["ls_skilltree"]:GetTree("mining")
+```
+
+### RemoveTree
+
+```lua
+---@param treeId string
+---@return boolean
+exports["ls_skilltree"]:RemoveTree("mining")
+```
+
+---
+
+## SkillTreeManagerProxy
+
+Obtained via `GetClass()` or injected by `RegisterTrees`. All methods below are available on the proxy.
+
+### ST:Create
+
+Creates a `SkillTreeInstance` and tracks it under the calling resource. Does **not** register it — call `:Register()` on the returned instance or use `ST:CreateAndRegister`.
+
+```lua
+---@param data table
+---@return SkillTreeInstanceProxy|nil
+local tree = ST:Create({
+    id       = "combat",
+    name     = "Combat",
+    baseXp   = 500,
+    xpGrowth = 1.15,
+    nodes    = {
+        ["basics"] = {
+            preRequisites = {},
+            children      = { "advanced" },
+            lock          = {},
+            unlocked      = false,
+            label         = "Basic Combat",
+            description   = "Fundamentals of combat.",
+            cost          = 1,
+        },
+        ["advanced"] = {
+            preRequisites = { "basics" },
+            children      = {},
+            lock          = {},
+            unlocked      = false,
+            label         = "Advanced Combat",
+            description   = "Master-level techniques.",
+            cost          = 2,
+        },
+    }
+})
+```
+
+### ST:CreateAndRegister
+
+Creates and immediately registers the tree. Equivalent to `ST:Create` followed by `tree:Register()`.
+
+```lua
+---@param data table
+---@return SkillTreeInstanceProxy|nil
+local tree = ST:CreateAndRegister({ id = "mining", ... })
 ```
 
 ### ST:Get
 
 ```lua
 ---@param id string
----@return SkillTreeInstance|nil
-local tree = ST:Get("combat")
+---@return SkillTreeInstanceProxy|nil
+local tree = ST:Get("mining")
+```
+
+### ST:Has
+
+```lua
+---@param id string
+---@return boolean
+local exists = ST:Has("mining")
+```
+
+### ST:GetAllIds
+
+```lua
+---@return string[]
+local ids = ST:GetAllIds()
 ```
 
 ### ST:Remove
@@ -56,119 +218,379 @@ local tree = ST:Get("combat")
 ```lua
 ---@param id string
 ---@return boolean
-ST:Remove("combat")
+ST:Remove("mining")
+```
+
+### ST:AddXP
+
+```lua
+---@param treeId string
+---@param charId number
+---@param amount number
+---@return boolean leveledUp
+local leveled = ST:AddXP("mining", charId, 500)
+```
+
+### ST:UnlockNode
+
+```lua
+---@param treeId string
+---@param charId number
+---@param nodeId string
+---@return boolean success
+---@return string|nil reason
+local success, reason = ST:UnlockNode("mining", charId, "ore_sense")
+```
+
+### ST:Respec
+
+```lua
+---@param treeId string
+---@param charId number
+---@return boolean success
+---@return number refundedPoints
+local success, refunded = ST:Respec("mining", charId)
 ```
 
 ### ST:GetCharacterSkills
 
 ```lua
 ---@param charId number
----@return CharSkills|table
+---@return CharSkills
 local skills = ST:GetCharacterSkills(charId)
 ```
 
+---
+
 ## Instance Functions
+
+Obtained from `ST:Create`, `ST:CreateAndRegister`, or `ST:Get`.
 
 ### tree:Register
 
+Registers the tree into the manager and notifies all connected clients.
+Also initialises skill data for any already-loaded characters.
+
 ```lua
 ---@return boolean
-tree:Register()
+local ok = tree:Register()
 ```
 
 ### tree:Unregister
 
+Removes the tree from the manager and fires the remove event to all clients.
+
 ```lua
 ---@return boolean
-tree:Unregister()
+local ok = tree:Unregister()
+```
+
+### tree:GetId
+
+```lua
+---@return string
+local id = tree:GetId()
+```
+
+### tree:GetName
+
+```lua
+---@return string
+local name = tree:GetName()
+```
+
+### tree:GetResource
+
+Returns the name of the resource that created this tree.
+
+```lua
+---@return string
+local res = tree:GetResource()
+```
+
+### tree:GetNodes
+
+Returns the full node table.
+
+```lua
+---@return table<string, SkillNode>
+local nodes = tree:GetNodes()
+```
+
+### tree:GetNode
+
+```lua
+---@param nodeId string
+---@return SkillNode|nil
+local node = tree:GetNode("ore_sense")
+```
+
+### tree:HasNode
+
+```lua
+---@param nodeId string
+---@return boolean
+local exists = tree:HasNode("ore_sense")
+```
+
+### tree:GetRootNodeIds
+
+Returns all node IDs that have no prerequisites.
+
+```lua
+---@return string[]
+local roots = tree:GetRootNodeIds()
+```
+
+### tree:GetNodeCount
+
+```lua
+---@return number
+local count = tree:GetNodeCount()
+```
+
+### tree:CalculateNextXp
+
+Returns the XP required to reach the next level from `currentLevel`.
+
+```lua
+---@param currentLevel number
+---@return number
+local required = tree:CalculateNextXp(5)
 ```
 
 ### tree:InitCharacter
+
+Ensures the character has a skill record for this tree. Safe to call multiple times.
 
 ```lua
 ---@param charId number
 tree:InitCharacter(charId)
 ```
 
-### tree:CalculateNextXp
+### tree:GetCharacterData
+
+Returns the character's full skill record for this tree. Calls `InitCharacter` internally.
 
 ```lua
----@param currentLevel number
----@return number
-local requiredXp = tree:CalculateNextXp(currentLevel)
+---@param charId number
+---@return TreeSkillData|nil
+local data = tree:GetCharacterData(charId)
+-- data.level, data.xp, data.requiredXp, data.points, data.unlockedNodes
 ```
 
 ### tree:AddXP
+
+Adds XP to the character, handling level-ups and awarding skill points automatically.
 
 ```lua
 ---@param charId number
 ---@param amount number
 ---@return boolean leveledUp
-local leveledUp = tree:AddXP(charId, 200)
+local leveled = tree:AddXP(charId, 350)
+if leveled then
+    print("Character leveled up!")
+end
+```
+
+### tree:GetLevel
+
+```lua
+---@param charId number
+---@return number
+local level = tree:GetLevel(charId)
+```
+
+### tree:GetXP
+
+```lua
+---@param charId number
+---@return number
+local xp = tree:GetXP(charId)
+```
+
+### tree:GetPoints
+
+```lua
+---@param charId number
+---@return number
+local points = tree:GetPoints(charId)
+```
+
+### tree:GetRequiredXp
+
+Returns how much XP is needed for the character's next level.
+
+```lua
+---@param charId number
+---@return number
+local required = tree:GetRequiredXp(charId)
+```
+
+### tree:GetUnlockedNodes
+
+```lua
+---@param charId number
+---@return table<string, boolean>
+local unlocked = tree:GetUnlockedNodes(charId)
+```
+
+### tree:IsNodeUnlocked
+
+```lua
+---@param charId number
+---@param nodeId string
+---@return boolean
+local isUnlocked = tree:IsNodeUnlocked(charId, "ore_sense")
+```
+
+### tree:CanUnlockNode
+
+Validates all conditions without making any changes. Useful for pre-flight checks.
+
+```lua
+---@param charId number
+---@param nodeId string
+---@return boolean canUnlock
+---@return string|nil reason
+local canUnlock, reason = tree:CanUnlockNode(charId, "ore_sense")
+if not canUnlock then
+    print("Cannot unlock:", reason)
+end
 ```
 
 ### tree:UnlockNode
+
+Deducts the node cost from the character's points and marks the node as unlocked.
 
 ```lua
 ---@param charId number
 ---@param nodeId string
 ---@return boolean success
 ---@return string|nil reason
-local success, reason = tree:UnlockNode(charId, "node1")
+local success, reason = tree:UnlockNode(charId, "ore_sense")
 ```
 
 | Reason | Description |
 |---|---|
 | `invalid_node` | Node does not exist in the tree |
-| `missing_prerequisite` | A prerequisite node is not unlocked |
+| `already_unlocked` | Node is already unlocked |
+| `missing_prerequisite` | All required prerequisite nodes must be unlocked first |
+| `missing_any_prerequisite` | At least one node from `anyPreRequisites` must be unlocked |
 | `not_enough_points` | Character does not have enough skill points |
-| `locked_by_other_node` | Another unlocked node blocks this one |
+| `locked_by_other_node` | A mutually exclusive node is already unlocked |
+| `no_character` | Character could not be found |
 
-### tree:GetCharacterData
+### tree:Respec
+
+Refunds all spent points and clears `unlockedNodes`.
 
 ```lua
 ---@param charId number
----@param treeId? string
----@return CharSkills
-local data = tree:GetCharacterData(charId, "combat")
+---@return boolean success
+---@return number refundedPoints
+local success, refunded = tree:Respec(charId)
+print(("Refunded %d points"):format(refunded))
 ```
 
-## Types
+### tree:AddPoints
 
-### SkillTree
+Directly grants skill points without requiring XP.
 
 ```lua
----@class SkillTree
----@field id TreeId
----@field name TreeId
----@field nodes table<nodeId, SkillNode>
----@field xpGrowth number
----@field baseXp number
+---@param charId number
+---@param amount number
+---@return boolean
+local ok = tree:AddPoints(charId, 3)
 ```
+
+### tree:RemovePoints
+
+```lua
+---@param charId number
+---@param amount number
+---@return boolean success
+---@return number actualRemoved
+local success, removed = tree:RemovePoints(charId, 2)
+```
+
+### tree:GetProgress
+
+Returns how many nodes are unlocked out of the total node count.
+
+```lua
+---@param charId number
+---@return number unlockedCount
+---@return number totalCount
+local unlocked, total = tree:GetProgress(charId)
+print(("%d/%d nodes unlocked"):format(unlocked, total))
+```
+
+### tree:GetAvailableNodes
+
+Returns all node IDs the character can currently unlock (passes all conditions).
+
+```lua
+---@param charId number
+---@return string[]
+local available = tree:GetAvailableNodes(charId)
+for _, nodeId in ipairs(available) do
+    print("Can unlock:", nodeId)
+end
+```
+
+### tree:Serialize
+
+Returns a plain table representation of the tree, safe to send over network or store.
+
+```lua
+---@return table
+local serialized = tree:Serialize()
+```
+
+---
+
+## Events
+
+### Server
+
+| Event | Parameters | Description |
+|---|---|---|
+| `Skilltree:RefreshSkilltrees` | — | Fired by `ls_skilltree` after all default trees are registered. External resources should listen to this to register their own trees. |
+| `SkillTree:Server:Register` | `treeId: string` | Fired when any tree is registered into the manager |
+| `SkillTree:Server:Remove` | `treeId: string` | Fired when a tree is removed from the manager |
+
+---
+
+## Types
 
 ### SkillNode
 
 ```lua
 ---@class SkillNode
----@field id string
----@field preRequsites nodeId[]
----@field children nodeId[]
----@field lock nodeId[]
+---@field preRequisites string[]     All must be unlocked before this node is available
+---@field anyPreRequisites? string[] At least one must be unlocked (optional)
+---@field children string[]          Node IDs unlocked after this one
+---@field lock string[]              Mutually exclusive node IDs
 ---@field unlocked boolean
 ---@field label string
 ---@field description string
----@field cost number
+---@field cost number                Skill points required to unlock
+```
+
+### TreeSkillData
+
+```lua
+---@class TreeSkillData
+---@field xp number
+---@field level number
+---@field points number
+---@field requiredXp number
+---@field unlockedNodes table<string, boolean>
 ```
 
 ### CharSkills
 
 ```lua
----@alias CharSkills table<TreeId, { xp: number, level: number, points: number, requireXp: number, unlockedNodes: table<string, boolean> }>
+---@alias CharSkills table<string, TreeSkillData>
 ```
-
-## Events
-
-| Event | Parameters | Description |
-|---|---|---|
-| `SkillTree:Server:Register` | `treeId` | Fired when a skill tree is registered |
-| `SkillTree:Server:Remove` | `treeId` | Fired when a skill tree is removed |
