@@ -14,6 +14,17 @@ All `maxDistance` parameters default to `2.0`.
 LS:GetNearbyPlayers(coords, maxDistance, includePlayer)
 ```
 
+When `includePlayer` is `true`, the local player is included in the results.
+
+## GetNearbyPlayers (Server)
+
+```lua
+---@param coords vector3
+---@param maxDistance? number
+---@return { id: number, ped: number, coords: vector3 }[]
+LS:GetNearbyPlayers(coords, maxDistance)
+```
+
 ## GetClosestPlayer (Client)
 
 ```lua
@@ -24,6 +35,19 @@ LS:GetNearbyPlayers(coords, maxDistance, includePlayer)
 ---@return number? playerPed
 ---@return vector3? playerCoords
 LS:GetClosestPlayer(coords, maxDistance, includePlayer)
+```
+
+When `includePlayer` is `true`, the local player is considered as a candidate. Returns `nil` for all values if no player is found within `maxDistance`.
+
+## GetClosestPlayer (Server)
+
+```lua
+---@param coords vector3
+---@param maxDistance? number
+---@return number? playerId
+---@return number? playerPed
+---@return vector3? playerCoords
+LS:GetClosestPlayer(coords, maxDistance)
 ```
 
 ## GetNearbyPeds (Shared)
