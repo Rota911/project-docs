@@ -1,6 +1,6 @@
 # RPC
 
-Bidirectional, typed communication layer between **NUI (React)**, **Lua client**, and **Lua server**. Replaces raw `SendNUIMessage` / `RegisterNUICallback` / `TriggerServerEvent` with a structured call/response system.
+Bidirectional, typed communication layer between **NUI (React)**, **Lua client**, and **Lua server**. Replaces raw `SendNUIMessage` / `RegisterNUICallback` / `TriggerServerEvent` with a structured call/response system backed by a nonce-based security layer.
 
 > Package: [`@matehun/rpc`](https://www.npmjs.com/package/@matehun/rpc)
 >
@@ -18,8 +18,8 @@ Bidirectional, typed communication layer between **NUI (React)**, **Lua client**
 | 2 | Client | NUI | `Rpc:Send()` → `useNuiEvent()` |
 | 3 | Client | NUI (await) | `Rpc:Call()` |
 | 4 | Client | Server (await) | `Rpc:CallServer()` |
-| 5 | Client | Server (fire) | `Rpc:SendServer()` |
-| 6 | NUI | Server (via proxy) | `rpc.callServer()` → `Rpc:Register()` |
+| 5 | Client | Server (fire) | `Rpc:TriggerServer()` |
+| 6 | NUI | Server (via proxy) | `rpc.callServer()` → `Rpc:RegisterServerEvent()` |
 | 7 | Server | Client NUI | `Rpc:Send(src)` → `useNuiEvent()` |
 | 8 | Server | All NUIs | `Rpc:SendAll()` → `useNuiEvent()` |
 | 9 | Server | Client (await) | `Rpc:Call(src)` → `Rpc:RegisterHandler()` |
@@ -81,7 +81,7 @@ local result = Rpc:Call('getCurrentFormData', { form = 'characterCreator' }, 800
 
 ### `Rpc:CallServer(route, data, timeout)`
 
-Calls a **server-side** `Rpc:Register` handler and **awaits** the response. Wraps the call in `pcall` to handle errors.
+Calls a **server-side** `Rpc:RegisterServerEvent` handler and **awaits** the response. Always wrap in `pcall` to handle network or handler errors.
 
 ```lua
 ---@param route string
@@ -93,28 +93,31 @@ local ok, result = pcall(function()
 end)
 ```
 
-### `Rpc:SendServer(route, data)`
+### `Rpc:TriggerServer(route, data)`
 
-Fires to a server handler with **no response**. The server-side handler `id` will be `nil`, so no result is sent back.
+Fires to a server handler with **no response**. The server-side handler receives `id = nil`, so no result is ever sent back. Acquires a nonce automatically before firing.
 
 ```lua
 ---@param route string
 ---@param data? table
-Rpc:SendServer('logAction', { action = 'openedShop', meta = { shop = 'ammunition' } })
+Rpc:TriggerServer('logAction', { action = 'openedShop', meta = { shop = 'ammunition' } })
 ```
+
+> **Deprecated alias:** `Rpc:SendServer()` still works but will be removed in a future release. Migrate to `Rpc:TriggerServer()`.
 
 ---
 
 ## Lua — Server
 
-### `Rpc:Register(route, handler)`
+### `Rpc:RegisterServerEvent(route, handler, config?)`
 
-Registers a handler that clients (via `Rpc:CallServer`) or NUI (via `rpc.callServer` proxy) can invoke. First argument is always the player `source`.
+Registers a handler that clients (via `Rpc:CallServer` / `Rpc:TriggerServer`) or NUI (via `rpc.callServer` proxy) can invoke. The first argument is always the player `source`. Accepts an optional [`RpcRouteConfig`](#rpcrouteconfig) for rate limiting, auth, and validation.
 
 ```lua
 ---@param route string
 ---@param handler fun(source: number, data: table): any
-Rpc:Register('getPlayerInfo', function(src, data)
+---@param config? RpcRouteConfig
+Rpc:RegisterServerEvent('getPlayerInfo', function(src, data)
     return {
         name   = GetPlayerName(src),
         source = src,
@@ -123,7 +126,58 @@ Rpc:Register('getPlayerInfo', function(src, data)
 end)
 ```
 
+With full config:
+
+```lua
+Rpc:RegisterServerEvent('completeJob', function(src, data)
+    return handleComplete(src, data.sessionId)
+end, {
+    rate = { limit = 3, window = 30000 },
+    auth = function(src)
+        if not LS:GetCharacter(src) then
+            return false, 'not authenticated'
+        end
+        return true
+    end,
+    validator = function(data)
+        if type(data.sessionId) ~= 'string' or #data.sessionId < 1 then
+            return false, 'sessionId must be a non-empty string'
+        end
+        return true
+    end,
+})
+```
+
 Errors thrown inside the handler are caught automatically and returned to the caller as `{ success = false, data = "<message>" }`.
+
+> **Deprecated alias:** `Rpc:Register()` still works on the server but will be removed in a future release. Migrate to `Rpc:RegisterServerEvent()`.
+
+---
+
+### `RpcRouteConfig`
+
+Optional configuration table passed as the third argument to `Rpc:RegisterServerEvent`.
+
+```lua
+---@class RpcRouteConfig
+---@field auth?      fun(source: number): boolean, string?
+---@field rate?      RpcRateConfig
+---@field validator? fun(data: table): boolean, string?
+
+---@class RpcRateConfig
+---@field limit  number
+---@field window number
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `auth` | `fun(src): boolean, string?` | Called before the handler. Return `false, reason` to reject with a security strike. |
+| `rate` | `{ limit: number, window: number }` | Max `limit` calls within `window` ms per player. Excess calls are rejected and strike the player. |
+| `validator` | `fun(data): boolean, string?` | Validates the incoming payload. Return `false, reason` to reject cleanly without a security strike. |
+
+All three checks run **after** nonce validation and **before** the handler. Execution order: `nonce → rate → auth → validator → handler`.
+
+---
 
 ### `Rpc:Send(source, action, data)`
 
@@ -163,6 +217,29 @@ end)
 
 ---
 
+## Security
+
+Every client-to-server call goes through a **nonce handshake** before the payload reaches the handler.
+
+```
+Client                          Server
+  │── NONCE_REQ(reqId, route) ──►│  validate route exists, rate-limit nonce req
+  │◄── NONCE_RES(reqId, nonce) ──│  issue nonce tied to (src, route, ttl=8s)
+  │── C2S_REQ(id, route, data, nonce) ──►│  validate nonce src/route/expiry, then run handler
+```
+
+| Protection | Detail |
+|------------|--------|
+| Nonce TTL | 8 000 ms — expired nonces are rejected |
+| Single-use | Nonce is consumed on first use; replay is impossible |
+| Route binding | Nonce issued for route A cannot be spent on route B |
+| Source binding | Nonce issued for player A cannot be used by player B |
+| Pool cap | Max 10 pending nonces per player at once |
+| Nonce req rate | 30 requests per 5 000 ms per player |
+| Strike system | Violations accumulate weighted strikes → warn (3) → kick (5) → ban (8) |
+
+---
+
 ## TypeScript / NUI — `@matehun/rpc`
 
 ### Setup — `RpcProvider`
@@ -194,7 +271,7 @@ export default function App() {
 
 ### `useRpcQuery`
 
-Calls a Lua handler **on mount** and tracks loading/error state. Use `server: true` to route through the `callServer` proxy.
+Calls a Lua handler **on mount** and tracks loading/error state. Use `server: true` to route through the `callServer` proxy to a `Rpc:RegisterServerEvent` handler.
 
 ```tsx
 const { data, loading, error, refetch } = useRpcQuery<{ kmh: number }>(
@@ -277,8 +354,8 @@ rpc.dispose()
 
 | Method | Description |
 |--------|-------------|
-| `call(route, payload, options)` | Calls a Lua `Rpc:Register` handler, awaits response |
-| `callServer(route, payload, options)` | Routes through the client proxy to a server handler |
+| `call(route, payload, options)` | Calls a Lua `Rpc:Register` client handler, awaits response |
+| `callServer(route, payload, options)` | Routes through the client proxy to a `Rpc:RegisterServerEvent` handler |
 | `send(route, payload)` | Fire-and-forget to Lua |
 | `register(action, handler)` | Handles incoming `Rpc:Send` / `Rpc:Call` messages |
 | `dispose()` | Removes the `message` listener and clears all handlers |
@@ -316,4 +393,3 @@ All calls default to **10 000 ms**. Overridable at three levels:
 1. `RpcProvider` prop — `timeoutMs`
 2. Per hook — `options.timeout`
 3. Lua side — `timeout` parameter on `Call` / `CallServer`
-```
