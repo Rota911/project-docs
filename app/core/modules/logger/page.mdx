@@ -1,109 +1,149 @@
 # Logger
 
-Shared logging system with colored output, per-resource config, and level muting. Access via `LS.Logger`.
+Single Logger instance shared across all resources. KVP-persisted, auto-syncs between server/client.
 
-## Log Methods
-
-All log methods accept variadic arguments. Tables are auto-serialized. The last argument can be a settings table.
+## Basic Usage
 
 ```lua
----@param ... any
----@return Logger
-LS.Logger:Info(...)
-LS.Logger:Error(...)
-LS.Logger:Success(...)
-LS.Logger:Warn(...)
-LS.Logger:Warning(...)  -- alias for Warn
-LS.Logger:Debug(...)    -- only runs when sv_environment is "DEV"
+LS.Logger:Info("message")
+LS.Logger:Error("message")
+LS.Logger:Success("message")
+LS.Logger:Warn("message")
+LS.Logger:Debug("message")  -- only when sv_environment = "DEV"
 ```
 
-## Settings Table
+Tables auto-serialize. Methods return `self` for chaining.
 
-Pass as the last argument to any log method to control prefixes and suppression.
+## SetDefaults() - Use This
+
+Set once in a `shared_script`, applies to all logs in that resource:
+
+```lua
+-- shared/logger_config.lua
+LS.Logger:SetDefaults({
+    prefixes = { "INVENTORY" },
+    id = "inventory"
+})
+
+-- Now everywhere in your resource:
+LS.Logger:Info("Item added")  
+-- Output: [INFO] [INVENTORY] Item added
+```
+
+Both server and client get the same defaults.
+
+## Override Per-Call
+
+```lua
+LS.Logger:Debug("Special case", {
+    settings = {
+        prefixes = { "INVENTORY", "SPECIAL" },
+        subPrefix = "VALIDATION",
+        id = "inventory_special"
+    }
+})
+```
+
+Priority: Explicit settings > SetDefaults() > no settings
+
+## Settings Object
 
 ```lua
 ---@class LoggerLSettings
 ---@field prefixes string[]?
 ---@field subPrefix string?
----@field id string?
-
-LS.Logger:Info('Player connected', {
-    settings = {
-        prefixes = { 'MyResource', 'Connection' },
-        subPrefix = 'Init',
-        id = 'conn_log'
-    }
-})
+---@field id string?  -- for suppression
 ```
 
-Output: `[INFO] [MyResource] [Connection] [Init] Player connected`
+## Commands
 
-## Configuration
+All work from server console or F8. Auto-sync everywhere.
 
-### Per-Resource Config
-
-```lua
----@class LoggerResourceConfig
----@field enabled boolean
----@field prefixes string[]?
-
----@param resourceName string
----@param config LoggerResourceConfig
-LS.Logger:SetResourceConfig(resourceName, config)
+```
+logger:suppress <id> [state]           -- Suppress by ID
+logger:unsuppress <id>                 -- Unsuppress by ID
+logger:toggle <resource> <state>       -- Enable/disable resource
+logger:mute <resource> <level> [state] -- Mute specific level (debug/info/warn/error/success)
+logger:reset                           -- Clear all KVP
+logger:list                            -- Show all suppressions & configs
+logger:status [resource]               -- Show resource status
 ```
 
-### Enable / Disable
+Examples:
+```
+logger:suppress inventory_debug true
+logger:toggle ls_inventory false
+logger:mute ls_inventory debug true
+```
+
+## Key Methods
 
 ```lua
+---@param settings LoggerLSettings
+LS.Logger:SetDefaults(settings)
+
+---@param id string
+---@param suppress boolean
+LS.Logger:SuppressId(id, suppress)
+
 ---@param resourceName string
 ---@param enabled boolean
 LS.Logger:SetEnabled(resourceName, enabled)
-```
-
-### Mute Specific Levels
-
-```lua
----@alias logLevel "info"|"error"|"success"|"warn"|"debug"
 
 ---@param resourceName string
----@param level logLevel
+---@param level logLevel  -- "info"|"error"|"success"|"warn"|"debug"
 ---@param muted boolean
 LS.Logger:SetLevelMuted(resourceName, level, muted)
 ```
 
-### Suppress by ID
+## KVP Persistence
 
+All settings (suppressions, configs, mutes) save to KVP automatically. Persist across restarts.
+
+## Examples
+
+### Simple Resource
 ```lua
----@param id string
----@param suppress boolean
-LS.Logger:SuppressId(id, suppress)
+-- shared.lua
+LS.Logger:SetDefaults({
+    prefixes = { "BANKING" },
+    id = "banking"
+})
+
+-- server/main.lua
+LS.Logger:Info("Account created")
+LS.Logger:Debug("Balance updated")
 ```
 
-### Add Prefix
-
+### With Subsystems
 ```lua
----@param resourceName string
----@param prefix string
-LS.Logger:AddPrefix(resourceName, prefix)
+-- shared.lua
+LS.Logger:SetDefaults({
+    prefixes = { "JOBS" }
+})
+
+-- server/salary.lua
+LS.Logger:Info("Salary paid", {
+    settings = {
+        subPrefix = "SALARY",
+        id = "salary_log"
+    }
+})
+-- Output: [INFO] [JOBS] [SALARY] Salary paid
 ```
 
-## Serialization
-
+### Different Server/Client Defaults
 ```lua
----@param value any
----@param indent? number
----@return string
-LS.Logger:Serialize(value, indent)
+-- shared.lua
+if IsDuplicityVersion() then
+    LS.Logger:SetDefaults({ prefixes = { "INV", "SV" } })
+else
+    LS.Logger:SetDefaults({ prefixes = { "INV", "CL" } })
+end
 ```
 
-## Server Commands
+## Don't Do
 
-Available in-game when `sv_environment` is `DEV`:
-
-| Command | Description |
-|---------|-------------|
-| `/logger:suppress <id> [state]` | Suppress/unsuppress a log ID |
-| `/logger:toggle <resource> <state>` | Enable/disable logger for a resource |
-| `/logger:mute <resource> <level> [state]` | Mute/unmute a log level |
-| `/logger:config <resource> [enabled] [web]` | Set full resource config |
-| `/logger:status [resource]` | Show logger status |
+- ❌ `_G.LogSettings` - doesn't work, use `SetDefaults()`
+- ❌ Hardcode settings in every call
+- ❌ Log sensitive data (passwords, keys)
