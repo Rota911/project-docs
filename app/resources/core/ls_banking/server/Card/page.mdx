@@ -1,0 +1,183 @@
+# Card
+
+Card issuance and management.
+
+```lua
+local CardService = require 'core.card'
+```
+
+## Create
+
+```lua
+---@param params BankCardCreateParams
+---@return BankCard? card
+---@return string? error
+CardService:Create(params)
+```
+
+```lua
+---@class BankCardCreateParams
+---@field accountId number
+---@field holderCharId number
+---@field type? BankCardType
+---@field dailyLimit? number
+```
+
+```lua
+local card, err = CardService:Create({
+    accountId = 5,
+    holderCharId = 123,
+    type = 'debit'
+})
+```
+
+## Get
+
+```lua
+---@param cardId number
+---@return BankCard?
+CardService:Get(cardId)
+```
+
+## GetByAccount
+
+```lua
+---@param accountId number
+---@return BankCard[]
+CardService:GetByAccount(accountId)
+```
+
+## GetByChar
+
+```lua
+---@param charId number
+---@return BankCard[]
+CardService:GetByChar(charId)
+```
+
+## Block
+
+```lua
+---@param cardId number
+---@param reason? string
+---@return boolean success
+---@return string? error
+CardService:Block(cardId, reason)
+```
+
+```lua
+CardService:Block(10, 'Lost card')
+```
+
+## Unblock
+
+```lua
+---@param cardId number
+---@return boolean success
+---@return string? error
+CardService:Unblock(cardId)
+```
+
+## MarkStolen
+
+```lua
+---@param cardId number
+---@return boolean success
+---@return string? error
+CardService:MarkStolen(cardId)
+```
+
+## SetPin
+
+```lua
+---@param cardId number
+---@param newPin string
+---@return boolean success
+---@return string? error
+CardService:SetPin(cardId, newPin)
+```
+
+> PIN must be 4 digits.
+
+```lua
+CardService:SetPin(10, '1234')
+```
+
+## ValidatePin
+
+```lua
+---@param cardId number
+---@param pin string
+---@return boolean
+CardService:ValidatePin(cardId, pin)
+```
+
+## SetDailyLimit
+
+```lua
+---@param cardId number
+---@param limit number
+---@return boolean success
+---@return string? error
+CardService:SetDailyLimit(cardId, limit)
+```
+
+```lua
+CardService:SetDailyLimit(10, 100000)
+```
+
+## BankCard Methods
+
+```lua
+local card = CardService:Get(10)
+```
+
+### Block
+
+```lua
+---@param reason? string
+---@return boolean success
+---@return string? error
+card:Block(reason)
+```
+
+### Unblock
+
+```lua
+---@return boolean success
+---@return string? error
+card:Unblock()
+```
+
+### SetPin
+
+```lua
+---@param newPin string
+---@return boolean success
+---@return string? error
+card:SetPin(newPin)
+```
+
+### ValidatePin
+
+```lua
+---@param pin string
+---@return boolean
+card:ValidatePin(pin)
+```
+
+### SetDailyLimit
+
+```lua
+---@param limit number
+---@return boolean success
+---@return string? error
+card:SetDailyLimit(limit)
+```
+
+### GetAccount
+
+```lua
+---@return BankAccount?
+card:GetAccount()
+```

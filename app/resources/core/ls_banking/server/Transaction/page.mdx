@@ -1,0 +1,149 @@
+# Transaction
+
+Transaction processing for all account operations.
+
+```lua
+local TransactionService = require 'core.transaction'
+```
+
+## Deposit
+
+```lua
+---@param accountId number
+---@param amount number
+---@param charId number
+---@param reason? string
+---@param metadata? table
+---@return boolean success
+---@return string? error
+TransactionService:Deposit(accountId, amount, charId, reason, metadata)
+```
+
+```lua
+TransactionService:Deposit(5, 10000, 123, 'Cash deposit')
+```
+
+## Withdraw
+
+```lua
+---@param accountId number
+---@param amount number
+---@param charId number
+---@param reason? string
+---@param metadata? table
+---@return boolean success
+---@return string? error
+TransactionService:Withdraw(accountId, amount, charId, reason, metadata)
+```
+
+```lua
+TransactionService:Withdraw(5, 5000, 123, 'ATM withdrawal')
+```
+
+## Transfer
+
+```lua
+---@param fromAccountId number
+---@param toAccountId number
+---@param amount number
+---@param charId number
+---@param reason? string
+---@param metadata? table
+---@return boolean success
+---@return string? error
+TransactionService:Transfer(fromAccountId, toAccountId, amount, charId, reason, metadata)
+```
+
+```lua
+TransactionService:Transfer(5, 42, 1000, 123, 'Payment')
+```
+
+## Salary
+
+```lua
+---@param accountId number
+---@param amount number
+---@param charId number
+---@param reason? string
+---@param metadata? table
+---@return boolean success
+---@return string? error
+TransactionService:Salary(accountId, amount, charId, reason, metadata)
+```
+
+```lua
+TransactionService:Salary(5, 25000, 123, 'Weekly salary')
+```
+
+## Payment
+
+```lua
+---@param accountId number
+---@param amount number
+---@param charId number
+---@param reason? string
+---@param metadata? table
+---@return boolean success
+---@return string? error
+TransactionService:Payment(accountId, amount, charId, reason, metadata)
+```
+
+```lua
+TransactionService:Payment(5, 500, 123, 'Store purchase')
+```
+
+## Fee
+
+```lua
+---@param accountId number
+---@param amount number
+---@param charId number
+---@param reason? string
+---@param metadata? table
+---@return boolean success
+---@return string? error
+TransactionService:Fee(accountId, amount, charId, reason, metadata)
+```
+
+```lua
+TransactionService:Fee(5, 50, 123, 'Monthly maintenance')
+```
+
+## Refund
+
+```lua
+---@param accountId number
+---@param amount number
+---@param charId number
+---@param reason? string
+---@param metadata? table
+---@return boolean success
+---@return string? error
+TransactionService:Refund(accountId, amount, charId, reason, metadata)
+```
+
+```lua
+TransactionService:Refund(5, 1000, 123, 'Purchase cancelled')
+```
+
+## GetHistory
+
+```lua
+---@param accountId number
+---@param limit? number
+---@param offset? number
+---@return BankTransactionData[]
+TransactionService:GetHistory(accountId, limit, offset)
+```
+
+```lua
+local history = TransactionService:GetHistory(5, 50, 0)
+```
+
+## GetById
+
+```lua
+---@param transactionId number
+---@return BankTransactionData?
+TransactionService:GetById(transactionId)
+```

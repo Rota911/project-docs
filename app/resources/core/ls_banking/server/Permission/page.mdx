@@ -1,0 +1,150 @@
+# Permission
+
+Account permission management for members.
+
+```lua
+local PermissionService = require 'core.permission'
+```
+
+## HasPermission
+
+```lua
+---@param accountId number
+---@param charId number
+---@param permission BankPermission
+---@return boolean
+PermissionService:HasPermission(accountId, charId, permission)
+```
+
+```lua
+---@alias BankPermission 'view' | 'deposit' | 'withdraw' | 'transfer' | 'manage_cards' | 'manage_members' | 'close'
+```
+
+```lua
+if PermissionService:HasPermission(5, 123, 'withdraw') then
+    print('User can withdraw')
+end
+```
+
+## Grant
+
+```lua
+---@param accountId number
+---@param charId number
+---@param permission BankPermission
+---@param grantedBy? number
+---@return boolean success
+---@return string? error
+PermissionService:Grant(accountId, charId, permission, grantedBy)
+```
+
+```lua
+PermissionService:Grant(5, 456, 'deposit', 123)
+```
+
+## Revoke
+
+```lua
+---@param accountId number
+---@param charId number
+---@param permission BankPermission
+---@param revokedBy? number
+---@return boolean success
+---@return string? error
+PermissionService:Revoke(accountId, charId, permission, revokedBy)
+```
+
+```lua
+PermissionService:Revoke(5, 456, 'withdraw', 123)
+```
+
+## GrantMany
+
+```lua
+---@param accountId number
+---@param charId number
+---@param permissions BankPermission[]
+---@param grantedBy? number
+---@return boolean success
+---@return string? error
+PermissionService:GrantMany(accountId, charId, permissions, grantedBy)
+```
+
+```lua
+PermissionService:GrantMany(5, 456, {'view', 'deposit', 'withdraw'}, 123)
+```
+
+## RevokeAll
+
+```lua
+---@param accountId number
+---@param charId number
+---@param revokedBy? number
+---@return boolean success
+---@return string? error
+PermissionService:RevokeAll(accountId, charId, revokedBy)
+```
+
+```lua
+PermissionService:RevokeAll(5, 456, 123)
+```
+
+## GetMembers
+
+```lua
+---@param accountId number
+---@return BankAccountMember[]
+PermissionService:GetMembers(accountId)
+```
+
+```lua
+local members = PermissionService:GetMembers(5)
+for i = 1, #members do
+    print(members[i].charId, #members[i].permissions)
+end
+```
+
+## GetPermissions
+
+```lua
+---@param accountId number
+---@param charId number
+---@return BankPermission[]
+PermissionService:GetPermissions(accountId, charId)
+```
+
+```lua
+local perms = PermissionService:GetPermissions(5, 123)
+```
+
+## IsOwner
+
+```lua
+---@param accountId number
+---@param charId number
+---@return boolean
+PermissionService:IsOwner(accountId, charId)
+```
+
+## GetAllPermissionTypes
+
+```lua
+---@return BankPermission[]
+PermissionService:GetAllPermissionTypes()
+```
+
+Returns all available permission types.
+
+## Permissions
+
+| Permission | Description |
+|---|---|
+| `view` | View account details |
+| `deposit` | Deposit funds |
+| `withdraw` | Withdraw funds |
+| `transfer` | Transfer to other accounts |
+| `manage_cards` | Create and manage cards |
+| `manage_members` | Add/remove members and permissions |
+| `close` | Close the account |
+
+> Account owners have all permissions by default.

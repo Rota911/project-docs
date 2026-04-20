@@ -1,0 +1,87 @@
+# Server
+
+Banking system with accounts, cards, transactions, loans, credit scoring, and billing.
+
+## Quick Start
+
+```lua
+local AccountService = require 'core.account'
+local TransactionService = require 'core.transaction'
+
+local account, err = AccountService:Create({
+    ownerCharId = 123,
+    type = 'personal'
+})
+
+if account then
+    account:Deposit(10000, 'Initial deposit')
+end
+```
+
+## Core Services
+
+- **Account** - Account creation, management, and operations
+- **Card** - Card issuance, blocking, PIN management  
+- **Transaction** - Deposits, withdrawals, transfers, payments
+- **Loan** - Loan applications and payment processing
+- **Credit** - Credit score tracking and tier calculation
+- **Permission** - Account member permission management
+- **Billing** - Bill creation and payment (module)
+
+## Account Types
+
+| Type | Max Accounts | Max Members | Max Cards |
+|---|---|---|---|
+| `personal` | 1 | 1 | 1 |
+| `company` | 1 | 8 | 3 |
+| `shared` | 3 | 5 | 5 |
+
+## Common Patterns
+
+### Create account and deposit
+
+```lua
+local account = AccountService:Create({
+    ownerCharId = 123,
+    type = 'personal',
+    label = 'Savings'
+})
+
+account:Deposit(50000, 'Opening deposit')
+```
+
+### Transfer between accounts
+
+```lua
+local fromAccount = AccountService:Get(5)
+local toAccount = AccountService:GetByNumber('LS12345678')
+
+fromAccount:Transfer(toAccount.accountId, 1000, 'Payment')
+```
+
+### Create bill from job
+
+```lua
+exports['ls_banking']:CreateBill(source, {
+    type = 'job',
+    identifier = 'police',
+    label = 'LSPD'
+}, {
+    amount = 2500,
+    description = 'Traffic violation'
+})
+```
+
+### Apply for loan
+
+```lua
+local loan, err = LoanService:Apply({
+    charId = 123,
+    accountId = 5,
+    requestedAmount = 500000,
+    assetType = 'vehicle',
+    assetId = 'ABC123'
+})
+```
+
+> All amounts are whole numbers. No cents/decimals.

@@ -1,0 +1,102 @@
+# Events
+
+Banking system events for monitoring and integration.
+
+## Listening to Events
+
+```lua
+local EventBus = require 'core.events'
+
+EventBus:On('account_created', function(data, accountId, charId)
+    print('New account:', data.accountNumber)
+end)
+```
+
+## Account Events
+
+| Event | Parameters | Description |
+|---|---|---|
+| `account_created` | `accountId, accountNumber, type, ownerCharId` | New account created |
+| `account_locked` | `accountId, previousStatus, newStatus, reason` | Account locked/frozen |
+| `account_unlocked` | `accountId, previousStatus, newStatus, reason` | Account unlocked |
+| `account_closed` | `accountId, previousStatus, newStatus, reason` | Account closed |
+
+```lua
+EventBus:On('account_created', function(data, accountId, charId)
+    print(('Account %s created for char %d'):format(data.accountNumber, charId))
+end)
+```
+
+## Card Events
+
+| Event | Parameters | Description |
+|---|---|---|
+| `card_created` | `cardId, accountId, holderCharId, cardType` | New card issued |
+| `card_blocked` | `cardId, reason, previousStatus` | Card blocked/stolen |
+| `card_unblocked` | `cardId` | Card unblocked |
+
+```lua
+EventBus:On('card_blocked', function(data, accountId, charId)
+    print(('Card %d blocked: %s'):format(data.cardId, data.reason or 'no reason'))
+end)
+```
+
+## Transaction Events
+
+| Event | Parameters | Description |
+|---|---|---|
+| `transaction` | `transactionId, type, amount, balanceAfter, ...` | Transaction processed |
+
+```lua
+EventBus:On('transaction', function(data, accountId, charId)
+    print(('TX %s: %s by char %d'):format(data.type, data.amount, charId))
+end)
+```
+
+## Loan Events
+
+| Event | Parameters | Description |
+|---|---|---|
+| `loan_created` | `loanId, charId, accountId, principal, total, tier, assetType, assetId` | Loan approved |
+| `loan_payment` | `loanId, charId, accountId, payAmount, remainingBalance` | Loan payment made |
+| `loan_paid_off` | `loanId, charId, accountId` | Loan fully paid |
+| `loan_overdue` | `loanId, charId, accountId` | Loan payment overdue |
+
+```lua
+EventBus:On('loan_paid_off', function(data, accountId, charId)
+    print(('Loan %d paid off by char %d'):format(data.loanId, charId))
+end)
+```
+
+## Permission Events
+
+| Event | Parameters | Description |
+|---|---|---|
+| `permission_changed` | `action, permission, targetCharId, grantedBy/revokedBy` | Permission granted/revoked |
+
+```lua
+EventBus:On('permission_changed', function(data, accountId, charId)
+    print(('%s: %s for char %d'):format(data.action, data.permission, data.targetCharId))
+end)
+```
+
+## Billing Events
+
+| Event | Parameters | Description |
+|---|---|---|
+| `Billing:OnBillCreated` | `billData` | Bill created |
+| `Billing:OnBillPaid` | `billData, payAmount` | Bill payment processed |
+| `Billing:OnBillCancelled` | `billData` | Bill cancelled |
+| `Billing:OnBillOverdue` | `billData, forcedCollection` | Bill marked overdue |
+
+```lua
+AddEventHandler('Billing:OnBillCreated', function(billData)
+    print(('Bill %d created for char %d: %s'):format(
+        billData.billId, 
+        billData.toCharId, 
+        billData.amount
+    ))
+end)
+```
+
+> Billing events use standard FiveM `AddEventHandler`, not EventBus.

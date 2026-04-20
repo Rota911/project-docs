@@ -1,0 +1,253 @@
+# Account
+
+Account management and operations.
+
+```lua
+local AccountService = require 'core.account'
+```
+
+## Create
+
+```lua
+---@param params BankAccountCreateParams
+---@return BankAccount? account
+---@return string? error
+AccountService:Create(params)
+```
+
+```lua
+---@class BankAccountCreateParams
+---@field ownerCharId number
+---@field type? BankAccountType -- 'personal' | 'company' | 'shared'
+---@field label? string
+```
+
+```lua
+local account, err = AccountService:Create({
+    ownerCharId = 123,
+    type = 'personal',
+    label = 'Main Account'
+})
+```
+
+## Get
+
+```lua
+---@param accountId number
+---@return BankAccount?
+AccountService:Get(accountId)
+```
+
+```lua
+local account = AccountService:Get(5)
+if account then print(account.balance) end
+```
+
+## GetByNumber
+
+```lua
+---@param accountNumber string
+---@return BankAccount?
+AccountService:GetByNumber(accountNumber)
+```
+
+```lua
+local account = AccountService:GetByNumber('LS12345678')
+```
+
+## GetByChar
+
+```lua
+---@param charId number
+---@return BankAccount[]
+AccountService:GetByChar(charId)
+```
+
+```lua
+local accounts = AccountService:GetByChar(123)
+for i = 1, #accounts do
+    print(accounts[i].accountNumber, accounts[i].balance)
+end
+```
+
+## Resolve
+
+```lua
+---@param identifier number|string -- accountId or accountNumber
+---@return BankAccount?
+AccountService:Resolve(identifier)
+```
+
+```lua
+local account = AccountService:Resolve('LS12345678')
+local account2 = AccountService:Resolve(42)
+```
+
+## SetStatus
+
+```lua
+---@param accountId number
+---@param newStatus BankAccountStatus
+---@param reason? string
+---@return boolean success
+---@return string? error
+AccountService:SetStatus(accountId, newStatus, reason)
+```
+
+```lua
+---@alias BankAccountStatus 'active' | 'locked' | 'frozen' | 'closed'
+```
+
+```lua
+AccountService:SetStatus(5, 'frozen', 'Suspicious activity')
+```
+
+## Close
+
+```lua
+---@param accountId number
+---@param reason? string
+---@return boolean success
+---@return string? error
+AccountService:Close(accountId, reason)
+```
+
+> Account must have zero balance before closing.
+
+## SetLabel
+
+```lua
+---@param accountId number
+---@param label string
+---@return boolean success
+---@return string? error
+AccountService:SetLabel(accountId, label)
+```
+
+## BankAccount Methods
+
+```lua
+local account = AccountService:Get(5)
+```
+
+### Deposit
+
+```lua
+---@param amount number
+---@param reason? string
+---@param srcCharId? number
+---@return boolean success
+---@return string? error
+account:Deposit(amount, reason, srcCharId)
+```
+
+```lua
+local ok, err = account:Deposit(5000, 'Initial deposit')
+```
+
+### Withdraw
+
+```lua
+---@param amount number
+---@param reason? string
+---@param srcCharId? number
+---@return boolean success
+---@return string? error
+account:Withdraw(amount, reason, srcCharId)
+```
+
+### Transfer
+
+```lua
+---@param targetAccountId number
+---@param amount number
+---@param reason? string
+---@return boolean success
+---@return string? error
+account:Transfer(targetAccountId, amount, reason)
+```
+
+```lua
+account:Transfer(42, 1000, 'Payment')
+```
+
+### GetBalance
+
+```lua
+---@return number
+account:GetBalance()
+```
+
+### GetCards
+
+```lua
+---@return BankCard[]
+account:GetCards()
+```
+
+### CreateCard
+
+```lua
+---@param charId number
+---@param cardType? BankCardType
+---@return BankCard? card
+---@return string? error
+account:CreateCard(charId, cardType)
+```
+
+```lua
+---@alias BankCardType 'debit' | 'credit'
+```
+
+```lua
+local card, err = account:CreateCard(123, 'debit')
+```
+
+### GetTransactions
+
+```lua
+---@param limit? number
+---@param offset? number
+---@return BankTransactionData[]
+account:GetTransactions(limit, offset)
+```
+
+```lua
+local history = account:GetTransactions(20, 0)
+```
+
+### HasPermission
+
+```lua
+---@param charId number
+---@param permission BankPermission
+---@return boolean
+account:HasPermission(charId, permission)
+```
+
+### GrantPermission
+
+```lua
+---@param charId number
+---@param permission BankPermission
+---@return boolean success
+---@return string? error
+account:GrantPermission(charId, permission)
+```
+
+### RevokePermission
+
+```lua
+---@param charId number
+---@param permission BankPermission
+---@return boolean success
+---@return string? error
+account:RevokePermission(charId, permission)
+```
+
+### GetMembers
+
+```lua
+---@return BankAccountMember[]
+account:GetMembers()
+```

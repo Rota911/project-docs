@@ -1,0 +1,124 @@
+# Loan
+
+Loan applications and payment management.
+
+```lua
+local LoanService = require 'core.loan'
+```
+
+## Apply
+
+```lua
+---@param params LoanCreateParams
+---@return Loan? loan
+---@return string? error
+LoanService:Apply(params)
+```
+
+```lua
+---@class LoanCreateParams
+---@field charId number
+---@field accountId number
+---@field requestedAmount number
+---@field assetType string
+---@field assetId string
+```
+
+```lua
+local loan, err = LoanService:Apply({
+    charId = 123,
+    accountId = 5,
+    requestedAmount = 500000,
+    assetType = 'vehicle',
+    assetId = 'plate123'
+})
+```
+
+> Requires credit score >= 600. Max amount based on credit tier.
+
+## Get
+
+```lua
+---@param loanId number
+---@return Loan?
+LoanService:Get(loanId)
+```
+
+```lua
+local loan = LoanService:Get(1)
+```
+
+## GetByChar
+
+```lua
+---@param charId number
+---@return Loan[]
+LoanService:GetByChar(charId)
+```
+
+```lua
+local loans = LoanService:GetByChar(123)
+for i = 1, #loans do
+    print(loans[i].status, loans[i].remainingBalance)
+end
+```
+
+## GetActiveByChar
+
+```lua
+---@param charId number
+---@return Loan?
+LoanService:GetActiveByChar(charId)
+```
+
+```lua
+local activeLoan = LoanService:GetActiveByChar(123)
+if activeLoan then
+    print('Active loan balance:', activeLoan.remainingBalance)
+end
+```
+
+## MakePayment
+
+```lua
+---@param loanId number
+---@param amount number
+---@param charId number
+---@return boolean success
+---@return string? error
+LoanService:MakePayment(loanId, amount, charId)
+```
+
+```lua
+LoanService:MakePayment(1, 50000, 123)
+```
+
+## Loan Methods
+
+```lua
+local loan = LoanService:Get(1)
+```
+
+### MakePayment
+
+```lua
+---@param amount number
+---@return boolean success
+---@return string? error
+loan:MakePayment(amount)
+```
+
+```lua
+local ok, err = loan:MakePayment(25000)
+```
+
+### GetAccount
+
+```lua
+---@return BankAccount?
+loan:GetAccount()
+```
+
+```lua
+local account = loan:GetAccount()
+```

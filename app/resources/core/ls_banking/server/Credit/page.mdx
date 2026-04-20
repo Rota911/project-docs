@@ -1,0 +1,105 @@
+# Credit
+
+Credit score tracking and loan tier calculation.
+
+```lua
+local CreditService = require 'core.credit'
+```
+
+## GetScore
+
+```lua
+---@param charId number
+---@return number
+CreditService:GetScore(charId)
+```
+
+```lua
+local score = CreditService:GetScore(123) -- 650
+```
+
+## GetTierForScore
+
+```lua
+---@param score number
+---@return LoanCreditTier?
+CreditService:GetTierForScore(score)
+```
+
+```lua
+---@class LoanCreditTier
+---@field minScore number
+---@field interestRate number
+---@field maxAmount number
+---@field label string
+```
+
+```lua
+local tier = CreditService:GetTierForScore(720)
+if tier then
+    print(tier.label, tier.maxAmount) -- "Good", 3000000
+end
+```
+
+## GetOrCreate
+
+```lua
+---@param charId number
+---@return CreditScoreData
+CreditService:GetOrCreate(charId)
+```
+
+```lua
+local data = CreditService:GetOrCreate(123)
+print(data.creditScore, data.onTimePayments, data.missedPayments)
+```
+
+## RecordOnTimePayment
+
+```lua
+---@param charId number
+CreditService:RecordOnTimePayment(charId)
+```
+
+Increases score by 5 points.
+
+```lua
+CreditService:RecordOnTimePayment(123)
+```
+
+## RecordMissedPayment
+
+```lua
+---@param charId number
+CreditService:RecordMissedPayment(charId)
+```
+
+Decreases score by 30 points.
+
+```lua
+CreditService:RecordMissedPayment(123)
+```
+
+## RecordPaidOff
+
+```lua
+---@param charId number
+CreditService:RecordPaidOff(charId)
+```
+
+Increases score by 50 points.
+
+```lua
+CreditService:RecordPaidOff(123)
+```
+
+## Credit Tiers
+
+| Tier | Min Score | Interest | Max Amount | Label |
+|---|---|---|---|---|
+| 1 | 750 | 3.0% | $5,000,000 | Excellent |
+| 2 | 700 | 5.0% | $3,000,000 | Good |
+| 3 | 650 | 8.0% | $1,500,000 | Fair |
+| 4 | 600 | 12.0% | $750,000 | Poor |
+
+> Default score: 600. Range: 300-850.
