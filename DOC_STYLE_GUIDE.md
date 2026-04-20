@@ -55,6 +55,39 @@ local result = LS.ModuleName:FunctionName("value", 123)
 ...
 ```
 
+## File Organization
+
+For resources with multiple services/modules, split into separate pages:
+
+```
+app/resources/core/resource_name/
+├── _meta.js
+└── server/
+    ├── _meta.js
+    ├── ServiceName/
+    │   └── page.mdx
+    ├── OtherService/
+    │   └── page.mdx
+    └── Events/
+        └── page.mdx
+```
+
+Example `_meta.js`:
+```js
+export default {
+    Account: "Account",
+    Card: "Card",
+    Transaction: "Transaction",
+    Events: "Events",
+};
+```
+
+Guidelines:
+- One service/module per page
+- Keep pages under 150 lines
+- Use `Events/page.mdx` for event documentation
+- Use `Types/page.mdx` if you need type references
+
 ## Example Patterns
 
 ### Simple Function
