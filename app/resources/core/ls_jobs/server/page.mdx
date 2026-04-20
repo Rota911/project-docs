@@ -1,0 +1,132 @@
+# Server
+
+Job system with session management, reward calculation, and skill tree integration.
+
+## Quick Start
+
+```lua
+local Registry = require 'core.registry'
+local SessionService = require 'core.session'
+
+Registry:Register({
+    key = 'truck_delivery',
+    label = 'Truck Delivery',
+    minPlayers = 1,
+    maxPlayers = 4,
+    reward = {
+        base = 5000,
+        max = 10000
+    }
+})
+
+local session, err = SessionService:Start(source, 'truck_delivery')
+```
+
+## Core Services
+
+- **Registry** - Job definition registration and retrieval
+- **Session** - Session lifecycle (start, join, complete, fail)
+- **Reward** - Reward calculation with saturation and group bonuses
+- **Events** - Event bus for job lifecycle hooks
+- **SkillGate** - Skill tree integration for job requirements
+
+## Job Definition
+
+```lua
+---@class JobDefinition
+---@field key JobKey -- Unique identifier
+---@field label string -- Display name
+---@field minPlayers number -- Min players to start
+---@field maxPlayers number -- Max players per session
+---@field reward JobRewardConfig
+---@field workgroupLimit? number -- Workgroup size cap
+```
+
+## Reward System
+
+Rewards are calculated with:
+- **Base payout** - Per-player base amount
+- **Saturation** - Reduces payout when too many players do same job
+- **Group bonus** - Increases payout for larger groups
+- **Performance** - Optional multiplier (0.0-1.0+)
+
+```lua
+local RewardCalculator = require 'core.reward'
+
+local reward = RewardCalculator:Calculate(
+    5000,  -- base
+    3,     -- totalOnJob
+    4,     -- groupSize
+    10000, -- max
+    nil,   -- saturation override
+    nil,   -- group bonus override
+    1.0    -- performance
+)
+```
+
+## Common Patterns
+
+### Register and start job
+
+```lua
+Registry:Register({
+    key = 'mining',
+    label = 'Mining Operation',
+    minPlayers = 1,
+    maxPlayers = 4,
+    reward = { base = 3000 }
+})
+
+local session = SessionService:Start(source, 'mining')
+```
+
+### Complete session with reward
+
+```lua
+SessionService:Complete(sessionId, 1.0) -- 1.0 = 100% performance
+```
+
+### Listen to events
+
+```lua
+local EventBus = require 'core.events'
+
+EventBus:On('job_completed', function(payload)
+    print('Job completed:', payload.jobKey)
+end)
+```
+
+### Check skill requirements
+
+```lua
+local SkillGate = require 'core.skilltree'
+
+if SkillGate:IsNodeUnlocked(source, 'mining_advanced') then
+    -- Allow access
+end
+```
+
+## Session Lifecycle
+
+1. **Start** - Leader creates session, workgroup created
+2. **Join** - Other players join via workgroup
+3. **Active** - Job logic runs (in modules)
+4. **Complete/Fail** - Rewards calculated and distributed
+5. **Cleanup** - Session removed, workgroup disbanded
+
+## Saturation Modes
+
+| Mode | Formula | Description |
+|---|---|---|
+| `linear` | `1.0 - (totalOnJob - 1) * factor` | Linear reduction per player |
+| `exponential` | `baseDecay ^ (totalOnJob - 1)` | Exponential decay |
+
+Default: Linear with 5% reduction per player, floor at 40%
+
+## Group Bonus
+
+- **+10%** per additional group member
+- **Max +50%** total bonus
+- Only applies to groups of 2+
+
+> All rewards are whole numbers. Uses `ls_workgroups` for group management.

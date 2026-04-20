@@ -1,0 +1,192 @@
+# Session
+
+Job session lifecycle management.
+
+```lua
+local SessionService = require 'core.session'
+```
+
+## Start
+
+```lua
+---@param source number
+---@param jobKey JobKey
+---@return JobSession? session
+---@return string? error
+SessionService:Start(source, jobKey)
+```
+
+Creates a new job session with source as leader.
+
+```lua
+local session, err = SessionService:Start(source, 'truck_delivery')
+if session then
+    print('Session started:', session.sessionId)
+end
+```
+
+## JoinSession
+
+```lua
+---@param sessionId string
+---@param source number
+---@return boolean success
+---@return string? error
+SessionService:JoinSession(sessionId, source)
+```
+
+```lua
+local ok, err = SessionService:JoinSession('sess_abc123', source)
+```
+
+## LeaveSession
+
+```lua
+---@param source number
+---@param silent? boolean
+---@return boolean success
+---@return string? error
+SessionService:LeaveSession(source, silent)
+```
+
+Removes player from their active session.
+
+```lua
+SessionService:LeaveSession(source)
+```
+
+## Complete
+
+```lua
+---@param sessionId string
+---@param performanceMultiplier? number
+---@return boolean success
+---@return string? error
+SessionService:Complete(sessionId, performanceMultiplier)
+```
+
+Completes session and distributes rewards.
+
+```lua
+SessionService:Complete(sessionId, 1.0) -- 100% performance
+SessionService:Complete(sessionId, 0.8) -- 80% performance
+```
+
+## Fail
+
+```lua
+---@param sessionId string
+---@param reason? string
+---@return boolean success
+---@return string? error
+SessionService:Fail(sessionId, reason)
+```
+
+Fails session with no rewards.
+
+```lua
+SessionService:Fail(sessionId, 'Time expired')
+```
+
+## Get
+
+```lua
+---@param sessionId string
+---@return JobSession?
+SessionService:Get(sessionId)
+```
+
+```lua
+local session = SessionService:Get('sess_abc123')
+if session then
+    print(session.jobKey, session.playerCount)
+end
+```
+
+## GetBySource
+
+```lua
+---@param source number
+---@return JobSession?
+SessionService:GetBySource(source)
+```
+
+```lua
+local session = SessionService:GetBySource(source)
+```
+
+## GetAll
+
+```lua
+---@return JobSession[]
+SessionService:GetAll()
+```
+
+```lua
+local sessions = SessionService:GetAll()
+for i = 1, #sessions do
+    print(sessions[i].sessionId, sessions[i].status)
+end
+```
+
+## ActiveCount
+
+```lua
+---@return number
+SessionService:ActiveCount()
+```
+
+Returns count of active sessions.
+
+## CountPlayersOnJob
+
+```lua
+---@param jobKey JobKey
+---@return number
+SessionService:CountPlayersOnJob(jobKey)
+```
+
+Returns total players across all sessions of this job.
+
+```lua
+local total = SessionService:CountPlayersOnJob('mining')
+```
+
+## DisconnectPlayer
+
+```lua
+---@param source number
+SessionService:DisconnectPlayer(source)
+```
+
+Handles player disconnect, marks for reconnect.
+
+## HandleReconnect
+
+```lua
+---@param source number
+---@param charId number
+---@return boolean success
+SessionService:HandleReconnect(source, charId)
+```
+
+Restores player to their session after reconnect.
+
+## JobSession
+
+```lua
+---@class JobSession
+---@field sessionId string
+---@field jobKey JobKey
+---@field workgroupId string
+---@field leaderSource number
+---@field startedAt number
+---@field playerCount number
+---@field status JobSessionStatus
+```
+
+```lua
+---@alias JobSessionStatus 'active' | 'completed' | 'failed' | 'expired'
+```
+
+> Sessions auto-expire after 3600s. Reconnect window is 300s.

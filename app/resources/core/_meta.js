@@ -5,6 +5,7 @@ export default {
   ls_characters: "ls_characters",
   ls_density: "ls_density",
   ls_inventory: "ls_inventory",
+  ls_jobs: "ls_jobs",
   ls_objects: "ls_objects",
   ls_ui: "ls_ui",
 };

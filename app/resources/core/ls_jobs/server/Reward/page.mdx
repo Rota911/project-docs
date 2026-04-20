@@ -1,0 +1,139 @@
+# Reward
+
+Reward calculation with saturation and group bonus.
+
+```lua
+local RewardCalculator = require 'core.reward'
+```
+
+## Calculate
+
+```lua
+---@param base number
+---@param totalOnJob number
+---@param groupSize number
+---@param maxReward? number
+---@param saturationOverride? JobSaturationConfig
+---@param groupBonusOverride? JobGroupBonusConfig
+---@param performanceMultiplier? number
+---@return number rewardPerPlayer
+RewardCalculator:Calculate(base, totalOnJob, groupSize, maxReward, saturationOverride, groupBonusOverride, performanceMultiplier)
+```
+
+```lua
+local reward = RewardCalculator:Calculate(
+    5000,  -- base
+    3,     -- totalOnJob (saturation)
+    4,     -- groupSize (bonus)
+    10000, -- maxReward
+    nil,   -- use default saturation
+    nil,   -- use default group bonus
+    1.0    -- 100% performance
+)
+```
+
+## FromDefinition
+
+```lua
+---@param definition JobDefinition
+---@param totalOnJob number
+---@param groupSize number
+---@param performanceMultiplier? number
+---@return number rewardPerPlayer
+RewardCalculator:FromDefinition(definition, totalOnJob, groupSize, performanceMultiplier)
+```
+
+```lua
+local job = Registry:Get('mining')
+local reward = RewardCalculator:FromDefinition(job, 5, 3, 1.0)
+```
+
+## GetSaturationMultiplier
+
+```lua
+---@param totalOnJob number
+---@param saturationOverride? JobSaturationConfig
+---@return number multiplier
+RewardCalculator:GetSaturationMultiplier(totalOnJob, saturationOverride)
+```
+
+Returns multiplier between `saturation.min` and `1.0`.
+
+```lua
+local mult = RewardCalculator:GetSaturationMultiplier(8)
+-- 8 players = 1.0 - (7 * 0.05) = 0.65
+```
+
+## GetGroupBonus
+
+```lua
+---@param groupSize number
+---@param groupBonusOverride? JobGroupBonusConfig
+---@return number multiplier
+RewardCalculator:GetGroupBonus(groupSize, groupBonusOverride)
+```
+
+Returns multiplier between `1.0` and `1.0 + bonus.max`.
+
+```lua
+local mult = RewardCalculator:GetGroupBonus(4)
+-- 4 players = 1.0 + (3 * 0.10) = 1.30 (+30%)
+```
+
+## Saturation Config
+
+```lua
+---@class JobSaturationConfig
+---@field mode 'linear' | 'exponential'
+---@field factor number -- Linear mode reduction per player
+---@field baseDecay number -- Exponential mode base
+---@field min number -- Floor multiplier (e.g. 0.40 = 40% minimum)
+```
+
+```lua
+saturation = {
+    mode = 'linear',
+    factor = 0.05,      -- -5% per additional player
+    baseDecay = 0.95,
+    min = 0.40          -- Never below 40%
+}
+```
+
+## Group Bonus Config
+
+```lua
+---@class JobGroupBonusConfig
+---@field enabled boolean
+---@field factor number -- Bonus per additional player
+---@field max number -- Max total bonus (e.g. 0.50 = +50%)
+```
+
+```lua
+groupBonus = {
+    enabled = true,
+    factor = 0.10,  -- +10% per extra player
+    max = 0.50      -- +50% cap
+}
+```
+
+## Calculation Formula
+
+```
+cappedBase = min(base, maxReward)
+saturationMult = saturation calculation
+groupMult = 1.0 + (groupSize - 1) * factor (capped at 1.0 + max)
+performance = performanceMultiplier (default 1.0)
+
+reward = cappedBase * saturationMult * groupMult * performance
+```
+
+## Examples
+
+| Base | Total | Group | Sat | Bonus | Perf | Result |
+|---|---|---|---|---|---|---|
+| 5000 | 1 | 1 | 1.00 | 1.00 | 1.0 | 5000 |
+| 5000 | 5 | 1 | 0.80 | 1.00 | 1.0 | 4000 |
+| 5000 | 1 | 4 | 1.00 | 1.30 | 1.0 | 6500 |
+| 5000 | 5 | 4 | 0.80 | 1.30 | 1.0 | 5200 |
+
+> All rewards are whole numbers. Minimum payout is 1.

@@ -1,0 +1,134 @@
+# Registry
+
+Job definition registration and retrieval.
+
+```lua
+local Registry = require 'core.registry'
+```
+
+## Register
+
+```lua
+---@param definition JobDefinition
+---@return boolean success
+---@return string? error
+Registry:Register(definition)
+```
+
+```lua
+---@class JobDefinition
+---@field key JobKey
+---@field label string
+---@field minPlayers number
+---@field maxPlayers number
+---@field reward JobRewardConfig
+---@field workgroupLimit? number
+```
+
+```lua
+---@class JobRewardConfig
+---@field base number
+---@field max? number
+---@field saturation? JobSaturationConfig
+---@field groupBonus? JobGroupBonusConfig
+```
+
+```lua
+local ok, err = Registry:Register({
+    key = 'truck_delivery',
+    label = 'Truck Delivery',
+    minPlayers = 1,
+    maxPlayers = 4,
+    reward = {
+        base = 5000,
+        max = 10000
+    }
+})
+```
+
+## Get
+
+```lua
+---@param key JobKey
+---@return JobDefinition?
+Registry:Get(key)
+```
+
+```lua
+local job = Registry:Get('truck_delivery')
+if job then
+    print(job.label, job.reward.base)
+end
+```
+
+## GetAll
+
+```lua
+---@return JobDefinition[]
+Registry:GetAll()
+```
+
+```lua
+local jobs = Registry:GetAll()
+for i = 1, #jobs do
+    print(jobs[i].key, jobs[i].label)
+end
+```
+
+## Exists
+
+```lua
+---@param key JobKey
+---@return boolean
+Registry:Exists(key)
+```
+
+```lua
+if Registry:Exists('mining') then
+    print('Mining job is registered')
+end
+```
+
+## Unregister
+
+```lua
+---@param key JobKey
+---@return boolean success
+---@return string? error
+Registry:Unregister(key)
+```
+
+```lua
+Registry:Unregister('old_job')
+```
+
+## Reward Config
+
+```lua
+reward = {
+    base = 5000,        -- Base payout per player
+    max = 10000,        -- Optional cap on base
+    saturation = {      -- Optional per-job override
+        mode = 'linear',
+        factor = 0.05,
+        baseDecay = 0.95,
+        min = 0.40
+    },
+    groupBonus = {      -- Optional per-job override
+        enabled = true,
+        factor = 0.10,
+        max = 0.50
+    }
+}
+```
+
+## Validation
+
+- `key` must be 1-64 characters
+- `minPlayers` must be >= 1
+- `maxPlayers` must be >= `minPlayers`
+- `reward.base` must be > 0
+- `reward.max` must be >= `reward.base` (if provided)
+- `workgroupLimit` must be >= `maxPlayers` (if provided)
+
+> Jobs cannot be re-registered without unregistering first.

@@ -1,0 +1,117 @@
+# SkillGate
+
+Skill tree integration for job requirements.
+
+```lua
+local SkillGate = require 'core.skilltree'
+```
+
+## IsNodeUnlocked
+
+```lua
+---@param source number
+---@param nodeId NodeId
+---@return boolean
+SkillGate:IsNodeUnlocked(source, nodeId)
+```
+
+```lua
+if SkillGate:IsNodeUnlocked(source, 'mining_advanced') then
+    -- Allow advanced mining job
+end
+```
+
+## GetLevel
+
+```lua
+---@param source number
+---@param treeId TreeId
+---@return number
+SkillGate:GetLevel(source, treeId)
+```
+
+```lua
+local level = SkillGate:GetLevel(source, 'mining')
+if level >= 5 then
+    print('Expert miner')
+end
+```
+
+## GetPoints
+
+```lua
+---@param source number
+---@param treeId TreeId
+---@return number
+SkillGate:GetPoints(source, treeId)
+```
+
+```lua
+local points = SkillGate:GetPoints(source, 'trucking')
+```
+
+## GetSkillData
+
+```lua
+---@param source number
+---@param treeId TreeId
+---@return CharSkillData?
+SkillGate:GetSkillData(source, treeId)
+```
+
+```lua
+local data = SkillGate:GetSkillData(source, 'mining')
+if data then
+    print(data.level, data.points)
+end
+```
+
+## GetUnlockedNodes
+
+```lua
+---@param source number
+---@param treeId TreeId
+---@return table<NodeId, boolean>
+SkillGate:GetUnlockedNodes(source, treeId)
+```
+
+```lua
+local nodes = SkillGate:GetUnlockedNodes(source, 'mining')
+for nodeId, unlocked in pairs(nodes) do
+    if unlocked then
+        print('Unlocked:', nodeId)
+    end
+end
+```
+
+## Common Patterns
+
+### Require skill level
+
+```lua
+local level = SkillGate:GetLevel(source, 'mining')
+if level < 3 then
+    return false, 'Mining level 3 required'
+end
+```
+
+### Require specific node
+
+```lua
+if not SkillGate:IsNodeUnlocked(source, 'trucking_hazmat') then
+    return false, 'Hazmat certification required'
+end
+```
+
+### Check multiple requirements
+
+```lua
+local mining = SkillGate:GetLevel(source, 'mining')
+local hasNode = SkillGate:IsNodeUnlocked(source, 'explosive_license')
+
+if mining < 5 or not hasNode then
+    return false, 'Advanced mining + explosive license required'
+end
+```
+
+> Returns 0/false if player has no character or skill data.

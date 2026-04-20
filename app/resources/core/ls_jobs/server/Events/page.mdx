@@ -1,0 +1,124 @@
+# Events
+
+Job lifecycle event bus with middleware support.
+
+```lua
+local EventBus = require 'core.events'
+```
+
+## On
+
+```lua
+---@param eventType JobEventType
+---@param handler fun(payload: JobEventPayload)
+---@return number listenerId
+EventBus:On(eventType, handler)
+```
+
+```lua
+EventBus:On('job_completed', function(payload)
+    print('Job completed:', payload.jobKey)
+    print('Rewards:', #payload.data.rewards)
+end)
+```
+
+## Use
+
+```lua
+---@param eventType JobEventType
+---@param handler fun(payload: JobEventPayload): boolean?
+---@return number middlewareId
+EventBus:Use(eventType, handler)
+```
+
+Middleware can block events by returning `false`.
+
+```lua
+EventBus:Use('job_started', function(payload)
+    if someCondition then
+        return false  -- Block event
+    end
+    -- Allow event to proceed
+end)
+```
+
+## Emit
+
+```lua
+---@param eventType JobEventType
+---@param data? table
+---@param sessionId? string
+---@param jobKey? JobKey
+---@return boolean allowed
+EventBus:Emit(eventType, data, sessionId, jobKey)
+```
+
+```lua
+EventBus:Emit('job_completed', {
+    rewards = rewards,
+    playerCount = 4
+}, sessionId, jobKey)
+```
+
+## Off
+
+```lua
+---@param eventType JobEventType
+---@param listenerId number
+EventBus:Off(eventType, listenerId)
+```
+
+## ListenerCount
+
+```lua
+---@param eventType JobEventType
+---@return number
+EventBus:ListenerCount(eventType)
+```
+
+## Clear
+
+```lua
+---@param eventType JobEventType
+EventBus:Clear(eventType)
+```
+
+Removes all listeners and middleware for an event type.
+
+## Event Payload
+
+```lua
+---@class JobEventPayload
+---@field eventType JobEventType
+---@field sessionId? string
+---@field jobKey? JobKey
+---@field data? table
+---@field timestamp number
+```
+
+## Event Types
+
+| Event | Fired When | Data |
+|---|---|---|
+| `job_registered` | Job registered | `key, label` |
+| `job_started` | Session started | `sessionId, jobKey, workgroupId, leaderSource, playerCount` |
+| `job_completed` | Session completed | `sessionId, jobKey, rewards, playerCount` |
+| `job_failed` | Session failed | `sessionId, jobKey, reason` |
+| `job_player_joined` | Player joins | `sessionId, jobKey, source, charId, playerCount` |
+| `job_player_left` | Player leaves | `sessionId, jobKey, source, charId, playerCount` |
+| `job_player_disconnected` | Player disconnects | `sessionId, jobKey, source, charId` |
+| `job_player_reconnected` | Player reconnects | `sessionId, jobKey, source, charId` |
+| `job_leader_changed` | New leader promoted | `sessionId, jobKey, newLeaderSource, oldLeaderSource` |
+| `job_reward_payout` | Reward paid | `charId, source, amount, jobKey, sessionId` |
+| `job_session_expired` | Session timeout | `sessionId, jobKey` |
+
+## Example Listener
+
+```lua
+EventBus:On('job_reward_payout', function(payload)
+    local data = payload.data
+    print(('Reward: %d -> char %d'):format(data.amount, data.charId))
+end)
+```
+
+> Events also trigger standard FiveM events as `Jobs:eventType`.
