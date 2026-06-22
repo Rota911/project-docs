@@ -57,6 +57,45 @@ character:GetStatus(status)
 
 These do **not** check the `protected` flag — they're meant for trusted server-side callers. Client-initiated changes always go through `Status:Server:Update` (see below), which does enforce it.
 
+### Labor methods
+
+`labor` is a separate point pool, clamped to `[0, LaborConfig.limit]` (not `[0, 100]` like the methods above) — based on the [`e_core`](https://github.com/Ekhion76/e_core) `server/labor.lua` reference implementation. Same functions back both the flat exports and the character methods.
+
+```lua
+---@param amount number|string
+---@return boolean success
+---@return string|nil error  -- "character_not_found" | "invalid_amount" | "labor_already_at_maximum"
+character:AddLabor(amount)
+
+---@param amount number|string
+---@return boolean success
+---@return string|nil error  -- ... | "labor_already_at_minimum"
+character:RemoveLabor(amount)
+
+---@param amount number|string
+---@return boolean success
+---@return string|nil error
+character:SetLabor(amount)
+
+---@return number|nil labor
+---@return string|nil error
+character:GetLabor()
+```
+
+New characters start at `Config.defaultLabor` (lower than `limit`), then grow toward `limit` via the auto-increase cron (every `increaseTime` minutes, `+increase` points) and an offline catch-up calculation on character load.
+
+```lua
+RegisterNetEvent('Lumberjack:Server:TreeHit', function()
+    local character = LS:GetCharacter(source)
+    if not character then return end
+
+    local ok, err = character:RemoveLabor(5)
+    if not ok and err == 'labor_already_at_minimum' then
+        character:Event('Lumberjack:Client:TooTired')
+    end
+end)
+```
+
 ## Exports
 
 ### ModifyStatus
@@ -79,6 +118,34 @@ exports['ls_statuses']:ModifyStatus(source, statusName, operation, value)
 exports['ls_statuses']:ModifyStatus(source, 'cooled', 'Set', 100)
 ```
 
+### GetLabor / SetLabor / AddLabor / RemoveLabor
+
+Flat-export form of the labor methods above — `identifier` accepts a player `source` or character identifier. Kept for resources that only have an identifier on hand (e.g. `ls_jobs`), not a `Character` instance.
+
+```lua
+---@param identifier number|string
+---@return number|nil labor
+---@return string|nil error
+exports['ls_statuses']:GetLabor(identifier)
+
+---@param identifier number|string
+---@param amount number
+---@return boolean success
+---@return string|nil error
+exports['ls_statuses']:SetLabor(identifier, amount)
+exports['ls_statuses']:AddLabor(identifier, amount)
+exports['ls_statuses']:RemoveLabor(identifier, amount)
+```
+
+```lua
+-- have a source/identifier only -> use the export
+exports['ls_statuses']:AddLabor(source, 100)
+
+-- have a Character instance -> use the method directly
+local character = LS:GetCharacter(source)
+character:AddLabor(100)
+```
+
 ## Net Events
 
 | Event | Args | Description |
@@ -95,6 +162,7 @@ exports['ls_statuses']:ModifyStatus(source, 'cooled', 'Set', 100)
 | `hunger` | 100 | 1.66 | yellow | protected, hide |
 | `stress` | 0 | 1.66 | red | inverted, hide |
 | `drunk` | 0 | 3.33 | pink | protected, inverted, hide |
+| `labor` | `Config.defaultLabor` | 0 (own cron, see Labor methods) | green | hide |
 | `oxygen-tank` | 0 | — | white | inverted, hide |
 
 `configs/sh_tempStatuses.lua` (contextual/temp):
@@ -109,6 +177,19 @@ exports['ls_statuses']:ModifyStatus(source, 'cooled', 'Set', 100)
 | `godmode` | false | — | |
 | `cooled` | 0 | 6.67 | inverted — ~15min cooling buff, read by `ls_weather` |
 | `warmed` | 0 | 6.67 | inverted — ~15min warming buff, read by `ls_weather` |
+
+## Config
+
+`LaborConfig` (`configs/sh_labor.lua`):
+
+```lua
+---@class LaborConfig
+---@field defaultLabor number     -- starting labor for new characters
+---@field limit number
+---@field increaseTime number    -- minutes between auto increases
+---@field increaseOffline number -- labor granted per increaseTime while offline
+---@field increase number        -- labor granted per increaseTime while online
+```
 
 ## Types
 
