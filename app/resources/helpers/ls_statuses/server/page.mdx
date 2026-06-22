@@ -1,12 +1,67 @@
 # Server
 
-Decays statuses every minute via `LS.Cron` and persists them on `character:SetData('statuses', ...)`. Labor auto-increases on a separate cron and on character load (offline accumulation).
+Decays statuses every minute via `LS.Cron` and persists them on `character:SetData('statuses', ...)`.
+
+Status **definitions** (what statuses exist, base value, decay rate, flags) are registered into an `ls_core` module (`LS.Statuses`). Per-character status **modifications** (add/remove/set/get a value for one character) are exposed as `Character` methods via `ls_core`'s `RegisterCharacterMethod`, not as flat exports.
+
+## Statuses module (`LS.Statuses`)
+
+Registered on startup via `LS:RegisterModule('Statuses', cache.resource, 'modules/statuses')`. Holds definitions only — no per-character data.
+
+```lua
+---@param name string
+---@param statusData StatusData
+---@return boolean  -- false if name already registered
+LS.Statuses:Register(name, statusData)
+
+---@param name? string
+---@return StatusData|table<string, StatusData>  -- one definition, or all if name is omitted
+LS.Statuses:Get(name)
+```
+
+```lua
+-- Register a custom status from another resource (on its own startup)
+LS.Statuses:Register('fatigue', {
+    baseValue = 0,
+    icon = 'IconBattery1',
+    color = 'orange',
+    modify = 2,                          -- decays 2 units/min
+    options = { hide = true, inverted = true },
+})
+```
+
+## Character methods
+
+Registered via `ls_core`'s `RegisterCharacterMethod` — call on the `Character` instance, not via `exports`.
+
+```lua
+---@param status string
+---@param value number
+---@return boolean
+character:AddStatus(status, value)     -- clamps to [0, 100]
+
+---@param status string
+---@param value number
+---@return boolean
+character:RemoveStatus(status, value)  -- clamps to [0, 100]
+
+---@param status string
+---@param value number|boolean
+---@return boolean
+character:SetStatus(status, value)     -- numbers clamp to [0, 100], booleans pass through as-is
+
+---@param status string
+---@return number|boolean|nil
+character:GetStatus(status)
+```
+
+These do **not** check the `protected` flag — they're meant for trusted server-side callers. Client-initiated changes always go through `Status:Server:Update` (see below), which does enforce it.
 
 ## Exports
 
-All server-side. Identifiers accept a player source or character identifier (`LaborHandler` ones; `ModifyStatus` takes a source).
-
 ### ModifyStatus
+
+Generic status modifier for cross-resource use, kept as a flat export for callers that only have a player `source` (not a `Character` instance) on hand — internally delegates to the character methods above.
 
 ```lua
 ---@param source number
@@ -17,58 +72,18 @@ All server-side. Identifiers accept a player source or character identifier (`La
 exports['ls_statuses']:ModifyStatus(source, statusName, operation, value)
 ```
 
-`false` on unknown `operation` or status. Protected statuses still reject the change.
+`false` on unknown `operation`, unknown character, or missing method.
 
 ```lua
 -- Apply a ~15 min cooling buff (consumed via ls_inventory)
 exports['ls_statuses']:ModifyStatus(source, 'cooled', 'Set', 100)
 ```
 
-### GetLabor
-
-```lua
----@param identifier number|string
----@return number|nil labor
----@return string|nil error  -- "labor_system_disabled" | "character_not_found"
-exports['ls_statuses']:GetLabor(identifier)
-```
-
-### SetLabor / AddLabor / RemoveLabor
-
-```lua
----@param identifier number|string
----@param amount number
----@return boolean success
----@return string|nil error
-exports['ls_statuses']:SetLabor(identifier, amount)
-exports['ls_statuses']:AddLabor(identifier, amount)
-exports['ls_statuses']:RemoveLabor(identifier, amount)
-```
-
-Clamped to `[0, limit]`. `RemoveLabor` returns `false, "labor_already_at_minimum"` at 0; `AddLabor` returns `false, "labor_already_at_maximum"` at the limit.
-
-```lua
-exports['ls_statuses']:AddLabor(source, 100)
-```
-
 ## Net Events
 
 | Event | Args | Description |
 |---|---|---|
-| `Status:Server:Update` | `statusName: string, value: number, operation: string` | Client-initiated status change. `operation` is `"Add"`\|`"Remove"`\|`"Set"`. Rejected if the status is `protected` or unknown. |
-
-## Config
-
-`LaborConfig` (`configs/sh_labor.lua`):
-
-```lua
----@class LaborConfig
----@field enabled boolean
----@field limit number
----@field increaseTime number    -- minutes between auto increases
----@field increaseOffline number -- labor granted per increaseTime while offline
----@field increase number        -- labor granted per increaseTime while online
-```
+| `Status:Server:Update` | `statusName: string, value: number, operation: string` | Client-initiated status change. `operation` is `"Add"`\|`"Remove"`\|`"Set"`. Rejected if the status is `protected` or unknown — dispatches to the character methods above. |
 
 ## Built-in Statuses
 
@@ -80,7 +95,6 @@ exports['ls_statuses']:AddLabor(source, 100)
 | `hunger` | 100 | 1.66 | yellow | protected, hide |
 | `stress` | 0 | 1.66 | red | inverted, hide |
 | `drunk` | 0 | 3.33 | pink | protected, inverted, hide |
-| `labor` | 10000 | 0 | green | hide — managed by labor exports |
 | `oxygen-tank` | 0 | — | white | inverted, hide |
 
 `configs/sh_tempStatuses.lua` (contextual/temp):
@@ -113,4 +127,35 @@ exports['ls_statuses']:AddLabor(source, 100)
 ---@field hide? boolean
 ---@field order? number
 ---@field protected? boolean      -- rejects client-originated Status:Server:Update
+```
+
+## Usage example
+
+A job resource that drains stamina and builds up stress while working, capping how tired a character can get, all through the `Character` API — no need to touch `ls_statuses` internals or go through `exports`:
+
+```lua
+RegisterNetEvent('Lumberjack:Server:TreeHit', function()
+    local character = LS:GetCharacter(source)
+    if not character then return end
+
+    character:AddStatus('fatigue', 5)
+    character:AddStatus('stress', 1)
+
+    if character:GetStatus('fatigue') >= 80 then
+        character:RemoveStatus('stamina', 30)
+        character:Event('Lumberjack:Client:Exhausted')
+    end
+end)
+```
+
+Some statuses hold a `boolean` instead of a `0-100` range (e.g. `godmode`) — `SetStatus`/`GetStatus` pass these through as-is, only `Add`/`Remove` clamp numerically:
+
+```lua
+RegisterCommand('godmode', function(source)
+    local character = LS:GetCharacter(source)
+    if not character then return end
+
+    local enabled = not character:GetStatus('godmode')
+    character:SetStatus('godmode', enabled)
+end, true)
 ```
