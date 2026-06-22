@@ -1,0 +1,141 @@
+# Appearance — Client
+
+Ped model, head blend, face structure, head overlays, drawables, and props. Access via `exports.ls_appearance`.
+
+## OpenAppearanceMenu
+
+```lua
+---@param type string "character_creator" | "admin_creator" | shop type
+---@param structure table? Category list override; nil uses config default for `type`
+---@param callback fun(ok: boolean, appearance: table)? Called when editor closes
+---@param ped number? Defaults to cache.ped
+---@param save boolean? Whether saving is enabled in the UI, default true
+exports.ls_appearance:OpenAppearanceMenu(type, structure, callback, ped, save)
+```
+
+```lua
+exports.ls_appearance:OpenAppearanceMenu("character_creator", nil, function(ok, appearance)
+    if ok then LS.Logger:Debug("Appearance saved") end
+end)
+```
+
+## GetDefaults
+
+```lua
+---@return table Default appearance values
+exports.ls_appearance:GetDefaults()
+```
+
+## GetDatas
+
+```lua
+---@return table Drawable/prop metadata
+exports.ls_appearance:GetDatas()
+```
+
+## Getters
+
+```lua
+---@param ped number
+---@return table Hair color data (color, highlight)
+exports.ls_appearance:GetPedHairColor(ped)
+
+---@param ped number
+---@return table Head blend data (shapeFirst, shapeSecond, shapeThird, skinFirst, skinSecond, skinThird, shapeMix, skinMix, thirdMix, hasParent)
+exports.ls_appearance:GetPedHeadBlendData(ped)
+
+---@param ped number
+---@return table headData, table totals
+exports.ls_appearance:GetPedHeadOverlay(ped)
+
+---@param ped number
+---@return table Head structure data (index, value)
+exports.ls_appearance:GetPedHeadStructure(ped)
+
+---@param ped number
+---@return table drawables, table totalDrawables
+exports.ls_appearance:GetPedDrawables(ped)
+
+---@param ped number
+---@return table props, table totalProps
+exports.ls_appearance:GetPedProps(ped)
+
+---@param ped number
+---@return table Full appearance (model, hairColor, headBlend, headOverlay, headOverlayTotal, headStructure, drawables, props, drawTotal, propTotal)
+exports.ls_appearance:GetPedAppearance(ped)
+
+---@param ped number
+---@return table Clothes data (drawables, props, headOverlay)
+exports.ls_appearance:GetPedClothes(ped)
+
+---@param ped number
+---@return table Skin data (headBlend, headStructure, hairColor, model)
+exports.ls_appearance:GetPedSkin(ped)
+
+---@param charId string
+---@return table Saved appearance data
+exports.ls_appearance:GetSavedAppearance(charId)
+```
+
+## Setters
+
+```lua
+---@param ped number
+---@param data table HeadBlend data (shapeFirst, shapeSecond, shapeThird, skinFirst, skinSecond, skinThird, shapeMix, skinMix, thirdMix, hasParent)
+exports.ls_appearance:SetPedHeadBlendData(ped, data)
+
+---@param ped number
+---@param data table HeadOverlay data (index, overlayValue, overlayOpacity, firstColor, secondColor, hairColor, hairHighlight)
+exports.ls_appearance:SetPedHeadOverlay(ped, data)
+
+---@param ped number
+---@param data table HeadStructure data (index, value)
+exports.ls_appearance:SetPedFaceFeature(ped, data)
+
+---@param ped number
+---@param data table Drawable data (index, value, texture)
+---@return number Total texture variations
+exports.ls_appearance:SetPedDrawable(ped, data)
+
+---@param ped number
+---@param data table Prop data (index, value, texture)
+---@return number Total texture variations
+exports.ls_appearance:SetPedProp(ped, data)
+
+---@param ped number
+---@param data table? Model data (model, headBlend, headStructure)
+---@return number|boolean Returns ped or false on failure
+exports.ls_appearance:SetPlayerModel(ped, data)
+
+---@param ped number
+---@param data table Hair color data (color, highlight)
+exports.ls_appearance:SetPedHairColor(ped, data)
+
+---@param ped number
+---@param data table Clothes data (drawables, props, headOverlay)
+exports.ls_appearance:SetPedClothes(ped, data)
+
+---@param ped number
+---@param data table Skin data (model, headBlend, headStructure)
+---@return number|nil Returns ped or nil on failure
+exports.ls_appearance:SetPedSkin(ped, data)
+
+---@param ped number
+---@param appearance table Full appearance data
+---@return boolean Success
+exports.ls_appearance:SetPedAppearance(ped, appearance)
+```
+
+## Events
+
+| Event | Direction | Payload | Description |
+|---|---|---|---|
+| `Appearance:Client:OpenAppearance` | Server → Client | `type, structure?` | Opens editor on target client, sent by `/appearance` admin command |
+| `Appearance:Client:AppearanceLoaded` | Local | `appearanceData: table\|nil` | Fired after saved skin applied to local ped on login / resource start |
+
+## Callbacks
+
+```lua
+---@return table|nil Full appearance snapshot of PlayerPedId()
+LS.Callback:Await('Appearance:Client:GetCurrentAppearance', false)
+```

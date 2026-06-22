@@ -1,0 +1,77 @@
+# ls_ipl
+
+Distance-based IPL (interior placement) loader. Each IPL self-registers with coords and a trigger distance; a single client thread loads/unloads it as the player moves in/out of range. No exports, no events.
+
+## IPLData
+
+```lua
+---@class IPLData
+---@field ipl string Main IPL name
+---@field coords vector3 Coordinates the IPL loads around
+---@field distance number Trigger distance
+---@field subIpls? string[] Sub-IPLs loaded/unloaded with the main IPL
+---@field remove? string[] IPLs to remove when this one loads
+---@field interiorId? number Interior ID for entity set management
+---@field settings? table Entity set settings (key -> selected variant)
+---@field tints? table Tint entity set config
+---@field basement? table Basement entity set config
+```
+
+## Registering an IPL
+
+Drop a file under `ipls/` — it self-registers at resource start via `Storage:Register`.
+
+```lua
+require 'client.modules.storage':Register({
+    distance = 25.0,
+    coords = vector3(-281.33, 2833.77, 55.01),
+    ipl = 'lr_cs6_08_grave_closed'
+})
+```
+
+With sub-IPLs and conflicting-interior removal:
+
+```lua
+require 'client.modules.storage':Register({
+    distance = 1200.0,
+    coords = vector3(538.70, 739.51, 202.97),
+    ipl = 'm25_2_ch2_04_mansion_interior_a',
+    interiorId = 304385,
+    subIpls = {
+        'm25_2_ch2_04_mansion_interior_b',
+        'apa_ch2_04_mansion_shared',
+    },
+    remove = { 'conflicting_ipl_name' }
+})
+```
+
+## Entity sets
+
+`settings` maps a category key to the variant name selected for that interior; the matching table on the same `IPLData` (e.g. `entitySets`, `wallpapers`, `decorations`) resolves the variant to the actual entity set prop name(s). `tints` and `basement` are special-cased.
+
+```lua
+settings = {
+    entitySets = 'cali',     -- looks up data.entitySets.cali
+    tints = 'mint',          -- looks up data.tints.mint (color index)
+    basement = {
+        vault = 'open',      -- looks up data.basement.vault.open
+    }
+},
+entitySets = {
+    cali = { 'set_style_cali', 'set_elev_cali' }
+},
+tints = {
+    entitySetName = 'set_style_cali_tint',
+    mint = 1
+},
+basement = {
+    interiorId = 304641,
+    vault = { open = 'set_vault_door_open', closed = 'set_vault_door_closed' }
+}
+```
+
+`EntitySet:Activate`/`Deactivate` run automatically on load/unload — never called directly from IPL files.
+
+## Internal behavior
+
+A thread polls every 500ms, computes 3D distance from the player to every registered IPL, and calls `RequestIpl`/`RemoveIpl` on boundary crossings. `data.active` tracks current state so repeated polls don't re-trigger natives. Interior ID defaults to `GetInteriorAtCoords(coords)` if `interiorId` is omitted.

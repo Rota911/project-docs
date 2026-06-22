@@ -1,0 +1,48 @@
+# Events & Types
+
+## Server-local
+
+| Event | Args | Description |
+|---|---|---|
+| `Skilltree:RefreshSkilltrees` | — | Fired after all default trees (from `Config.SkillTree`) are registered. External resources should listen here to register their own trees. |
+| `SkillTree:Server:Register` | `treeId: string` | Fired when any tree is registered into the manager |
+| `SkillTree:Server:Remove` | `treeId: string` | Fired when a tree is removed |
+
+```lua
+AddEventHandler("Skilltree:RefreshSkilltrees", function()
+    exports["ls_skilltree"]:RegisterTrees(function(ST)
+        ST:CreateAndRegister({ id = "mining", name = "Mining", baseXp = 400, xpGrowth = 1.2, nodes = { ... } })
+    end)
+end)
+```
+
+## Server → Client
+
+| Event | Payload | Description |
+|---|---|---|
+| `SkillTree:Client:Load` | `{ trees: table<string, SerializedTree>, skills: table<string, CharSkills> }` | Sent to a player on character load |
+| `SkillTree:Client:Register` | `{ tree: SerializedTree, skills: table<string, CharSkills> }` | Broadcast when a tree is registered at runtime |
+| `SkillTree:Client:Remove` | `treeId: string` | Broadcast when a tree is unregistered |
+
+## Types
+
+```lua
+---@class SkillNode
+---@field preRequisites string[]     All must be unlocked before this node is available
+---@field anyPreRequisites? string[] At least one must be unlocked (optional)
+---@field children string[]          Node IDs unlocked after this one
+---@field lock string[]              Mutually exclusive node IDs
+---@field unlocked boolean
+---@field label string
+---@field description string
+---@field cost number                Skill points required to unlock
+
+---@class TreeSkillData
+---@field xp number
+---@field level number
+---@field points number
+---@field requiredXp number
+---@field unlockedNodes table<string, boolean>
+
+---@alias CharSkills table<string, TreeSkillData>
+```

@@ -1,0 +1,146 @@
+# ls_interaction
+
+Targeting/interaction system — attach context-menu options to peds, vehicles, objects, players, model hashes, network entities, local entities, or zones. Player holds **Alt** to raycast against nearby interactables; NUI menu shows on click. All exports are client-side: `exports["ls_interaction"]:Fn(...)`.
+
+## InteractionOption
+
+```lua
+---@class InteractionOption
+---@field label string Display text (required)
+---@field name? string Unique ID for removal; auto-generated if omitted
+---@field icon? string FontAwesome class, e.g. "fas fa-hand"
+---@field color? string Icon colour, e.g. "#ffffff"
+---@field distance? number Max show distance (default 2.5)
+---@field onSelect? fun(data: InteractionData) Callback on select
+---@field canInteract? fun(entity, distance, data): boolean Hide option dynamically
+---@field bones? string|string[]|number|number[] Restrict to specific bones
+---@field offset? vector3 Local-space offset activation point
+---@field absoluteOffset? boolean Treat offset as world-space
+---@field offsetSize? number Activation radius around offset (default 1.0)
+---@field subOptions? InteractionOption[] Nested sub-menu (not combinable with onSelect)
+---@field export? string Export name to call on select
+---@field event? string Client event to trigger
+---@field serverEvent? string Server event to trigger
+---@field command? string Command to execute
+---@field resource? string Resource name (auto-populated)
+```
+
+```lua
+---@class InteractionSettings
+---@field drawSprite? boolean Draw dot indicator (default true)
+---@field drawSpriteDistance? number Max distance for the dot
+---@field markIcon? string Tabler icon above entity (first registration wins)
+---@field markColor? string Hex colour for the mark icon
+```
+
+## Global targets
+
+```lua
+---@param options InteractionOption|InteractionOption[]
+exports["ls_interaction"]:AddGlobalPed(options)
+exports["ls_interaction"]:AddGlobalVehicle(options)
+exports["ls_interaction"]:AddGlobalObject(options)
+exports["ls_interaction"]:AddGlobalPlayer(options)
+exports["ls_interaction"]:AddGlobalOption(options) -- always-present global slot
+
+---@param names string|string[]
+exports["ls_interaction"]:RemoveGlobalPed(names)
+exports["ls_interaction"]:RemoveGlobalVehicle(names)
+exports["ls_interaction"]:RemoveGlobalObject(names)
+exports["ls_interaction"]:RemoveGlobalPlayer(names)
+exports["ls_interaction"]:RemoveGlobalOption(names)
+```
+
+```lua
+exports["ls_interaction"]:AddGlobalPed({
+    label = "Talk",
+    icon = "fas fa-comment",
+    distance = 2.0,
+    onSelect = function(data) print("Ped:", data.entity) end
+})
+```
+
+## Model / entity targets
+
+```lua
+---@param models string|number|(string|number)[]
+---@param options InteractionOption|InteractionOption[]
+---@param settings? InteractionSettings
+exports["ls_interaction"]:AddModel(models, options, settings)
+exports["ls_interaction"]:RemoveModel(models, names)
+
+---@param netIds number|number[]
+exports["ls_interaction"]:AddEntity(netIds, options, settings) -- by network ID
+exports["ls_interaction"]:RemoveEntity(netIds, names)
+
+---@param entityIds number|number[]
+exports["ls_interaction"]:AddLocalEntity(entityIds, options, settings) -- client-local handle
+exports["ls_interaction"]:RemoveLocalEntity(entityIds, names)
+```
+
+```lua
+exports["ls_interaction"]:AddEntity(netId, {
+    { label = "Inspect", onSelect = function(data) end }
+}, { drawSprite = true })
+```
+
+## Zones
+
+```lua
+---@class ZoneOption
+---@field coords vector3 Zone centre
+---@field size? vector3 Box zone size
+---@field radius? number Sphere zone radius
+---@field points? vector3[] Poly zone corners
+---@field heading? number Rotation in degrees (box only)
+---@field minZ? number Min Z boundary
+---@field maxZ? number Max Z boundary
+---@field name? string Unique zone name
+---@field debug? boolean Show debug visualisation
+-- plus all InteractionOption fields
+
+---@param data ZoneOption
+---@return number zoneId
+exports["ls_interaction"]:AddPolyZone(data)
+exports["ls_interaction"]:AddBoxZone(data)
+exports["ls_interaction"]:AddSphereZone(data)
+
+---@param zoneId number|string
+---@return boolean
+exports["ls_interaction"]:ZoneExists(zoneId)
+
+---@param zoneId number|string
+---@param suppressWarning? boolean
+exports["ls_interaction"]:RemoveZone(zoneId, suppressWarning)
+```
+
+```lua
+local id = exports["ls_interaction"]:AddBoxZone({
+    coords = vector3(100.0, 200.0, 30.0),
+    size = vector3(4.0, 4.0, 2.0),
+    heading = 0.0,
+    options = { { label = "Enter", event = "MyResource:Client:Enter" } }
+})
+
+exports["ls_interaction"]:RemoveZone(id)
+```
+
+## Querying
+
+```lua
+---@param entity? number
+---@param entityType? number
+---@param model? number
+---@return TargetOptionsResult
+exports["ls_interaction"]:GetTargetOptions(entity, entityType, model)
+```
+
+## Events
+
+| Event | Direction | Payload | Notes |
+|-------|-----------|---------|-------|
+| `Interaction:Server:SetEntityHasOptions` | client→server | `netId: number` | Sets `hasTargetOptions = true` state bag |
+| `Interaction:Server:RemoveEntity` | client→server | `netIds: number[]` | Clears state bag, broadcasts removal |
+| `Interaction:Client:RemoveEntity` | server→client | `netIds: number[]` | Purges locally cached options |
+
+> Options are scoped to the registering resource and auto-removed on `onResourceStop`. Networked entities with options get `hasTargetOptions = true` set server-side so other systems can detect them.

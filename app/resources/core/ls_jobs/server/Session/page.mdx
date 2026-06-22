@@ -156,21 +156,33 @@ local total = SessionService:CountPlayersOnJob('mining')
 
 ```lua
 ---@param source number
-SessionService:DisconnectPlayer(source)
+---@param charId? number Resolved charId, avoids a second lookup if already known
+SessionService:DisconnectPlayer(source, charId)
 ```
 
-Handles player disconnect, marks for reconnect.
+Handles player disconnect, marks for reconnect, promotes a new leader if needed.
 
 ## HandleReconnect
 
 ```lua
----@param source number
+---@param source number New server source after reconnect
 ---@param charId number
----@return boolean success
 SessionService:HandleReconnect(source, charId)
 ```
 
-Restores player to their session after reconnect.
+Restores player to their session after reconnect, re-promotes them to leader if they were leader and no one else has been promoted.
+
+## GetSources
+
+```lua
+---@param sessionId string
+---@return number[]
+SessionService:GetSources(sessionId)
+```
+
+```lua
+local sources = SessionService:GetSources('sess_abc123')
+```
 
 ## JobSession
 

@@ -1,0 +1,126 @@
+# Server Exports
+
+Flat exports — convenience wrappers around `SkillTreeManager`. Most external resources should prefer `GetClass()`/`RegisterTrees` (see [Manager](../Manager)).
+
+## GetClass
+
+```lua
+---@return SkillTreeManager
+local ST = exports["ls_skilltree"]:GetClass()
+```
+
+## RegisterTrees
+
+Calls `fn` with a ready `SkillTreeManager`. Fire after `Skilltree:RefreshSkilltrees` — no manual `GetClass`/`Wait` needed.
+
+```lua
+---@param fn fun(ST: SkillTreeManager)
+exports["ls_skilltree"]:RegisterTrees(function(ST)
+    ST:CreateAndRegister({ id = "combat", name = "Combat", nodes = { ... } })
+end)
+```
+
+## CreateTree / RegisterTree / CreateAndRegisterTree / GetTree / RemoveTree
+
+```lua
+---@param data table
+---@return string|nil treeId
+exports["ls_skilltree"]:CreateTree(data)
+
+---@param treeId string
+---@return boolean
+exports["ls_skilltree"]:RegisterTree(treeId)
+
+---@param data table
+---@return boolean
+exports["ls_skilltree"]:CreateAndRegisterTree(data)
+
+---@param treeId string
+---@return boolean exists
+exports["ls_skilltree"]:GetTree(treeId)
+
+---@param treeId string
+---@return boolean
+exports["ls_skilltree"]:RemoveTree(treeId)
+```
+
+```lua
+local ok = exports["ls_skilltree"]:CreateAndRegisterTree({
+    id = "farming", name = "Farming", baseXp = 300, xpGrowth = 1.1, nodes = { ... }
+})
+```
+
+## AddXP / UnlockNode / Respec / AddPoints
+
+```lua
+---@param treeId string
+---@param charId number
+---@param amount number
+---@return boolean leveledUp
+exports["ls_skilltree"]:AddXP(treeId, charId, amount)
+
+---@param treeId string
+---@param charId number
+---@param nodeId string
+---@return boolean success
+---@return string|nil reason
+exports["ls_skilltree"]:UnlockNode(treeId, charId, nodeId)
+
+---@param treeId string
+---@param charId number
+---@return boolean success
+---@return number refundedPoints
+exports["ls_skilltree"]:Respec(treeId, charId)
+
+---@param treeId string
+---@param charId number
+---@param amount number
+---@return boolean
+exports["ls_skilltree"]:AddPoints(treeId, charId, amount)
+```
+
+## GetCharacterSkills / GetCharacterData / GetAllIds
+
+```lua
+---@param charId number
+---@return CharSkills
+exports["ls_skilltree"]:GetCharacterSkills(charId)
+
+---@param treeId string
+---@param charId number
+---@return TreeSkillData|nil
+exports["ls_skilltree"]:GetCharacterData(treeId, charId)
+
+---@return string[]
+exports["ls_skilltree"]:GetAllIds()
+```
+
+## Character methods
+
+Registered on `Character` via `ls_core`'s `RegisterCharacterMethod` — call on the instance, not via exports.
+
+```lua
+---@param nodeId string
+---@return boolean
+character:IsNodeUnlocked(nodeId)  -- checks across all registered trees
+
+---@param treeId string
+---@return TreeSkillData|nil
+character:GetSkillData(treeId)
+
+---@param treeId string
+---@return number
+character:GetSkillLevel(treeId)
+
+---@param treeId string
+---@return number
+character:GetSkillPoints(treeId)
+
+---@param treeId string
+---@return table<string, boolean>
+character:GetUnlockedNodes(treeId)
+```
+
+```lua
+local level = character:GetSkillLevel("mining")
+```

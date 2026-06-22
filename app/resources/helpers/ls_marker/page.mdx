@@ -1,687 +1,139 @@
 # ls_marker
 
-### Marker típusok
+DUI-based marker system rendering three world-space marker types (waypoint, ground, mark) via web textures on GTA sprites. Ground markers track vehicle wheel occupancy and sync state to workgroup/vehicle co-occupants through the server. All exports are client-side.
 
-  waypoint \
-  mark \
-  ground \
-  groundpoly 
+## Marker types
 
-## API Exportok
+| Type | Description |
+|------|-------------|
+| `waypoint` | Floating direction indicator |
+| `ground` | Parking/landing spot with vehicle-state colors |
+| `mark` | Diamond icon/label marker |
 
-### Marker létrehozás
-
-#### CreateMarker
-
-Általános marker létrehozó függvény.
-Ez visszaadja a marker instance-t amivel lehet törölni és egyebeket!
-```lua
----@param data table Marker konfiguráció
----@return table|nil Marker instance vagy nil ha sikertelen
-exports.ls_marker:CreateMarker(data)
-```
-
-**Példa:**
-```lua
-local parkingSpot = exports.ls_marker:CreateMarker({
-  id = "pd_parking_1",
-  type = "ground",
-  position = vector3(441.58, -981.23, 25.70),
-  width = 17.2,
-  height = 13.2,
-  heading = 90.0,
-  lineColor = "#e5e7eb",
-  activeBorderColor = "#69db7c",
-  activeBackgroundColor = "#40c057",
-  errorBorderColor = "#ffa94d",
-  errorBackgroundColor = "#fd7e14",
-  onVehicleParked = function(markerId, vehicle)
-    print("Jármű beparkolva:", vehicle)
-  end,
-  onVehicleExited = function(markerId, vehicle)
-    print("Jármű elhagyta a helyet:", vehicle)
-  end
-})
-```
-
-#### CreateWaypoint
-
-Waypoint marker létrehozása.
+## Mark
 
 ```lua
-exports.ls_marker:CreateWaypoint(data)
-```
-
-**Példa:**
-```lua
-local checkpoint = exports.ls_marker:CreateWaypoint({
-  id = "race_checkpoint_1",
-  position = vector3(100.0, 200.0, 30.0),
-  color = "#4dabf7",
-  label = "1. Checkpoint"
-})
-```
-
-#### CreateMark
-
-Mark (nyíl) marker létrehozása.
-
-```lua
+---@param data MarkerData
+---@return string|nil id
 exports.ls_marker:CreateMark(data)
+
+---@param id string
+exports.ls_marker:RemoveMark(id)
+exports.ls_marker:EnableMark(id)
+exports.ls_marker:DisableMark(id)
+
+---@param id string
+---@param entity number
+---@param offset? number
+---@return boolean
+exports.ls_marker:SetMarkEntity(id, entity, offset)
+
+---@param id string
+---@param pos vector3
+---@return boolean
+exports.ls_marker:SetMarkPosition(id, pos)
+
+---@param id string
+---@param key string
+---@param value any
+exports.ls_marker:PatchMarkSettings(id, key, value)
 ```
 
-**Példa:**
-```lua
-local poi = exports.ls_marker:CreateMark({
-  id = "treasure_location",
-  position = vector3(250.0, 300.0, 35.0),
-  iconName = "IconStar",
-  iconColor = "#ffd700",
-  iconSize = 96,
-  lineColor = "#d4d4d4"
-})
-```
-
-#### CreateGround
-
-Téglalap alakú parkolóhely létrehozása.
+## Ground
 
 ```lua
+---@param data MarkerData
+---@return string|nil id
 exports.ls_marker:CreateGround(data)
+
+exports.ls_marker:RemoveGround(id)
+exports.ls_marker:EnableGround(id)
+exports.ls_marker:DisableGround(id)
+exports.ls_marker:SetGroundPosition(id, pos)
+exports.ls_marker:PatchGroundSettings(id, key, value)
 ```
 
-**Példa:**
 ```lua
-local parking = exports.ls_marker:CreateGround({
-  id = "hospital_parking",
-  position = vector3(300.0, -580.0, 43.28),
-  width = 17.2,
-  height = 13.2,
-  heading = 0.0,
-  activeBorderColor = "#69db7c",
-  errorBorderColor = "#ffa94d",
-  onVehicleParked = function(id, veh)
-    TriggerEvent("hospital:vehicleParked", veh)
-  end
-})
-```
-
-#### CreateGroundPoly
-
-Polygon alakú parkolóhely létrehozása.
-
-```lua
-exports.ls_marker:CreateGroundPoly(data)
-```
-
-**Példa:**
-```lua
-local polyParking = exports.ls_marker:CreateGroundPoly({
-  id = "irregular_parking",
-  corners = {
-    vec2(100.0, 200.0),
-    vec2(120.0, 205.0),
-    vec2(118.0, 220.0),
-    vec2(98.0, 218.0)
-  },
-  activeBorderColor = "#69db7c",
-  errorBorderColor = "#ffa94d"
-})
-```
-
-### Marker kezelés
-
-#### GetMarker
-
-Marker lekérdezése ID alapján.
-
-```lua
----@param id string Marker ID
----@return table|nil Marker instance
-exports.ls_marker:GetMarker(id)
-```
-
-#### GetAllMarkers
-
-Összes marker lekérdezése.
-
-```lua
----@return table Összes marker
-exports.ls_marker:GetAllMarkers()
-```
-
-#### EnableMarker / DisableMarker
-
-Marker engedélyezése vagy letiltása.
-
-```lua
-exports.ls_marker:EnableMarker(id)   -- Engedélyezés
-exports.ls_marker:DisableMarker(id)  -- Letiltás
-```
-
-#### DeleteMarker
-
-Marker törlése.
-
-```lua
----@param id string Marker ID
----@return boolean Sikeres törlés
-exports.ls_marker:DeleteMarker(id)
-```
-
-**Példa:**
-```lua
--- Temporary marker törlése 30 másodperc után
-local tempMarker = exports.ls_marker:CreateWaypoint({
-  id = "temp_marker",
-  position = GetEntityCoords(PlayerPedId())
-})
-
-SetTimeout(30000, function()
-  exports.ls_marker:DeleteMarker("temp_marker")
-end)
-```
-
-### Marker frissítés
-
-#### SetMarkerPosition
-
-Marker pozíció frissítése.
-
-```lua
-exports.ls_marker:SetMarkerPosition(id, newPosition)
-```
-
-**Példa:**
-```lua
--- Marker követi a játékost
-CreateThread(function()
-  while true do
-    local pos = GetEntityCoords(PlayerPedId())
-    exports.ls_marker:SetMarkerPosition("follow_marker", pos)
-    Wait(100)
-  end
-end)
-```
-
-#### UpdateMarkerVisual
-
-Marker vizuális tulajdonság frissítése.
-
-```lua
-exports.ls_marker:UpdateMarkerVisual(id, key, value)
-```
-
-**Példa:**
-```lua
--- Szín változtatás
-exports.ls_marker:UpdateMarkerVisual("my_marker", "lineColor", "#ff0000")
-exports.ls_marker:UpdateMarkerVisual("my_marker", "iconColor", "#00ff00")
-```
-
-#### UpdateMarkerVisuals
-
-Több vizuális tulajdonság egyszerre történő frissítése.
-
-```lua
-exports.ls_marker:UpdateMarkerVisuals(id, {
-  lineColor = "#ff0000",
-  fillColor = "#00ff00",
-  iconSize = 128
-})
-```
-
-### Jármű detektálás
-
-#### GetVehiclesInside
-
-Marker területen belüli járművek lekérdezése.
-
-```lua
----@param id string Marker ID
----@return table Jármű entitás ID-k listája
-exports.ls_marker:GetVehiclesInside(id)
-```
-
-#### HasVehiclesInside
-
-Ellenőrzi, hogy van-e jármű a markerben.
-
-```lua
----@param id string Marker ID
----@return boolean Van-e jármű
-exports.ls_marker:HasVehiclesInside(id)
-```
-
-#### IsMarkerActive
-
-Ellenőrzi, hogy a marker aktív-e (van-e teljesen beparkolva jármű).
-
-```lua
----@param id string Marker ID
----@return boolean Aktív-e
-exports.ls_marker:IsMarkerActive(id)
-```
-
-**Példa:**
-```lua
--- Parkoló rendszer
-RegisterNetEvent("parking:checkSpot")
-AddEventHandler("parking:checkSpot", function(spotId)
-  if exports.ls_marker:IsMarkerActive(spotId) then
-    LS.UI:Notify("Ez a hely foglalt!", "error")
-  else
-    LS.UI:Notify("Hely szabad!", "success")
-  end
-end)
-```
-
-### Batch műveletek
-
-#### CreateMarkers
-
-Több marker létrehozása egyszerre.
-
-```lua
-local markers = exports.ls_marker:CreateMarkers({
-  { id = "marker1", type = "ground", position = vector3(100, 200, 30) },
-  { id = "marker2", type = "waypoint", position = vector3(150, 250, 35) }
-})
-```
-
-#### DeleteMarkers
-
-Több marker törlése egyszerre.
-
-```lua
-exports.ls_marker:DeleteMarkers({"marker1", "marker2", "marker3"})
-```
-
-#### EnableAllMarkers / DisableAllMarkers
-
-Összes marker engedélyezése vagy letiltása.
-
-```lua
-exports.ls_marker:EnableAllMarkers()
-exports.ls_marker:DisableAllMarkers()
-```
-
-### Lekérdezések
-
-#### GetMarkersByType
-
-Markerek lekérdezése típus szerint.
-
-```lua
-local groundMarkers = exports.ls_marker:GetMarkersByType("ground")
-local waypoints = exports.ls_marker:GetMarkersByType("waypoint")
-```
-
-#### MarkerExists
-
-Marker létezésének ellenőrzése.
-
-```lua
-if exports.ls_marker:MarkerExists("my_marker") then
-  print("Marker létezik")
-end
-```
-
-#### GetMarkerCount
-
-Összes marker számának lekérdezése.
-
-```lua
-local total = exports.ls_marker:GetMarkerCount()
-```
-
-#### GetEnabledMarkerCount
-
-Engedélyezett markerek számának lekérdezése.
-
-```lua
-local enabled = exports.ls_marker:GetEnabledMarkerCount()
-```
-
-## Marker konfigurációs opciók
-
-### Közös opciók (minden típushoz)
-
-```lua
-{
-  id = "unique_id",              -- Egyedi azonosító
-  type = "waypoint",             -- Típus: waypoint, mark, ground, groundpoly
-  position = vector3(x, y, z),   -- Pozíció (groundpoly-nál opcionális)
-  enabled = true,                -- Engedélyezve (alapértelmezett: true)
-  streamDistance = 150.0,        -- Megjelenési távolság
-  debug = false                  -- Debug mód
-}
-```
-
-### Waypoint specifikus
-
-```lua
-{
-  type = "waypoint",
-  label = "CHECKPOINT",          -- Felirat
-  color = "#ffd43b",             -- Szín
-  icon = false,                  -- Ikon megjelenítése
-  iconColor = "#C9C9C9",         -- Ikon színe
-  iconSize = 96                  -- Ikon mérete
-}
-```
-
-### Mark specifikus
-
-```lua
-{
-  type = "mark",
-  iconName = "IconStar",         -- Tabler icon név
-  iconColor = "#9ca3af",         -- Ikon színe
-  iconSize = 96,                 -- Ikon mérete
-  iconStroke = 1.6,              -- Ikon vonalvastagság
-  iconOffsetX = 0,               -- Vízszintes eltolás
-  iconOffsetY = 0,               -- Függőleges eltolás
-  size = 180,                    -- Teljes marker méret
-  lineColor = "#d4d4d4",         -- Vonal színe
-  lineWidth = nil,               -- Vonal vastagság (opcionális)
-  diamondWidth = 3,              -- Gyémánt vastagság
-  arrowWidth = 3,                -- Nyíl vastagság
-  arrow2Width = 2.4,             -- Második nyíl vastagság
-  arrowGap = 13,                 -- Nyilak közti távolság
-  arrow2Scale = 0.86             -- Második nyíl méretaránya
-}
-```
-
-### Ground specifikus
-
-```lua
-{
-  type = "ground",
-  width = 17.2,                  -- Szélesség
-  height = 13.2,                 -- Magasság
-  heading = 0.0,                 -- Forgatás (0-360)
-  zOffset = -0.05,               -- Z pozíció korrekció
-  lineColor = "#e5e7eb",         -- Alapértelmezett keret szín
-  activeBorderColor = "#69db7c", -- Aktív keret szín (minden kerék bent)
-  activeBackgroundColor = "#40c057", -- Aktív háttér szín
-  errorBorderColor = "#ffa94d",  -- Hiba keret szín (nem minden kerék bent)
-  errorBackgroundColor = "#fd7e14", -- Hiba háttér szín
-  onVehicleParked = function(markerId, vehicle)
-    -- Callback amikor jármű teljesen beparkolva
-  end,
-  onVehicleExited = function(markerId, vehicle)
-    -- Callback amikor jármű elhagyta a területet
-  end
-}
-```
-
-### GroundPoly specifikus
-
-```lua
-{
-  type = "groundpoly",
-  corners = {                    -- 4 sarokpont (vec2)
-    vec2(x1, y1),
-    vec2(x2, y2),
-    vec2(x3, y3),
-    vec2(x4, y4)
-  },
-  zOffset = 0.0,                 -- Általános Z korrekció
-  corner1ZOffset = 0.0,          -- 1. sarok Z korrekció
-  corner2ZOffset = 0.0,          -- 2. sarok Z korrekció
-  corner3ZOffset = 0.0,          -- 3. sarok Z korrekció
-  corner4ZOffset = 0.0,          -- 4. sarok Z korrekció
-  label = "PARKING",             -- Felirat
-  iconName = "IconParking",      -- Tabler icon
-  lineColor = "#e5e7eb",
-  activeBorderColor = "#4dabf7",
-  activeBackgroundColor = "#228be6",
-  onVehicleParked = function(markerId, vehicle) end,
-  onVehicleExited = function(markerId, vehicle) end
-}
-```
-
-## Gyakorlati példák
-
-### Rendőrségi parkoló rendszer
-
-```lua
-local pdParkingSpots = {
-  { id = "pd_spot_1", pos = vector3(441.58, -981.23, 25.70), heading = 90.0 },
-  { id = "pd_spot_2", pos = vector3(441.58, -986.50, 25.70), heading = 90.0 },
-  { id = "pd_spot_3", pos = vector3(441.58, -991.77, 25.70), heading = 90.0 }
-}
-
-CreateThread(function()
-  for _, spot in ipairs(pdParkingSpots) do
-    exports.ls_marker:CreateGround({
-      id = spot.id,
-      position = spot.pos,
-      width = 17.2,
-      height = 13.2,
-      heading = spot.heading,
-      streamDistance = 100.0,
-      lineColor = "#3b82f6",
-      activeBorderColor = "#22c55e",
-      activeBackgroundColor = "#16a34a",
-      errorBorderColor = "#ef4444",
-      errorBackgroundColor = "#dc2626",
-      onVehicleParked = function(markerId, vehicle)
-        local plate = GetVehicleNumberPlateText(vehicle)
-        TriggerServerEvent("pd:vehicleParked", markerId, plate)
-      end,
-      onVehicleExited = function(markerId, vehicle)
-        TriggerServerEvent("pd:vehicleLeft", markerId)
-      end
-    })
-  end
-end)
-```
-
-### Verseny checkpoint rendszer
-
-```lua
-local raceCheckpoints = {
-  vector3(100.0, 200.0, 30.0),
-  vector3(200.0, 300.0, 35.0),
-  vector3(300.0, 400.0, 32.0),
-  vector3(400.0, 500.0, 28.0)
-}
-
-local currentCheckpoint = 1
-
-function StartRace()
-  for i, pos in ipairs(raceCheckpoints) do
-    exports.ls_marker:CreateWaypoint({
-      id = "checkpoint_" .. i,
-      position = pos,
-      label = i .. ". CHECKPOINT",
-      color = i == 1 and "#ffd43b" or "#64748b"
-    })
-    
-    if i > 1 then
-      exports.ls_marker:DisableMarker("checkpoint_" .. i)
-    end
-  end
-end
-
-function ReachCheckpoint(checkpointNum)
-  exports.ls_marker:DeleteMarker("checkpoint_" .. checkpointNum)
-  
-  if checkpointNum < #raceCheckpoints then
-    exports.ls_marker:EnableMarker("checkpoint_" .. (checkpointNum + 1))
-    exports.ls_marker:UpdateMarkerVisual("checkpoint_" .. (checkpointNum + 1), "color", "#ffd43b")
-  else
-    LS.UI:Notify("Verseny befejezve!", "success")
-  end
-end
-```
-
-### Kincskeresés POI markerek
-
-```lua
-local treasureLocations = {
-  { pos = vector3(1200.0, 2400.0, 45.0), icon = "IconDiamond" },
-  { pos = vector3(1500.0, 2800.0, 50.0), icon = "IconCoin" },
-  { pos = vector3(1800.0, 3200.0, 42.0), icon = "IconTrophy" }
-}
-
-RegisterNetEvent("treasure:start")
-AddEventHandler("treasure:start", function()
-  for i, treasure in ipairs(treasureLocations) do
-    exports.ls_marker:CreateMark({
-      id = "treasure_" .. i,
-      position = treasure.pos,
-      iconName = treasure.icon,
-      iconColor = "#fbbf24",
-      iconSize = 128,
-      lineColor = "#fbbf24",
-      size = 200
-    })
-  end
-end)
-
-RegisterNetEvent("treasure:collect")
-AddEventHandler("treasure:collect", function(treasureId)
-  exports.ls_marker:DeleteMarker(treasureId)
-  LS.UI:Notify("Kincs összegyűjtve!", "success")
-end)
-```
-
-### Dinamikus delivery parkolók
-
-```lua
-local deliveryZones = {}
-
-RegisterNetEvent("delivery:createZone")
-AddEventHandler("delivery:createZone", function(zoneId, corners)
-  deliveryZones[zoneId] = exports.ls_marker:CreateGroundPoly({
-    id = zoneId,
-    corners = corners,
-    label = "DELIVERY ZONE",
-    iconName = "IconTruck",
-    lineColor = "#eab308",
-    activeBorderColor = "#22c55e",
-    activeBackgroundColor = "#16a34a",
-    streamDistance = 200.0,
+local id = exports.ls_marker:CreateGround({
+    position = vector3(100.0, 200.0, 30.0),
+    settings = {
+        width = 17.2,
+        height = 13.2,
+        heading = 90.0,
+        label = "Parking A",
+        defaultBorderColor = "#e5e7eb",
+        activeBorderColor = "#69db7c",
+    },
     onVehicleParked = function(markerId, vehicle)
-      -- Ellenőrizd, hogy megfelelő típusú jármű-e
-      local model = GetEntityModel(vehicle)
-      if IsThisModelATruck(model) then
-        TriggerServerEvent("delivery:complete", markerId)
-      else
-        LS.UI:Notify("Csak teherautókkal lehet szállítani!", "error")
-      end
-    end
-  })
-end)
-
-RegisterNetEvent("delivery:removeZone")
-AddEventHandler("delivery:removeZone", function(zoneId)
-  exports.ls_marker:DeleteMarker(zoneId)
-  deliveryZones[zoneId] = nil
-end)
+        print("Vehicle parked:", vehicle)
+    end,
+})
 ```
 
-### Ideiglenes esemény markerek
+## Waypoint
 
 ```lua
--- Admin esemény marker
-RegisterCommand("addeventmarker", function(source, args)
-  if not IsPlayerAdmin() then return end
-  
-  local pos = GetEntityCoords(PlayerPedId())
-  local label = table.concat(args, " ")
-  
-  local marker = exports.ls_marker:CreateWaypoint({
-    id = "event_" .. GetGameTimer(),
-    position = pos,
-    label = label,
-    color = "#a855f7",
-    iconSize = 128
-  })
-  
-  LS.UI:Notify("Esemény marker létrehozva!", "success")
-end)
+---@param data MarkerData
+---@return string|nil id
+exports.ls_marker:CreateWaypoint(data)
+
+exports.ls_marker:RemoveWaypoint(id)
+exports.ls_marker:EnableWaypoint(id)
+exports.ls_marker:DisableWaypoint(id)
+exports.ls_marker:SetWaypointPosition(id, pos)
+exports.ls_marker:SetWaypointEntity(id, entity, offset)
+exports.ls_marker:PatchWaypointSettings(id, key, value)
 ```
+
+## MarkerData
+
+```lua
+---@class MarkerData
+---@field type string set automatically by the export ("mark"|"ground"|"waypoint")
+---@field position vector3|nil required unless `entity` is set
+---@field entity number|nil attach marker to this entity handle
+---@field entityOffset number|nil Z offset above entity (default 1.0)
+---@field streamDistance number|nil render distance
+---@field priority "high"|"medium"|"low"|nil render priority when cap reached (default "low")
+---@field settings table|nil type-specific visual settings
+---@field debug boolean|nil
+---@field onVehicleParked fun(markerId: string, vehicle: number)|nil ground only
+---@field onVehicleExited fun(markerId: string, vehicle: number)|nil ground only
+---@field onVehicleParkConfirmed fun(markerId: string, vehicle: number)|nil ground only
+---@field vehicleClass number|nil ground only, restrict to vehicle class
+---@field models string[]|nil ground only, restrict to model names
+```
+
+> Render thread runs every 250ms, culls by visibility/distance, caps each type to 4 rendered instances sorted by priority.
 
 ## Events
 
-### Client Events
+### Client → Server
 
-```lua
--- Marker létrehozásakor
-AddEventHandler("ls_marker:client:markerCreated", function(markerId, markerType)
-  print("Marker created:", markerId, markerType)
-end)
+| Event | Args | Description |
+|-------|------|-------------|
+| `Marker:Server:Register` | `data: MarkerSyncState` | Registers a ground marker for syncing to workgroup/vehicle occupants. |
+| `Marker:Server:Unregister` | `markerId: string` | Removes a ground marker from server sync state. |
+| `Marker:Server:UpdateState` | `markerId, state, vehicleNetId?, borderColor?, backgroundColor?` | Updates marker state color, broadcasts to sync targets. |
+| `Marker:Server:RequestMarkers` | `ownerSrc: number` | Requests all ground markers owned by `ownerSrc`. |
+| `Marker:Server:RefreshTargets` | — | Re-pushes caller's markers to current sync targets. |
+| `Marker:Server:VehicleEntered` | — | Pushes driver's markers to new passenger. |
+| `Marker:Server:WorkgroupJoined` | — | Pushes all workgroup members' markers to joining player. |
 
--- Marker törlésekor
-AddEventHandler("ls_marker:client:markerDeleted", function(markerId)
-  print("Marker deleted:", markerId)
-end)
-```
+### Server → Client
 
-## Teljesítmény optimalizálás
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `Marker:Client:Create` | `data: MarkerSyncState` | Creates a local copy of a synced ground marker. |
+| `Marker:Client:StateUpdate` | `markerId, stateData` | `stateData`: `state`, `vehicleNetId`, `borderColor`, `backgroundColor`. |
+| `Marker:Client:Remove` | `markerId: string` | Removes the local copy. |
 
-### Stream distance beállítás
+### Local
 
-```lua
--- Közeli markerek - kis távolság
-exports.ls_marker:CreateWaypoint({
-  streamDistance = 50.0  -- Csak 50 méteren belül látható
-})
-
--- Fontos markerek - nagy távolság
-exports.ls_marker:CreateMark({
-  streamDistance = 300.0  -- 300 méterig látható
-})
-```
-
-### Batch műveletek használata
-
-```lua
--- Rossz - sok egyedi hívás
-for i = 1, 100 do
-  exports.ls_marker:CreateGround({...})
-end
-
--- Jó - batch létrehozás
-local markerData = {}
-for i = 1, 100 do
-  table.insert(markerData, {...})
-end
-exports.ls_marker:CreateMarkers(markerData)
-```
-
-### Marker engedélyezés/letiltás
-
-```lua
--- Ideiglenes letiltás amikor nincs rá szükség
-exports.ls_marker:DisableMarker("marker_id")
-
--- Újra engedélyezés amikor kell
-exports.ls_marker:EnableMarker("marker_id")
-```
-
-## Hibakeresés
-
-### Debug mód
-
-```lua
-exports.ls_marker:CreateGround({
-  debug = true,  -- Debug vonalak és információk megjelenítése
-  -- ... többi konfiguráció
-})
-```
-
-### Marker információk lekérdezése
-
-```lua
-local marker = exports.ls_marker:GetMarker("my_marker")
-if marker then
-  print("Position:", marker.position)
-  print("Type:", marker.type)
-  print("Enabled:", marker.enabled)
-end
-```
+| Event | Notes |
+|-------|-------|
+| `Marker:Client:MarkerDeleted` | Fires `Marker:Server:Unregister` for locally owned markers. |
+| `Core:Client:CharacterLoaded` | Starts render + vehicle detection threads. |
+| `Core:Client:EnterVehicle` | Triggers `Marker:Server:VehicleEntered`. |
+| `Core:Client:ExitVehicle` / `Core:Client:BecameDriver` | Refreshes sync targets. |
+| `Workgroups:Server:MemberAdded` / `MemberRemoved` | Server-side: pushes/removes markers between workgroup members. |

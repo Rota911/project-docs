@@ -1,82 +1,77 @@
-# Server
+# ls_objects (Server)
 
-## Exports
+Persists world props to `placed_props` and spawns server-sided objects as networked entities.
 
-### Create
+## Create
+
+Persists to DB unless `data.isTemp` is true. Spawns a networked entity immediately for server-sided objects.
 
 ```lua
+---@class ObjectDataServer
+---@field model string|number
+---@field position vector3|vector4
+---@field rotation vector3|nil default (0,0,0)
+---@field matrix table|nil custom transform matrix
+---@field metadata table|nil
+---@field serverSided boolean|nil spawn as networked server entity
+---@field isTemp boolean|nil skip DB persistence
+---@field route number|nil routing bucket (default 0)
+
 ---@param data ObjectDataServer
 ---@return ObjectServer|nil
-exports.ls_objects:Create({
-    model = 'prop_box_wood02a',
-    position = vector3(100.0, 200.0, 100.0),
-    rotation = vector3(0.0, 0.0, 45.0),
-    matrix = nil,
-    metadata = {
-        owner = 'player_1',
-        locked = true
-    },
+exports.ls_objects:Create(data)
+```
+
+```lua
+local obj = exports.ls_objects:Create({
+    model = "prop_gumball_02",
+    position = vector3(100.0, 200.0, 30.0),
     serverSided = true,
-    isTemp = false,
-    route = 0
 })
 ```
 
-### Remove
+## Remove
+
+Deletes the DB row for permanent objects and fires `Objects:Client:ObjectRemoved` to all clients.
 
 ```lua
 ---@param id string
 ---@return boolean
-exports.ls_objects:Remove('core_perm_123')
+exports.ls_objects:Remove(id)
 ```
 
-### Get
+## Get
 
 ```lua
 ---@param id string
 ---@return ObjectServer|nil
-local object = exports.ls_objects:Get('core_perm_123')
+exports.ls_objects:Get(id)
 ```
 
 ## Events
 
 ### Objects:Server:Remove
 
+Client → server. Asks the server to remove a permanent object and notify other clients.
+
 ```lua
-TriggerEvent('Objects:Server:Remove', 'core_perm_123')
+---@param id string
+TriggerServerEvent("Objects:Server:Remove", id)
 ```
 
 ## Callbacks
 
 ### Objects:Server:Create
 
+Called by the client `Create` export when `data.isTemp` is false, to persist the object and get a server-assigned ID before creating the client-side record.
+
 ```lua
-local id = LS.Callback:Await('Objects:Server:Create', nil, {
-    model = 'prop_box_wood02a',
-    position = vector3(100.0, 200.0, 100.0),
-    rotation = vector3(0.0, 0.0, 45.0),
-    metadata = { owner = 'player_1' },
-    serverSided = false,
-    isTemp = false,
-    route = 0
-})
+---@param data ObjectDataServer
+---@return string|nil id new object ID, or nil on failure
+local id = LS.Callback:Await("Objects:Server:Create", nil, data)
 ```
 
 ## Types
-
-### ObjectDataServer
-
-```lua
----@class ObjectDataServer
----@field model string
----@field position vector3
----@field rotation vector3
----@field matrix table|nil
----@field metadata table|nil
----@field serverSided boolean|nil
----@field isTemp boolean|nil
----@field route number|nil
-```
 
 ### ObjectServer
 
@@ -96,3 +91,9 @@ local id = LS.Callback:Await('Objects:Server:Create', nil, {
 ---@field created string
 ---@field creator { playerId: number, charId: string }
 ```
+
+## Internal behavior
+
+On start, loads all rows from `placed_props`, reconstructs records, spawns server-sided entities immediately, and broadcasts non-server-sided objects via `Objects:Client:ObjectSync`. On `Core:Server:CharacterLoaded`, sends the current non-server-sided object list to that player. Temporary objects owned by a resource are cleaned up when that resource stops.
+
+> `Entity(entity).state.id` holds the object ID on every spawned entity (server and client).

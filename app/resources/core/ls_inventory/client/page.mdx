@@ -2,350 +2,147 @@
 
 ## Exports
 
-### GetItemDef
+### GetItem
 
-Item definíció lekérése a cache-ből.
-
-```lua
-local itemDef = exports.ls_inventory:GetItemDef(itemName)
-```
-
-**Paraméterek:**
-- `itemName` (string) — Az item neve
-
-**Visszatérési érték:** `table|nil` — Az item definíció vagy nil
+Item definition from the local cache.
 
 ```lua
-local def = exports.ls_inventory:GetItemDef('water')
-if def then
-    print(def.label)    -- "Víz"
-    print(def.weight)   -- 500
-    print(def.category) -- "consumable"
-end
+---@param itemName string
+---@return table|nil
+exports.ls_inventory:GetItem(itemName)
 ```
-
----
-
-### GetAllItems
-
-Összes item definíció lekérése.
 
 ```lua
-local items = exports.ls_inventory:GetAllItems()
+local def = exports.ls_inventory:GetItem('water')
+if def then print(def.label, def.weight, def.category) end
 ```
 
-**Visszatérési érték:** `table` — Összes item definíció
+### GetItems
+
+All cached item definitions.
 
 ```lua
-local allItems = exports.ls_inventory:GetAllItems()
-for name, def in pairs(allItems) do
-    print(name, def.label)
-end
+---@return table<string, table>
+exports.ls_inventory:GetItems()
 ```
-
----
 
 ### OpenInventory
 
-Inventory UI megnyitása.
-
 ```lua
-exports.ls_inventory:OpenInventory()
+---@param invType? "player"|"stash"|"trunk"|"glovebox"
+---@param data? string|number|table  -- stash id string; vehicle { netid: number } or plain netid number
+exports.ls_inventory:OpenInventory(invType, data)
 ```
 
 ```lua
-RegisterCommand('inv', function()
-    exports.ls_inventory:OpenInventory()
-end)
+exports.ls_inventory:OpenInventory('stash', 'town_storage')
+exports.ls_inventory:OpenInventory()  -- player inventory
 ```
-
----
-
-### OpenExternalInventory
-
-Külső inventory (stash, container) megnyitása.
-
-```lua
-exports.ls_inventory:OpenExternalInventory(inventoryId, label)
-```
-
-**Paraméterek:**
-- `inventoryId` (string) — A külső inventory azonosítója
-- `label` (string) — Az inventory megjelenített neve
-
-```lua
-exports.ls_inventory:OpenExternalInventory('stash:police_armory', 'Fegyvertár')
-```
-
----
 
 ### CloseInventory
-
-Inventory UI bezárása.
 
 ```lua
 exports.ls_inventory:CloseInventory()
 ```
 
----
-
 ### IsInventoryOpen
 
-Inventory nyitva van-e.
-
 ```lua
-local isOpen = exports.ls_inventory:IsInventoryOpen()
+---@return boolean
+exports.ls_inventory:IsInventoryOpen()
 ```
-
-**Visszatérési érték:** `boolean`
-
----
 
 ### IsInventoryLocked
 
-Inventory zárolva van-e (pl. animáció közben).
-
 ```lua
-local isLocked = exports.ls_inventory:IsInventoryLocked()
+---@return boolean
+exports.ls_inventory:IsInventoryLocked()
 ```
 
-**Visszatérési érték:** `boolean`
+Backed by `LocalPlayer.state.lockInventory`.
 
----
-
-### EquipItem
-
-Item kézbe vétele.
+### EquipItem / UnequipItem
 
 ```lua
+---@param itemId number
+---@param itemName string
+---@param metadata table|nil
+---@param inventoryId string|nil
 exports.ls_inventory:EquipItem(itemId, itemName, metadata, inventoryId)
-```
 
-**Paraméterek:**
-- `itemId` (number) — Az item ID-ja
-- `itemName` (string) — Az item neve
-- `metadata` (table|nil) — Item metadata
-- `inventoryId` (string|nil) — Forrás inventory ID
-
----
-
-### UnequipItem
-
-Kézben lévő item elrakása.
-
-```lua
 exports.ls_inventory:UnequipItem()
 ```
 
----
-
-### HasItemInHand
-
-Van-e item a kézben.
+### HasItemInHand / GetItemInHand
 
 ```lua
-local hasItem = exports.ls_inventory:HasItemInHand()
+---@return boolean
+exports.ls_inventory:HasItemInHand()
+
+---@return table|nil  -- { itemId, itemName, metadata, inventoryId }
+exports.ls_inventory:GetItemInHand()
 ```
-
-**Visszatérési érték:** `boolean`
-
----
-
-### GetItemInHand
-
-Kézben lévő item adatainak lekérése.
 
 ```lua
 local item = exports.ls_inventory:GetItemInHand()
+if item then print(("in hand: %s (id %d)"):format(item.itemName, item.itemId)) end
 ```
-
-**Visszatérési érték:** `table|nil` — `{ itemId, itemName, metadata, inventoryId }` vagy nil
-
-```lua
-local item = exports.ls_inventory:GetItemInHand()
-if item then
-    print(("Kézben: %s (ID: %d)"):format(item.itemName, item.itemId))
-end
-```
-
----
-
-### UseItemInHand
-
-Kézben lévő item használata.
-
-```lua
-exports.ls_inventory:UseItemInHand()
-```
-
----
 
 ### GetDropsNearby
 
-A játékos körzetében lévő összes aktív drop lekérése (`Config.DropSystem.LoadDistance` sugarán belül).
+All active drops within `Config.DropSystem.LoadDistance` of the player.
 
 ```lua
-local drops = exports.ls_inventory:GetDropsNearby()
+---@return DropClientData[]|false
+exports.ls_inventory:GetDropsNearby()
 ```
-
-**Visszatérési érték:** `DropClientData[]|false` — Dropok listája, vagy `false` ha nincs a közelben egy sem, illetve ha nincs bejelentkezett karakter.
-
-```lua
-local drops = exports.ls_inventory:GetDropsNearby()
-if drops then
-    for _, drop in ipairs(drops) do
-        print(drop.dropId, drop.label, drop.inventoryId)
-    end
-end
-```
-
----
 
 ### GetDropAtCoord
 
-Adott koordináta körzetében lévő dropok lekérése.
-
 ```lua
-local drops = exports.ls_inventory:GetDropAtCoord(coords, radius)
+---@param coords vector3
+---@param radius number
+---@return DropClientData[]|false
+exports.ls_inventory:GetDropAtCoord(coords, radius)
 ```
-
-**Paraméterek:**
-- `coords` (vector3) — Középpont koordináta
-- `radius` (number) — Keresési sugár méterben
-
-**Visszatérési érték:** `DropClientData[]|false` — Dropok listája, vagy `false` ha nincs találat.
 
 ```lua
 local coords = GetEntityCoords(cache.ped)
 local drops = exports.ls_inventory:GetDropAtCoord(coords, 5.0)
 if drops then
     for _, drop in ipairs(drops) do
-        print(("Drop találat: %s (%.1fm)"):format(drop.label, #(coords - drop.coords)))
+        print(drop.dropId, #(coords - drop.coords))
     end
 end
 ```
 
-> Részletes Drop System dokumentáció: [Drop System](/resources/core/ls_inventory/server/drops)
+> Full drop reference: [Drop System](/resources/core/ls_inventory/server/drops)
 
 ---
 
-## Events
+## Net events (server -> client)
 
-### ls_inventory:openInventory
+These are pushed automatically by the server; you normally just listen, not trigger.
 
-Inventory megnyitása szerver oldalról.
-
-```lua
-TriggerClientEvent('ls_inventory:openInventory', source)
-```
-
----
-
-### ls_inventory:openExternalInventory
-
-Külső inventory megnyitása szerver oldalról.
-
-```lua
-TriggerClientEvent('ls_inventory:openExternalInventory', source, inventoryId, label)
-```
-
----
-
-### ls_inventory:closeInventory
-
-Inventory bezárása szerver oldalról.
+| Event | Args | Description |
+|---|---|---|
+| `Inventory:Client:RefreshInventory` | – | Re-pull inventory after a server-side change |
+| `Inventory:Client:CacheItems` | `items` | Push full item-definition cache |
+| `Inventory:Client:OpenInventory` / `CloseInventory` | `data` / – | Open/close the NUI |
+| `Inventory:Client:ClearExternalInventory` | `inventoryId` | Close a specific stash/drop view |
+| `Inventory:Client:EquipItem` | `data` | Force-equip an item |
+| `Inventory:Client:EquipItemFromInventory` | `data` | Equip from inventory UI (closes inventory first) |
+| `Inventory:Client:ItemConsumed` | `data` | Drop item from hand if it was consumed |
+| `Inventory:Client:ConsumeFeedback` | `consume` | Cosmetic progress bar/animation for item use |
+| `Inventory:Client:ApplyEquippedClothing` | `clothingAppearances` | Apply equipped clothing to local ped |
+| `Inventory:Client:WeaponSlotCleared` | `{ slotType, itemName }` | Equipment slot cleared |
+| `Inventory:Client:WeaponCleanup` | – | Clear weapon state |
+| `Inventory:Client:StashLockedSlots` | `data` | Push locked-slot info to the NUI |
 
 ```lua
-TriggerClientEvent('ls_inventory:closeInventory', source)
-```
-
----
-
-### ls_inventory:refreshInventory
-
-Inventory UI frissítése (pl. szerver oldali változás után).
-
-```lua
-TriggerClientEvent('ls_inventory:refreshInventory', source)
-```
-
----
-
-### ls_inventory:client:equipItem
-
-Item kézbe vétetése szerver oldalról.
-
-```lua
-TriggerClientEvent('ls_inventory:client:equipItem', source, {
-    itemId = 123,
-    itemName = 'water',
-    metadata = {},
-    inventoryId = 'character:ABC123'
-})
-```
-
----
-
-### ls_inventory:client:itemConsumed
-
-Item elhasználódott értesítés (ha kézben volt, leteszi).
-
-```lua
-TriggerClientEvent('ls_inventory:client:itemConsumed', source, {
-    itemId = 123,
-    itemName = 'water'
-})
-```
-
----
-
-### ls_inventory:client:weaponSlotCleared
-
-Fegyver slot kiürült értesítés.
-
-```lua
-TriggerClientEvent('ls_inventory:client:weaponSlotCleared', source, {
-    slotType = 'primary',
-    itemName = 'weapon_pistol'
-})
-```
-
----
-
-### Item Use Events
-
-Az inventory a `useItem` callback után item típus alapján client event-et triggerel:
-
-| Event | Leírás |
-|---|---|
-| `ls_inventory:useConsumable` | Fogyasztható item (étel, ital) |
-| `ls_inventory:useMedical` | Gyógyszer, elsősegély |
-| `ls_inventory:equipWeapon` | Fegyver felszerelése |
-| `ls_inventory:equipArmor` | Páncél felszerelése |
-| `ls_inventory:usePhone` | Telefon használata |
-| `ls_inventory:useTool` | Eszköz használata |
-| `ls_inventory:useRepairKit` | Javító készlet |
-| `ls_inventory:useFlashlight` | Zseblámpa |
-| `ls_inventory:useBinoculars` | Távcső |
-| `ls_inventory:useRadio` | Rádió |
-
-Minden event megkapja a `data` táblát `itemName` és `metadata` mezőkkel:
-
-```lua
-RegisterNetEvent('ls_inventory:useConsumable', function(data)
-    print(data.itemName)  -- pl. 'water'
-    print(data.metadata)  -- item metadata
+AddEventHandler('Inventory:Client:RefreshInventory', function()
+    -- contents changed server-side
 end)
 ```
 
-Ezek az events local event-eket is triggerelnek amire hallgathatsz:
-
-```lua
-AddEventHandler('ls_inventory:weaponEquipped', function(itemName, weaponHash)
-    print(("Fegyver equipálva: %s (%s)"):format(itemName, weaponHash))
-end)
-
-AddEventHandler('ls_inventory:toolUsed', function(itemName, metadata)
-    print(("Eszköz használva: %s"):format(itemName))
-end)
-```
+> Full server event/hook reference: [Events](/resources/core/ls_inventory/server/events), [Hooks](/resources/core/ls_inventory/server/hooks)

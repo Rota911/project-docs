@@ -1,0 +1,21 @@
+# Events
+
+## Local (client-only)
+
+```lua
+-- Fired when a component setting changes via the edit mode UI
+AddEventHandler('ls_ui:settingChanged', function(data --[[ SettingChangedEventData ]])
+end)
+```
+
+```lua
+---@class SettingChangedEventData
+---@field componentName string
+---@field typeName string
+---@field resource string
+---@field key string
+---@field value any
+---@field allSettings table<string, any>
+```
+
+Consumes external `Pausemenu:Client:Opened` / `Pausemenu:Client:Closed` to pause/resume the vehicle compass heading loop.

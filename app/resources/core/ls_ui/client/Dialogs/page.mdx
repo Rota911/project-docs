@@ -1,0 +1,95 @@
+# Dialogs
+
+Blocking input forms and NPC dialog trees. Access via `LS.UI`.
+
+## InputDialog
+
+Coroutine-blocking — yields until the player submits or cancels.
+
+```lua
+---@param data InputDialogData
+---@return table<string, any> | nil
+local result = LS.UI:InputDialog({
+    title = 'Enter details',
+    options = {
+        { type = 'input',  label = 'Name',   required = true },
+        { type = 'number', label = 'Amount', min = 1, max = 9999 }
+    }
+})
+```
+
+## CloseInputDialog
+
+```lua
+LS.UI:CloseInputDialog()
+```
+
+## RegisterDialog / ShowDialog
+
+NPC dialog trees. `ShowDialog` is coroutine-blocking on the camera transition only — option selection drives further `ShowDialog` calls via `nextDialogId`.
+
+```lua
+---@param id string
+---@param data DialogData
+---@return boolean
+LS.UI:RegisterDialog('shopkeeper', {
+    dialogs = {
+        { id = 'start', text = 'Mit adhatok?', options = {
+            { label = 'Vásárlás', nextDialogId = 'shop' },
+            { label = 'Mégsem' }
+        } }
+    }
+})
+
+---@param entity number
+---@param id string
+LS.UI:ShowDialog(ped, 'shopkeeper')
+```
+
+## Types
+
+```lua
+---@class InputDialogData
+---@field title string
+---@field options InputDialogRowProps[]
+---@field allowCancel? boolean
+---@field cancelTitle? string
+---@field confirmTitle? string
+
+---@class InputDialogRowProps
+---@field name? string
+---@field type 'input'|'number'|'checkbox'|'select'|'slider'|'multi-select'|'date'|'date-range'|'time'|'textarea'|'color'
+---@field label string
+---@field options? { value: string, label: string, default?: string }[]
+---@field password? boolean
+---@field placeholder? string
+---@field default? string | number
+---@field disabled? boolean
+---@field checked? boolean
+---@field min? number
+---@field max? number
+---@field step? number
+---@field required? boolean
+---@field clearable? boolean
+---@field searchable? boolean
+```
+
+```lua
+---@class DialogData
+---@field id? string Filled at runtime
+---@field dialogs DialogEntry[]
+
+---@class DialogEntry
+---@field id string
+---@field text string
+---@field options DialogOption[]
+
+---@class DialogOption
+---@field label string
+---@field data? any
+---@field event? string Local event to trigger on select
+---@field serverEvent? string Server event to trigger on select
+---@field onSelect? fun(data: any): nil
+---@field metadata? any Stripped before sending to NUI
+---@field nextDialogId? string ID of the next dialog to show
+```

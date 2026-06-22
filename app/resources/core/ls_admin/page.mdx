@@ -1,112 +1,87 @@
 # ls_admin
 
-Az admin modul lehetővé teszi parancsok és funkciók regisztrálását jogosultság ellenőrzéssel.
+In-game admin commands for player and world management, gated by rank via `LS:RegisterFunction` / `LS:Command`. No Lua exports — all functionality is chat commands.
 
-## RegisterFunction
+> Player coords are saved to `Player(src).state.oldPosition` before any teleport so `/back` can restore them.
 
-Regisztrál egy szerver oldali funkciót jogosultság ellenőrzéssel.
-
-```lua
----@param name string A funkció neve
----@param permissions string|string[]? Szükséges jogosultságok (alapértelmezett: 'user')
----@param callback fun(source: number, args: table): boolean, string? Végrehajtási funkció
----@param arguments Arguments[]? Argumentum definíciók
-LS:RegisterFunction(name, permissions, callback, arguments)
-```
-
-### Példa
+## Rank hierarchy
 
 ```lua
-LS:RegisterFunction('teleport', 'admin', function(source, args)
-    local targetPed = GetPlayerPed(args.playerId)
-    local sourceCoords = GetEntityCoords(PlayerPedId())
-    
-    SetEntityCoords(targetPed, sourceCoords.x, sourceCoords.y, sourceCoords.z)
-    return true, 'Teleportálva'
-end, {
-    { name = 'playerId', type = 'playerId', optional = false }
-})
+---@alias AdminRank string
+---| "user"
+---| "moderator"
+---| "admin"
+---| "headadmin"
+---| "dev"
+---| "owner"
 ```
 
-## Command
+Higher rank inherits lower-rank permissions (`RANK_ORDER` is ascending: `user=0` ... `owner=5`).
 
-Regisztrál egy admin parancsot jogosultság ellenőrzéssel.
+## IsAdmin
 
 ```lua
----@param command string|string[] Parancs neve vagy nevek
----@param permissions string|string[]? Szükséges jogosultságok (alapértelmezett: 'dev')
----@param callback fun(source: number, args: table, raw: string)|string Végrehajtási funkció vagy funkció név
----@param arguments Arguments[]? Argumentum definíciók
----@param helpText string? Súgó szöveg
-LS:Command(command, permissions, callback, arguments, helpText)
+---@param source number
+---@param minRank? string Default: 'admin'
+---@return boolean
+exports.ls_admin:IsAdmin(source, minRank)
 ```
 
-### Példa - Direct callback
+Reads from server memory (`Private.Players`) — not spoofable. `source == 0` (console) always returns `true`.
+
+## IsAdminOnDuty
 
 ```lua
-LS:Command('teleport', 'admin', function(source, args, raw)
-    local targetPed = GetPlayerPed(args.playerId)
-    local sourceCoords = GetEntityCoords(PlayerPedId())
-    
-    SetEntityCoords(targetPed, sourceCoords.x, sourceCoords.y, sourceCoords.z)
-    TriggerClientEvent('chat:addMessage', source, {
-        args = { 'ADMIN', 'Teleportálva!' }
-    })
-end, {
-    { name = 'playerId', type = 'playerId', optional = false }
-}, 'Teleportál egy játékost')
+---@param source number
+---@param minRank? string Default: 'admin'
+---@return boolean
+exports.ls_admin:IsAdminOnDuty(source, minRank)
 ```
 
-### Példa - RegisterFunction alapján
+Same as `IsAdmin`, but also requires `player:GetDuty()` to be true.
 
-```lua
--- Először regisztrálj egy funkciót
-LS:RegisterFunction('duty', 'user', function(source, args)
-    local player = LS:GetPlayer(source)
+## Commands
 
-    if not player then
-        return false, 'Játékos nem található'
-    end
+| Command | Aliases | Rank | Args | Description |
+|---|---|---|---|---|
+| `/back` | `tpback` | moderator | `[player]` | Restore previous position before last teleport |
+| `/bring` | `br` | moderator | `[playerId]` | Teleport target to you |
+| `/duty` | — | user | — | Toggle `player:SetDuty()` |
+| `/freeze` | — | moderator | `[player]` | Freeze target's position |
+| `/unfreeze` | — | moderator | `[player]` | Unfreeze target's position |
+| `/goto` | `gt` | moderator | `<player> [target]` | Teleport to player (or teleport `target` to `player`) |
+| `/kill` | `slay` | moderator | `[player]` | Set target health to 0 |
+| `/logout` | — | moderator | `[playerSrc]` | Force-unload target's character |
+| `/noclip` | `fly`, `nc` | moderator | — | Toggle noclip on self |
+| `/setadmin` | — | headadmin | `<playerSrc> <group>` | Set target's admin group |
+| `/tp` | `setcoords` | moderator | `<x y z [heading]>` or `vector3()/vector4()` | Teleport self to coords |
+| `/tpm` | — | moderator | — | Teleport self to waypoint blip |
+| `/visible` | — | moderator | `[playerSrc]` | Toggle entity visibility (vanish) |
+| `/weather` | — | admin | — | Open `ls_weather` admin panel |
 
-    player:SetDuty()
-    return true
-end, nil)
-
--- Majd hozz létre egy parancsot, amely ezt a funkciót hívja
-LS:Command('duty', 'user', 'duty', nil, 'Szolgálat be- és kikapcsolása.')
+```
+/tp 215.5 -810.2 30.7 180.0
+/tp vector4(215.5, -810.2, 30.7, 180.0)
+/goto 5 12
 ```
 
-## ExecuteFunction
+> `tpm` resolves via `LS.Callback('Admin:Client:Tpm', targetSrc)` — fails if the player has no waypoint or no ground is found under it.
 
-Végrehajtja a regisztrált funkciót jogosultság ellenőrzéssel.
+## Events (Server → Client)
 
-```lua
----@param source number Játékos azonosító
----@param functionName string A funkció neve
----@param args table? Argumentumok
----@return boolean success Sikeres-e a végrehajtás
----@return string? message Hibaüzenet vagy eredmény
-LS:ExecuteFunction(source, functionName, args)
-```
+| Event | Payload | Description |
+|---|---|---|
+| `Admin:Client:KillPlayer` | — | Sets local ped health to 0 |
+| `Admin:Client:ToggleNoclip` | — | Toggles noclip loop on target |
+| `Admin:Client:SetVisible` | — | Toggles entity visibility + footstep audio |
 
-### Példa
+No client → server events; all actions are initiated via server-side commands.
 
-```lua
-local success, message = LS:ExecuteFunction(source, 'duty', {})
-if success then
-    TriggerClientEvent('chat:addMessage', source, {
-        args = { 'ADMIN', message }
-    })
-else
-    TriggerClientEvent('chat:addMessage', source, {
-        args = { 'HIBA', message }
-    })
-end
-```
+## Argument types
 
-## Argumentum típusok
-
-- `'string'` - Szöveg argumentum
-- `'number'` - Szám argumentum
-- `'playerId'` - Játékos azonosító (lehet 'me' vagy valós azonosító)
-- `'any'` - Bármilyen típus
+| Type | Description |
+|---|---|
+| `string` | Text argument |
+| `number` | Numeric argument |
+| `playerId` | Player ID, accepts `'me'` or a real server ID |
+| `any` | Unvalidated |

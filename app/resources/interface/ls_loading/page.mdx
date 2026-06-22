@@ -1,0 +1,23 @@
+# ls_loading
+
+FiveM loading screen shown while resources stream in. No Lua scripts — all logic lives in the web frontend (`web/dist/index.html`).
+
+## fxmanifest
+
+```lua
+loadscreen "web/dist/index.html"
+loadscreen_manual_shutdown 'yes'
+```
+
+`loadscreen_manual_shutdown 'yes'` means the screen stays up until the NUI page explicitly dismisses it — it does not close automatically.
+
+## NUI API
+
+Standard FiveM loading-screen NUI API, used from the web frontend:
+
+```
+NuiReadyForShutdown()       -- signals the client is ready to allow shutdown
+ShutdownLoadingScreenNui()  -- dismisses the loading screen
+```
+
+> No public exports or events. Resource is self-contained.

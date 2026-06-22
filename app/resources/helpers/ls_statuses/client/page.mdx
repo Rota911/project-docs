@@ -1,8 +1,12 @@
 # Client
 
+Interpolates status values locally every second using the server value as the anchor. Resets baseline on `Core:Client:CharacterDataChanged`.
+
 ## Events
 
 ### Statuses:Client:StatusUpdate
+
+Fired every second with the current interpolated status values.
 
 ```lua
 AddEventHandler('Statuses:Client:StatusUpdate', function(statuses)
@@ -12,10 +16,23 @@ end)
 
 ### Core:Client:CharacterDataChanged
 
+Consumed when `key == 'statuses'`. Fired by `ls_core` whenever the server pushes new status values (every minute, or after a `ModifyStatus` call).
+
 ```lua
 RegisterNetEvent('Core:Client:CharacterDataChanged', function(key, value)
     if key == 'statuses' then
         -- value = { hunger = 85.0, thirst = 72.0, ... }
     end
 end)
+```
+
+## Server → Client → Server
+
+Status changes initiated from the client (e.g. an item effect) go out via `Status:Server:Update`; protected statuses are rejected server-side.
+
+```lua
+---@param statusName string
+---@param value number
+---@param operation "Add"|"Remove"|"Set"
+TriggerServerEvent('Status:Server:Update', 'hunger', 25, 'Add')
 ```

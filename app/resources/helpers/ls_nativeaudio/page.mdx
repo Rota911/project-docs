@@ -1,40 +1,89 @@
 # ls_nativeaudio
 
-Az **ls_nativeaudio** egy custom audio rendszer natív GTA és saját custom hangok betöltésére és lejátszására.
+Thin wrapper around GTA's native audio API. Manages audio bank lifecycle and exposes play/stop exports for frontend, positional, and entity-attached sounds. All exports are client-side.
 
-
-## Használat
-
-Minden hang visszaadja a soundId-t amivel letudjátok állítani a hangot. \
-Fontos tudnivaló ha leáll a hang a soundID 1000% hogy a Rage és a Garbage Collector release-eli az id-t!  \
-Ha release-elt a soundId akkor **NE** használd a soundId-t!
-
-# PlaySound
-Ezzel kizárolag a játékos hallja a hangot.
-Ez arra jó ha valami UI hangot akarsz elindítani nála.
+## Play
 
 ```lua
- local soundId = exports.ls_nativeaudio:PlaySound("sound_name", "sound_bank", "sound_dict")
- ```
-# PlaySoundFromCoord
-Ezzel a megadott koordinátán hangot indít.
+---@class PlayData
+---@field sound string
+---@field dict string|nil
+---@field audioBank string|nil bank filename (no path/extension), loaded before playing
+
+---@param data PlayData
+---@return number|nil soundId
+exports.ls_nativeaudio:Play(data)
+```
 
 ```lua
----@field Coords Vector3
- local soundId = exports.ls_nativeaudio:PlaySoundFromCoord("sound_name", "sound_bank", "sound_dict", Coords)
- ```
+local id = exports.ls_nativeaudio:Play({
+    sound = "SELECT",
+    dict = "HUD_FRONTEND_DEFAULT_SOUNDSET",
+})
+```
 
-# PlaySoundFromPed
-Ezzel a játékos pedjén indít hangot.
-
-```lua
- local soundId = exports.ls_nativeaudio:PlaySoundFromPed("sound_name", "sound_bank", "sound_dict")
- ```
- 
- # StopSound
-Ezzel megállítod a hangot.
+## PlayFromCoords
 
 ```lua
----@field soundId number
-exports.ls_nativeaudio:StopSound(soundId)
- ```
+---@class PlayFromCoordsData
+---@field sound string
+---@field position vector3
+---@field dict string|nil
+---@field audioBank string|nil
+
+---@param data PlayFromCoordsData
+---@return number|nil soundId
+exports.ls_nativeaudio:PlayFromCoords(data)
+```
+
+```lua
+local id = exports.ls_nativeaudio:PlayFromCoords({
+    sound = "my_sound",
+    audioBank = "basic",  -- loads audiodirectory/basic.awc
+    position = vector3(100.0, 200.0, 30.0),
+})
+```
+
+## PlayFromEntity
+
+```lua
+---@class PlayFromEntityData
+---@field sound string
+---@field entity number|nil defaults to cache.ped
+---@field dict string|nil
+---@field audioBank string|nil
+
+---@param data PlayFromEntityData
+---@return number|nil soundId
+exports.ls_nativeaudio:PlayFromEntity(data)
+```
+
+```lua
+local id = exports.ls_nativeaudio:PlayFromEntity({
+    sound = "engine_rev",
+    audioBank = "vehicle",
+    entity = GetPlayerPed(-1),
+})
+```
+
+## Stop
+
+```lua
+---@param soundId number
+---@return boolean
+exports.ls_nativeaudio:Stop(soundId)
+```
+
+Returns `false` if `soundId` is not tracked (already finished/released).
+
+```lua
+exports.ls_nativeaudio:Stop(id)
+```
+
+> If a sound finishes naturally, its `soundId` is released by an internal cleanup thread — don't reuse a stale `soundId`.
+
+## Internal behavior
+
+Sound IDs are requested from the native engine and tracked in `Audio.ActiveSounds`. A 5-second interval checks `HasSoundFinished` and releases finished IDs. A 10-second interval releases audio banks (`ReleaseNamedScriptAudioBank`) idle for more than 30 seconds.
+
+No events — purely export-driven.

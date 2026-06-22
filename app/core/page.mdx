@@ -121,22 +121,55 @@ ClearInterval(id)
 
 ## Module Registration
 
-External resources can register themselves as LS modules, making them accessible via `LS.ModuleName` in any resource.
+External resources can register themselves as LS modules, making them accessible via `LS.ModuleName` in any resource. Registration is shared (works on both client and server) and is normally called once, on startup, from the registering resource.
 
 ```lua
 ---@param moduleName string
 ---@param resourceName string
----@param path? string
+---@param path? string  -- defaults to the resource root
 ---@return boolean success
 ---@return string|nil message
 LS:RegisterModule('MyModule', 'my_resource', 'optional/path')
 ```
 
-Once registered, any resource can access it:
+Once registered, any resource can access it (loaded the same way as built-in modules — `client.lua`/`server.lua`/`shared.lua`, or as a `client/`/`server`/`shared/` folder with `init.lua`/`main.lua`, resolved relative to `path`):
 
 ```lua
 LS.MyModule:DoSomething()
 ```
+
+The `LS:RegisterModule` wrapper checks that `resourceName` is `started` before registering, and returns `false, message` without registering if it isn't:
+
+```lua
+if GetResourceState(resourceName) ~= 'started' then
+    -- registration rejected, success = false
+end
+```
+
+### GetModule / GetAllModules
+
+Look up registration info instead of registering. Mostly used internally by the loader, but available for diagnostics.
+
+```lua
+---@param moduleName string
+---@return { resource: string, path: string }|nil
+local info = LS:GetModule('MyModule')
+
+---@return table<string, { resource: string, path: string }>
+local all = LS:GetAllModules()
+```
+
+### Cache invalidation & cleanup
+
+Any resource can call `LS.MyModule` from then on; the resolved module is cached per-resource after first access. When a module is (re)registered, `ls_core` broadcasts `Core:Module:ClearCache(moduleName)` so every resource currently holding a cached copy reloads it on next access instead of keeping a stale reference.
+
+```lua
+AddEventHandler('Core:Module:ClearCache', function(moduleName)
+    -- fired automatically; no need to listen to this yourself
+end)
+```
+
+If the resource that registered a module stops, `ls_core` automatically unregisters every module it provided (on `onResourceStop`) and fires `Core:Module:ClearCache` for each of them, so stale registrations from a restarted resource never linger.
 
 ## Client Context
 

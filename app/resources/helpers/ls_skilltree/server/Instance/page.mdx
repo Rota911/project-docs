@@ -1,0 +1,150 @@
+# SkillTreeInstance
+
+Obtained from `ST:Create`, `ST:CreateAndRegister`, or `ST:Get`. One per tree.
+
+## Register / Unregister
+
+```lua
+---@return boolean
+tree:Register()    -- registers + notifies clients + inits already-loaded characters
+
+---@return boolean
+tree:Unregister()  -- removes + notifies clients
+```
+
+## Metadata
+
+```lua
+---@return string
+tree:GetId()
+
+---@return string
+tree:GetName()
+
+---@return string
+tree:GetResource()  -- owning resource name
+
+---@return table<string, SkillNode>
+tree:GetNodes()
+
+---@param nodeId string
+---@return SkillNode|nil
+tree:GetNode(nodeId)
+
+---@param nodeId string
+---@return boolean
+tree:HasNode(nodeId)
+
+---@return string[]
+tree:GetRootNodeIds()  -- nodes with no prerequisites
+
+---@return number
+tree:GetNodeCount()
+
+---@param currentLevel number
+---@return number
+tree:CalculateNextXp(currentLevel)
+```
+
+## Character progress
+
+```lua
+---@param charId number
+tree:InitCharacter(charId)  -- safe to call repeatedly
+
+---@param charId number
+---@return TreeSkillData|nil
+tree:GetCharacterData(charId)  -- .level .xp .requiredXp .points .unlockedNodes
+
+---@param charId number
+---@param amount number
+---@return boolean leveledUp
+tree:AddXP(charId, amount)
+
+---@param charId number
+---@return number
+tree:GetLevel(charId)
+
+---@param charId number
+---@return number
+tree:GetXP(charId)
+
+---@param charId number
+---@return number
+tree:GetPoints(charId)
+
+---@param charId number
+---@return number
+tree:GetRequiredXp(charId)
+```
+
+## Node unlocking
+
+```lua
+---@param charId number
+---@return table<string, boolean>
+tree:GetUnlockedNodes(charId)
+
+---@param charId number
+---@param nodeId string
+---@return boolean
+tree:IsNodeUnlocked(charId, nodeId)
+
+---@param charId number
+---@param nodeId string
+---@return boolean canUnlock
+---@return string|nil reason
+tree:CanUnlockNode(charId, nodeId)  -- validates without applying
+
+---@param charId number
+---@param nodeId string
+---@return boolean success
+---@return string|nil reason
+tree:UnlockNode(charId, nodeId)
+```
+
+| Reason | Description |
+|---|---|
+| `invalid_node` | Node does not exist in the tree |
+| `already_unlocked` | Node is already unlocked |
+| `missing_prerequisite` | All `preRequisites` must be unlocked first |
+| `missing_any_prerequisite` | At least one of `anyPreRequisites` must be unlocked |
+| `not_enough_points` | Not enough skill points |
+| `locked_by_other_node` | A mutually exclusive node is already unlocked |
+| `no_character` | Character could not be found |
+
+## Points / Respec
+
+```lua
+---@param charId number
+---@return boolean success
+---@return number refundedPoints
+tree:Respec(charId)  -- refunds all spent points, clears unlockedNodes
+
+---@param charId number
+---@param amount number
+---@return boolean
+tree:AddPoints(charId, amount)
+
+---@param charId number
+---@param amount number
+---@return boolean success
+---@return number actualRemoved
+tree:RemovePoints(charId, amount)
+```
+
+## Misc
+
+```lua
+---@param charId number
+---@return number unlockedCount
+---@return number totalCount
+tree:GetProgress(charId)
+
+---@param charId number
+---@return string[]
+tree:GetAvailableNodes(charId)  -- nodes passing all unlock conditions
+
+---@return table
+tree:Serialize()  -- plain table, safe to network/store
+```

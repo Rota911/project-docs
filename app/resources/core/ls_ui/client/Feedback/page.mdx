@@ -1,0 +1,164 @@
+# Feedback
+
+Notification, progress bar, text UI prompts, and screen fade. Access via `LS.UI`.
+
+## Notification
+
+```lua
+---@param data NotificationData
+LS.UI:Notification({
+    title = 'Siker',
+    message = 'Az akcio sikeresen vegzodott',
+    type = 'success',
+    duration = 3000
+})
+```
+
+## Progressbar
+
+```lua
+---@param data ProgressBarData
+---@return boolean started
+LS.UI:Progressbar({
+    tasks = {
+        { name = 'Preparing', duration = 3000, anim = { dict = 'mini@repair', clip = 'fixing_a_player' } },
+        { name = 'Finishing',  duration = 2000 }
+    },
+    disable = { move = true, combat = true }
+})
+```
+
+Returns `false` if a bar is already active or `data` is invalid. Cancels automatically on death/ragdoll/swim unless `useWhileDead`/`allowRagdoll`/`allowSwimming` opt in.
+
+## StopProgressBar / CancelProgress / IsProgressActive
+
+```lua
+LS.UI:StopProgressBar()      -- completes current bar, runs task callbacks
+LS.UI:CancelProgress()       -- cancels current bar without completing
+---@return boolean
+LS.UI:IsProgressActive()
+```
+
+## TextUI
+
+```lua
+---@param data TextUIData | TextUIData[]
+LS.UI:TextUI({
+    id = 'lock',
+    text = 'Lock vehicle',
+    keyLabel = 'E',
+    icon = 'lock'
+})
+```
+
+## HideTextUI
+
+```lua
+---@param id string | string[]
+LS.UI:HideTextUI('lock')
+```
+
+## PatchTextUI
+
+```lua
+---@param data TextUIPatchData
+LS.UI:PatchTextUI({
+    id = 'lock',
+    text = 'Módosított szöveg'
+})
+```
+
+## HideAllTextUIs
+
+```lua
+LS.UI:HideAllTextUIs()
+```
+
+## ScreenFadeOut
+
+```lua
+---@param duration? number
+---@param headerMessage? string
+LS.UI:ScreenFadeOut(1000, 'Betöltés...')
+```
+
+## ScreenFadeIn
+
+```lua
+---@param duration? number
+LS.UI:ScreenFadeIn(1000)
+```
+
+## Types
+
+```lua
+---@class NotificationData
+---@field title string
+---@field message string
+---@field type? string
+---@field duration? number
+---@field position? string
+---@field color? string
+---@field icon? string
+---@field loaderType? string
+```
+
+```lua
+---@class ProgressBarData
+---@field tasks ProgressTask[]
+---@field anim? AnimData
+---@field prop? PropData|PropData[]
+---@field disable? DisableConfig
+---@field useWhileDead? boolean
+---@field allowRagdoll? boolean
+---@field allowCuffed? boolean
+---@field allowFalling? boolean
+---@field allowSwimming? boolean
+
+---@class ProgressTask
+---@field name string
+---@field duration number
+---@field anim? AnimData
+---@field prop? PropData|PropData[]
+
+---@class AnimData
+---@field dict? string
+---@field clip? string
+---@field scenario? string
+---@field blendIn? number
+---@field blendOut? number
+---@field duration? number
+---@field flag? number
+---@field playbackRate? number
+---@field lockX? boolean
+---@field lockY? boolean
+---@field lockZ? boolean
+---@field playEnter? boolean
+
+---@class PropData
+---@field model string
+---@field bone? number
+---@field pos vector3
+---@field rot vector3
+---@field rotOrder? number
+
+---@class DisableConfig
+---@field mouse? boolean
+---@field move? boolean
+---@field sprint? boolean
+---@field car? boolean
+---@field combat? boolean
+```
+
+```lua
+---@class TextUIData
+---@field id string
+---@field text string
+---@field keyLabel? string
+---@field icon? string
+---@field color? string
+---@field position? string
+
+---@class TextUIPatchData : TextUIData
+---@field id string Required unique identifier to patch
+```

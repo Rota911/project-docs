@@ -1,480 +1,183 @@
 # Exports
 
-A szerver oldali export-ok lehetővé teszik más resource-ok számára az inventory rendszer kezelését.
-
-## GetPlayerInventory
-
-Játékos inventory instance lekérése (az összes inventory-t összefogja).
+Mutating exports return a `Result` table unless noted. `characterIdentifier` accepts a charId; `playerId`/`source` is a player server ID.
 
 ```lua
-local inventory = exports.ls_inventory:GetPlayerInventory(playerId)
+---@class Result
+---@field ok boolean
+---@field data? any
+---@field msg? string
+---@field msgTyp? "error"|"warning"
 ```
 
-**Paraméterek:**
-- `playerId` (number) — Játékos server ID
+## Queries
 
-**Visszatérési érték:** `PlayerInventoryInstance|nil`
-
-```lua
-local inventory = exports.ls_inventory:GetPlayerInventory(source)
-if inventory then
-    print(inventory:GetCharacterIdentifier())
-    print(inventory:GetItemCount())
-end
-```
-
-> Részletes metódusok: [Instances](/resources/core/ls_inventory/server/instances)
-
----
-
-## GetInventory
-
-Egyetlen inventory instance lekérése ID alapján.
-
-```lua
-local inventory = exports.ls_inventory:GetInventory(inventoryId)
-```
-
-**Paraméterek:**
-- `inventoryId` (string) — Inventory azonosító (pl. `"character:ABC123"`, `"stash:police"`)
-
-**Visszatérési érték:** `InventoryInstance|nil`
+| Export | Params | Returns |
+|---|---|---|
+| `GetPlayerInventory` | `playerId` | `PlayerInventoryInstance\|nil` |
+| `GetInventory` | `inventoryId` | `InventoryInstance\|nil` |
+| `GetInventoryItems` | `inventoryId` | `table<number, Item>` (raw rows) |
+| `GetItem` | `characterIdentifier, itemName` | `Item\|nil` (raw row, not `ItemInstance`) |
+| `HasItem` | `characterIdentifier, itemName, amount?` | `boolean` (default amount `1`) |
+| `CanCarryAmount` | `inventoryId, itemName` | `boolean canCarry, number\|nil capacity` |
+| `CanCarryItem` | `playerId, itemName, numberOfItems?` | `boolean` (default `1`) |
 
 ```lua
 local stash = exports.ls_inventory:GetInventory('stash:police_armory')
-if stash then
-    stash:ForEach(function(item)
-        print(item:GetName(), item:GetCount())
-    end)
-end
+if stash then stash:ForEach(function(item) print(item:GetName()) end) end
 ```
 
----
-
-## GetItem
-
-Egy adott nevű item lekérése a karakter inventory-jából.
-
-```lua
-local item = exports.ls_inventory:GetItem(characterIdentifier, itemName)
-```
-
-**Paraméterek:**
-- `characterIdentifier` (string) — Karakter azonosító
-- `itemName` (string) — Item neve
-
-**Visszatérési érték:** `Item|nil` — Nyers item objektum (nem ItemInstance)
-
-```lua
-local player = LS:GetPlayer(source)
-local charId = player:GetActiveCharacter().charId
-
-local water = exports.ls_inventory:GetItem(charId, 'water')
-if water then
-    print(water.itemName, water.count)
-end
-```
-
----
-
-## HasItem
-
-Van-e a karakternél adott item a megadott mennyiségben.
-
-```lua
-local hasItem = exports.ls_inventory:HasItem(characterIdentifier, itemName, amount)
-```
-
-**Paraméterek:**
-- `characterIdentifier` (string) — Karakter azonosító
-- `itemName` (string) — Item neve
-- `amount` (number|nil) — Elvárt mennyiség, alapértelmezett: `1`
-
-**Visszatérési érték:** `boolean`
-
-```lua
-if exports.ls_inventory:HasItem(charId, 'lockpick', 1) then
-    print('Van lockpick')
-end
-```
-
----
-
-## CanCarryAmount
-
-Mennyi fér még az adott itemből az inventory-ba.
-
-```lua
-local canCarry, capacity = exports.ls_inventory:CanCarryAmount(inventoryId, itemName)
-```
-
-**Paraméterek:**
-- `inventoryId` (string) — Inventory azonosító
-- `itemName` (string) — Item neve
-
-**Visszatérési érték:**
-- `boolean` — Van-e szabad hely
-- `number|nil` — Szabad kapacitás
-
-```lua
-local canCarry, cap = exports.ls_inventory:CanCarryAmount('character:ABC123', 'water')
-if canCarry then
-    print(("Elfér még: %d"):format(cap))
-end
-```
-
----
-
-## CanCarryItem
-
-Elfér-e a megadott mennyiségű item a játékos inventory-jában.
-
-```lua
-local canCarry = exports.ls_inventory:CanCarryItem(playerId, itemName, numberOfItems)
-```
-
-**Paraméterek:**
-- `playerId` (number) — Játékos server ID
-- `itemName` (string) — Item neve
-- `numberOfItems` (number|nil) — Mennyiség, alapértelmezett: `1`
-
-**Visszatérési érték:** `boolean`
-
-```lua
-if exports.ls_inventory:CanCarryItem(source, 'water', 5) then
-    print('Elfér 5 víz')
-end
-```
-
----
-
-## GetInventoryItems
-
-Egy inventory összes itemjének lekérése.
-
-```lua
-local items = exports.ls_inventory:GetInventoryItems(inventoryId)
-```
-
-**Paraméterek:**
-- `inventoryId` (string) — Inventory azonosító
-
-**Visszatérési érték:** `table<number, Item>` — Nyers item objektumok
-
-```lua
-local items = exports.ls_inventory:GetInventoryItems('character:ABC123')
-for itemId, item in pairs(items) do
-    print(itemId, item.itemName, item.count)
-end
-```
-
----
+> Instance methods: [Instances](/resources/core/ls_inventory/server/instances)
 
 ## AddItem
 
-Item hozzáadása a karakter inventory-jához. Automatikusan stackel ha lehetséges, és szabad helyet keres a grid-ben.
-
 ```lua
-local result = exports.ls_inventory:AddItem(characterIdentifier, itemName, metadata, uses, amount)
+---@param characterIdentifier string
+---@param itemNameOrList string|string[]
+---@param metadataOrUses? table|number
+---@param usesOrAmount? number
+---@param amount? number
+---@param checkFit? boolean
+---@return Result
+exports.ls_inventory:AddItem(characterIdentifier, itemNameOrList, metadataOrUses, usesOrAmount, amount, checkFit)
 ```
 
-**Paraméterek:**
-- `characterIdentifier` (string) — Karakter azonosító
-- `itemName` (string) — Item neve
-- `metadata` (table|nil) — Item metadata
-- `uses` (number|nil) — Használati számláló
-- `amount` (number|nil) — Mennyiség, alapértelmezett: `1`
-
-**Visszatérési érték:** `table` — Result objektum
-
 ```lua
-local result = exports.ls_inventory:AddItem(charId, 'water', nil, nil, 5)
-if result.ok then
-    print(("Hozzáadva: %d/%d"):format(result.data.totalAdded, result.data.totalRequested))
-else
-    print(("Hiba: %s"):format(result.msg))
-end
+local res = exports.ls_inventory:AddItem(charId, 'water', nil, nil, 5)
+if res.ok then print(res.data.totalAdded) end
 
-local result = exports.ls_inventory:AddItem(charId, 'phone', { number = '555-1234' }, nil, 1)
+exports.ls_inventory:AddItem(charId, 'phone', { number = '555-1234' }, nil, 1)
 ```
 
-**Result struktúra sikeres esetben:**
+> Hook: `addItem` runs before commit, see [Hooks](/resources/core/ls_inventory/server/hooks).
+
+## AddItemWithChecks
+
 ```lua
-{
-    ok = true,
-    data = {
-        items = { ... },         -- Létrehozott/módosított item objektumok
-        inventory = { ... },     -- Szerializált inventory
-        totalAdded = 5,          -- Ténylegesen hozzáadott mennyiség
-        totalRequested = 5       -- Kért mennyiség
-    }
-}
+---@param characterIdentifier string
+---@param itemNameList string[]
+---@param uses? number
+---@param amount? number
+---@return Result
+exports.ls_inventory:AddItemWithChecks(characterIdentifier, itemNameList, uses, amount)
 ```
-
-> **Hook:** Az `addItem` hook a hozzáadás előtt fut. Visszaadhat `false`-t a blokkoláshoz, vagy módosított metadata táblát. Lásd: [Hooks](/resources/core/ls_inventory/server/hooks)
-
----
 
 ## RemoveItem
 
-Item eltávolítása ID alapján.
-
 ```lua
-local result = exports.ls_inventory:RemoveItem(characterIdentifier, itemId, amount)
+---@param characterIdentifier string
+---@param filter number|string  -- itemId or itemName
+---@param amount? number
+---@param metadataMatch? table
+---@param options? RemoveOptions
+---@return Result
+exports.ls_inventory:RemoveItem(characterIdentifier, filter, amount, metadataMatch, options)
 ```
 
-**Paraméterek:**
-- `characterIdentifier` (string) — Karakter azonosító
-- `itemId` (number) — Item ID
-- `amount` (number|nil) — Mennyiség (stackelhető itemeknél)
-
-**Visszatérési érték:** `table` — Result objektum
+`filter` as a `number` removes by itemId; as a `string` removes by itemName across all of the character's inventories.
 
 ```lua
-local result = exports.ls_inventory:RemoveItem(charId, 42, 1)
-if result.ok then
-    print('Item eltávolítva')
-end
+exports.ls_inventory:RemoveItem(charId, 42, 1)            -- by itemId
+exports.ls_inventory:RemoveItem(charId, 'water', 3)        -- by itemName
 ```
 
-> **Hook:** A `removeItem` hook a törlés előtt fut. Visszaadhat `false`-t a blokkoláshoz.
+Result `data` for name-based removal: `{ itemsRemoved: number, clearedEquipmentSlots: table[] }`.
 
----
-
-## RemoveItemByName
-
-Item eltávolítása név alapján. Az összes inventory-t végigkeresi és a szükséges mennyiséget eltávolítja.
-
-```lua
-local result = exports.ls_inventory:RemoveItemByName(characterIdentifier, itemName, amount)
-```
-
-**Paraméterek:**
-- `characterIdentifier` (string) — Karakter azonosító
-- `itemName` (string) — Item neve
-- `amount` (number) — Eltávolítandó mennyiség
-
-**Visszatérési érték:** `table` — Result objektum
-
-```lua
-local result = exports.ls_inventory:RemoveItemByName(charId, 'water', 3)
-if result.ok then
-    print(("Eltávolítva: %d db"):format(result.data.itemsRemoved))
-end
-```
-
-**Result struktúra sikeres esetben:**
-```lua
-{
-    ok = true,
-    data = {
-        itemsRemoved = 3,
-        clearedEquipmentSlots = {}  -- Ha equipment slotból is kellett törölni
-    }
-}
-```
-
-> **Hook:** A `removeItem` hook a törlés előtt fut.
-
----
+> Hook: `removeItem` runs before commit.
 
 ## ClearInventory
 
-Karakter összes inventory-jának kiürítése.
-
 ```lua
-local result = exports.ls_inventory:ClearInventory(characterIdentifier)
+---@param characterIdentifier string
+---@return Result  -- data: { itemsCleared: number, inventories: { type: string, itemsCleared: number }[] }
+exports.ls_inventory:ClearInventory(characterIdentifier)
 ```
 
-**Paraméterek:**
-- `characterIdentifier` (string) — Karakter azonosító
-
-**Visszatérési érték:** `table` — Result objektum
-
-```lua
-local result = exports.ls_inventory:ClearInventory(charId)
-if result.ok then
-    print(("Törölve: %d item"):format(result.data.itemsCleared))
-end
-```
-
-**Result struktúra sikeres esetben:**
-```lua
-{
-    ok = true,
-    data = {
-        itemsCleared = 12,
-        inventories = {
-            { type = "character", itemsCleared = 8 },
-            { type = "pocket", itemsCleared = 4 }
-        }
-    }
-}
-```
-
-> **Hook:** A `clearInventory` hook a törlés előtt fut. Visszaadhat `false`-t a blokkoláshoz.
-
----
+> Hook: `clearInventory` runs before commit.
 
 ## AddItemOrDrop
 
-Item hozzáadása a karakter inventory-jához. Ha az inventory tele van és nem fér el az összes item, a maradék automatikusan egy dropban jelenik meg a játékos lábánál.
+Adds what fits; overflow is placed in a world drop at the character's feet.
 
 ```lua
-local result = exports.ls_inventory:AddItemOrDrop(characterIdentifier, itemName, metadata, uses, amount, dropOptions)
+---@param characterIdentifier string|number
+---@param itemName string
+---@param metadata? table
+---@param uses? number
+---@param amount? number
+---@param dropOptions? DropOptions
+---@return AddItemOrDropResult
+exports.ls_inventory:AddItemOrDrop(characterIdentifier, itemName, metadata, uses, amount, dropOptions)
 ```
 
-**Paraméterek:**
-- `characterIdentifier` (string|number) — Karakter azonosító
-- `itemName` (string) — Item neve
-- `metadata` (table|nil) — Item metadata
-- `uses` (number|nil) — Használati számláló
-- `amount` (number|nil) — Mennyiség, alapértelmezett: `1`
-- `dropOptions` (table|nil) — Drop beállítások (lásd: [Drop System](/resources/core/ls_inventory/server/drops))
-
-**Visszatérési érték:** `table` — Result objektum
+```lua
+---@class AddItemOrDropResult
+---@field ok boolean
+---@field data? { totalAdded: number, totalRequested: number, overflow: number, addResult: table|nil, drop: table|nil, dropFailed: boolean }
+---@field msg? string
+```
 
 ```lua
-local result = exports.ls_inventory:AddItemOrDrop(charId, 'water', nil, nil, 10)
-if result.ok then
-    print(("Inventory-ba kerül: %d"):format(result.data.totalAdded))
-    print(("Dropba kerül: %d"):format(result.data.overflow))
-
-    if result.data.drop then
-        print(("Drop létrehozva: %s"):format(result.data.drop.dropId))
-    end
+local res = exports.ls_inventory:AddItemOrDrop(charId, 'water', nil, nil, 10)
+if res.ok then
+    print(res.data.totalAdded, res.data.overflow)
 end
 ```
 
-**Result struktúra:**
+> Only accepts a single `itemName` string. `ok = false` if both the inventory and the drop fail (e.g. offline player).
+> See [Drop System](/resources/core/ls_inventory/server/drops) for `DropOptions`.
+
+## RegisterUsableItem / UnregisterUsableItem
+
 ```lua
-{
-    ok = true,
-    data = {
-        totalAdded     = 6,      -- Inventory-ba sikerült tenni
-        totalRequested = 10,     -- Kért mennyiség
-        overflow       = 4,      -- Dropba került mennyiség
-        addResult      = { ... }, -- Az AddItem eredménye (nil ha semmi sem fért be)
-        drop           = {        -- nil ha nem kellett drop, vagy ha sikertelen
-            dropId      = "xxxxxxxx-...",
-            inventoryId = "drop:xxxxxxxx-...",
-            coords      = vector3(...)
-        },
-        dropFailed     = false    -- true ha a drop létrehozása meghiúsult
-    }
-}
+---@alias UsableItemCallback fun(source: number, itemData: { itemId: number, itemName: string, metadata: table, inventoryId: string })
+
+---@param itemName string
+---@param callback UsableItemCallback
+exports.ls_inventory:RegisterUsableItem(itemName, callback)
+
+---@param itemName string
+exports.ls_inventory:UnregisterUsableItem(itemName)
 ```
 
-> Ha mind az inventory tele van, mind a drop létrehozása meghiúsul (pl. offline játékos), `ok = false` kerül visszaadásra.
-
-> Csak egyetlen `itemName` stringet fogad el. Item lista esetén használd az `AddItem`-et és kezeld manuálisan az overflow-t.
-
----
-
-## registerHook
-
-Hook regisztrálása inventory akciókhoz. A hook a művelet végrehajtása előtt fut és blokkolhatja vagy módosíthatja azt.
+Runs server-side when the item is used (item must have `usable = true` in its definition). Registering twice for the same item overwrites the previous callback.
 
 ```lua
-local hookId = exports.ls_inventory:registerHook(event, callback, options)
-```
-
-**Paraméterek:**
-- `event` (string) — Hook event típus: `"addItem"`, `"removeItem"`, `"moveItem"`, `"useItem"`, `"splitItem"`, `"clearInventory"`
-- `callback` (function) — Hook callback
-- `options` (table|nil) — Szűrő opciók
-
-**Visszatérési érték:** `number` — Hook ID (eltávolításhoz)
-
-> Részletes dokumentáció: [Hooks](/resources/core/ls_inventory/server/hooks)
-
-```lua
-local hookId = exports.ls_inventory:registerHook('addItem', function(payload)
-    if payload.itemName == 'contraband' then
-        return false
-    end
+exports.ls_inventory:RegisterUsableItem('bandage', function(source, item)
+    -- heal logic
 end)
 ```
 
----
-
-## removeHooks
-
-Hook(ok) eltávolítása. Ha hookId megadva, csak azt távolítja el. Egyébként az adott resource összes hookját.
+## RegisterStash
 
 ```lua
-exports.ls_inventory:removeHooks(hookId)
+---@param stashId string
+---@param options? { width?: number, height?: number, maxWeight?: number, type?: string, coords?: vector3, label?: string, icon?: string }
+---@return boolean success
+---@return string|nil error
+exports.ls_inventory:RegisterStash(stashId, options)
 ```
 
-**Paraméterek:**
-- `hookId` (number|nil) — Specifikus hook ID, vagy nil az összes eltávolításához
+## GiveClothing
+
+Adds a clothing item to the player's inventory and equips it.
 
 ```lua
-exports.ls_inventory:removeHooks(hookId)
-
-exports.ls_inventory:removeHooks()
+---@param playerId number
+---@param clothingData { type: string, index: number, value: number, texture: number }
+---@param overrideItemName? string
+---@return { success: boolean, reason?: string }
+exports.ls_inventory:GiveClothing(playerId, clothingData, overrideItemName)
 ```
 
----
+## Hooks and events
 
-## OnInventoryEvent
+| Export | Params | Returns |
+|---|---|---|
+| `registerHook` | `event, callback, options?` | `hookId: number` |
+| `removeHooks` | `hookId?` | – |
+| `OnInventoryEvent` | `eventType, callback` | `handlerId: string` |
+| `OnAnyInventoryEvent` | `callback` | `handlerId: string` |
+| `OffInventoryEvent` | `handlerId` | `boolean` |
 
-Post-action event listener regisztrálása.
-
-```lua
-local handlerId = exports.ls_inventory:OnInventoryEvent(eventType, callback)
-```
-
-**Paraméterek:**
-- `eventType` (string) — Event típus: `"itemAdded"`, `"itemRemoved"`, `"itemMoved"`, `"itemUsed"`, `"itemSplit"`, `"itemStacked"`, `"inventoryOpened"`, `"inventoryClosed"`, `"inventoryCleared"`
-- `callback` (function) — `fun(data: InventoryEventData): boolean|nil`
-
-**Visszatérési érték:** `string` — Handler ID
-
-> Részletes dokumentáció: [Events](/resources/core/ls_inventory/server/events)
-
-```lua
-local handlerId = exports.ls_inventory:OnInventoryEvent('itemAdded', function(data)
-    print(("Item hozzáadva: %s a %s inventory-hoz"):format(data.itemName, data.inventoryId))
-end)
-```
-
----
-
-## OnAnyInventoryEvent
-
-Összes inventory event-re listener regisztrálása.
-
-```lua
-local handlerId = exports.ls_inventory:OnAnyInventoryEvent(callback)
-```
-
-**Paraméterek:**
-- `callback` (function) — `fun(eventType: string, data: InventoryEventData): boolean|nil`
-
-**Visszatérési érték:** `string` — Handler ID
-
-```lua
-exports.ls_inventory:OnAnyInventoryEvent(function(eventType, data)
-    print(("Inventory event: %s - %s"):format(eventType, data.itemName or "N/A"))
-end)
-```
-
----
-
-## OffInventoryEvent
-
-Event listener eltávolítása.
-
-```lua
-local success = exports.ls_inventory:OffInventoryEvent(handlerId)
-```
-
-**Paraméterek:**
-- `handlerId` (string) — Handler ID
-
-**Visszatérési érték:** `boolean`
-
-```lua
-exports.ls_inventory:OffInventoryEvent(handlerId)
-```
+> Full reference: [Hooks](/resources/core/ls_inventory/server/hooks), [Events](/resources/core/ls_inventory/server/events)

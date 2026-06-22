@@ -3,9 +3,9 @@
 ## Notification
 
 ```lua
----@param playerSrc number
----@param data Notification
-LS.UI:Notification(1, {
+---@param source number
+---@param data NotificationData
+LS.UI:Notification(source, {
     title = 'Siker',
     message = 'Az akcio sikeresen vegzodott',
     type = 'success',
@@ -15,41 +15,69 @@ LS.UI:Notification(1, {
 
 ## InteractionNotification
 
+Coroutine-blocking — yields until the player confirms/denies or `CloseInteractionNotification` is called.
+
 ```lua
----@param playerSrc number
----@param data InteractionNotification
----@return boolean
-LS.UI:InteractionNotification(1, {
-    title = 'Nyomj E-t',
-    description = 'Az interakciohoz',
-    icon = 'hand-paper'
+---@param source number
+---@param data InteractionNotificationData
+---@return boolean|nil result
+local accepted = LS.UI:InteractionNotification(source, {
+    title = 'Robbery',
+    message = 'Accept the robbery?',
+    duration = 10000
 })
 ```
+
+Returns `false` immediately if an interaction prompt is already active for that player. Auto-resolves to `nil` on `playerDropped`.
 
 ## CloseInteractionNotification
 
 ```lua
----@param playerSrc number
-LS.UI:CloseInteractionNotification(1)
+---@param source number
+LS.UI:CloseInteractionNotification(source)
 ```
 
 ## Types
 
-### Notification
+### NotificationData
 
 ```lua
----@class Notification
+---@class NotificationData
 ---@field title string
 ---@field message string
----@field type 'success'|'error'|'info'|'warning'
----@field duration number
+---@field type? string
+---@field duration? number
+---@field position? string
+---@field color? string
+---@field icon? string
+---@field loaderType? string
 ```
 
-### InteractionNotification
+### InteractionNotificationData
 
 ```lua
----@class InteractionNotification
+---@class InteractionNotificationData
 ---@field title string
----@field description string
----@field icon string
+---@field message string
+---@field duration? number
+---@field id? string
+---@field position? string
 ```
+
+## Events
+
+### Server → Client
+
+| Event | Payload |
+|-------|---------|
+| `UI:Client:Notification` | `NotificationData` — displays a toast notification |
+| `UI:Client:InteractionNotification` | `InteractionNotificationData` — confirmation prompt; client resolves via `UI:Server:InteractionResult` |
+| `UI:Client:CloseInteractionNotification` | _(none)_ — cancels any pending interaction prompt |
+| `UI:Client:StartProgressBar` | `ProgressBarData` — starts the progress bar on the target client |
+| `UI:Client:StopProgressBar` | _(none)_ — stops the active progress bar on the target client |
+
+### Client → Server
+
+| Event | Args |
+|-------|------|
+| `UI:Server:InteractionResult` | `result: boolean \| nil` — player's response to an interaction notification |

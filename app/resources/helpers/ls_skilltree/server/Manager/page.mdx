@@ -1,0 +1,90 @@
+# SkillTreeManager
+
+Obtained via `GetClass()` or injected by `RegisterTrees`. Manages registered trees.
+
+## Create
+
+Creates a `SkillTreeInstance`, tracked under the calling resource. Does **not** register it — call `:Register()` or use `CreateAndRegister`.
+
+```lua
+---@param data table
+---@return SkillTreeInstance|nil
+ST:Create({
+    id       = "combat",
+    name     = "Combat",
+    baseXp   = 500,
+    xpGrowth = 1.15,
+    nodes    = {
+        ["basics"] = {
+            preRequisites = {}, children = { "advanced" }, lock = {},
+            unlocked = false, label = "Basic Combat",
+            description = "Fundamentals of combat.", cost = 1,
+        },
+        ["advanced"] = {
+            preRequisites = { "basics" }, children = {}, lock = {},
+            unlocked = false, label = "Advanced Combat",
+            description = "Master-level techniques.", cost = 2,
+        },
+    }
+})
+```
+
+## CreateAndRegister
+
+Equivalent to `Create` + `tree:Register()`.
+
+```lua
+---@param data table
+---@return SkillTreeInstance|nil
+ST:CreateAndRegister({ id = "mining", ... })
+```
+
+## Get / Has / GetAllIds / Remove
+
+```lua
+---@param id string
+---@return SkillTreeInstance|nil
+ST:Get(id)
+
+---@param id string
+---@return boolean
+ST:Has(id)
+
+---@return string[]
+ST:GetAllIds()
+
+---@param id string
+---@return boolean
+ST:Remove(id)
+```
+
+## AddXP / UnlockNode / Respec
+
+```lua
+---@param treeId string
+---@param charId number
+---@param amount number
+---@return boolean leveledUp
+ST:AddXP(treeId, charId, amount)
+
+---@param treeId string
+---@param charId number
+---@param nodeId string
+---@return boolean success
+---@return string|nil reason
+ST:UnlockNode(treeId, charId, nodeId)
+
+---@param treeId string
+---@param charId number
+---@return boolean success
+---@return number refundedPoints
+ST:Respec(treeId, charId)
+```
+
+## GetCharacterSkills
+
+```lua
+---@param charId number
+---@return CharSkills
+ST:GetCharacterSkills(charId)
+```

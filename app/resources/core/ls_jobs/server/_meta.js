@@ -4,4 +4,5 @@ export default {
     Reward: "Reward",
     Events: "Events",
     SkillGate: "SkillGate",
+    Difficulty: "Difficulty",
 };

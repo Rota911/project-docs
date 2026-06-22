@@ -1,0 +1,42 @@
+# ls_pausemenu
+
+Replaces GTA's native pause menu with a custom NUI overlay. Buttons for map, settings, workgroups, quit, and UI edit mode toggle. Adds a separate `P` keybind for the native map.
+
+## Exports
+
+### IsPauseMenuActive
+
+```lua
+---@return boolean
+exports.ls_pausemenu:IsPauseMenuActive()
+```
+
+```lua
+local open = exports.ls_pausemenu:IsPauseMenuActive()
+```
+
+## Internal behavior
+
+On `Core:Client:CharacterLoaded` (or resource start) a loop disables controls `200` and `199` (native pause-menu triggers) while `LocalPlayer.state.isLoggedIn` is true, preventing the native GTA pause screen from opening.
+
+`ESCAPE` opens the custom pause menu; `P` opens the native map directly. Both binds are disabled while no character is loaded.
+
+Opening the map or settings sets `InNativeMode = true` and activates the native GTA frontend (`ActivateFrontendMenu`). Pressing the back button (control `202`) in native mode returns focus to the NUI.
+
+NUI → Lua messages handled: `hideFrame`, `openMap`, `openSettings`, `openWorkgroups`, `handleQuitGame`, `handleUIEdit`.
+
+> `hideFrame` closes the menu unless `body.temp` is set (temporary focus shift, e.g. switching to native mode).
+
+## Events
+
+### Local (client-only)
+
+```lua
+-- Fired when the pause menu NUI becomes visible
+AddEventHandler('Pausemenu:Client:Opened', function() end)
+
+-- Fired when the pause menu NUI is hidden (player close or temp focus shift)
+AddEventHandler('Pausemenu:Client:Closed', function() end)
+```
+
+`ls_ui` consumes both events to pause/resume its vehicle compass heading loop while the pause menu is open.

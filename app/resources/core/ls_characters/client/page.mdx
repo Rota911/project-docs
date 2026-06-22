@@ -1,9 +1,31 @@
-# Client
+# Characters — Client
+
+Character selection/creation NUI shown on login. No Lua exports — driven entirely by core events and NUI callbacks.
+
+> Each character slot renders as a ped via `LS.Peds:Create`; gender changes in the creator swap the preview ped live.
 
 ## Events
 
-| Event | Parameters | Description |
-|---|---|---|
-| `Core:Client:PlayerJoined` | `characters` | Fired when the player joins and characters are loaded |
-| `Core:Client:OpenCharacterSelector` | `characters` | Fired to reopen the character selector |
-| `Core:Client:CharacterLoaded` | `characterData` | Fired when a character is successfully loaded |
+| Event | Direction | Payload | Description |
+|---|---|---|---|
+| `Core:Client:PlayerJoined` | Server → Client | `characters: table[]` | Received from ls_core on connect; opens selector |
+| `Core:Client:OpenCharacterSelector` | Server → Client | `characters: table[]` | Re-opens selector (e.g. after logout) |
+| `Core:Client:ScriptRestart` | Server → Client | — | Cleans up selector peds on resource restart |
+| `Core:Server:SetActiveCharacter` | Client → Server | `charId: number` | Sent when player confirms a slot; handled by ls_core |
+
+```lua
+RegisterNetEvent('Core:Client:PlayerJoined', function(characters)
+    -- builds formatted slot list, calls exports.ls_appearance:GetSavedAppearance per char
+end)
+```
+
+## Internal behavior
+
+On `PlayerJoined`/`OpenCharacterSelector`, fetches saved appearance per character via `exports.ls_appearance:GetSavedAppearance`, then sends the list to NUI along with `Config.Slots`, `Config.Specializations`, and `GlobalState['FinishButtonEnabled']`. Selecting a slot triggers `Core:Server:SetActiveCharacter`. Creating a character opens the identity form, then `ls_appearance:OpenAppearanceMenu` for the initial look, then submits via the `Identity:Server:CreateCharacter` callback.
+
+## GlobalState
+
+```lua
+---@type boolean
+GlobalState['FinishButtonEnabled'] -- shows/hides the "Finish" button to skip selection
+```

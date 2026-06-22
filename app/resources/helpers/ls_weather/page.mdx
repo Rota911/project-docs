@@ -1,0 +1,114 @@
+# ls_weather
+
+Server-authoritative time and weather sync. Time persists via KVP across restarts; weather is zone-based and season-driven. All exports are server-side: `exports['ls_weather']:Fn(...)`.
+
+## State
+
+| Key | Shape | Description |
+|-----|-------|-------------|
+| `GlobalState.CurrentTime` | `{ hour, minute }` | Source of truth for in-game clock |
+| `GlobalState.TimeScale` | `number` | Ms per game-minute (day) |
+| `GlobalState.FreezeTime` | `boolean` | Pauses time advancement |
+| `GlobalState.IsNight` | `boolean` | True between `NightTime.Beginning`/`Ending` |
+| `GlobalState.Season` | `string` | `spring` \| `summer` \| `autumn` \| `winter` |
+| `GlobalState.ZoneWeather` | `table<region, {weather, windSpeed, transition}>` | Current weather per region |
+| `GlobalState.ZoneTemperature` | `table<region, number>` | Current temp (°C) per region |
+| `GlobalState.WeatherSchedule` | `{region, weather, windSpeed, gameHour, gameMinute}[]` | Forecast queue, ~4h ahead |
+| `LocalPlayer.state.SyncWeather` | `boolean` | `false` decouples client clock, freezes local time at 21:00 |
+| `LocalPlayer.state.BodyTemp` | `number` | **Output**, 25-45 °C, written every second |
+| `LocalPlayer.state.ClothingInsulation` | `number` | **Input**, °C offset, default `0`, set by clothing resource |
+
+Regions: `city`, `desert`, `paleto`, `largehills`, `smallhills` (geometrically overlapping; resolved by `Regions.Priority`, smallest first).
+
+## SetRegionWeather
+
+```lua
+---@param region "city"|"desert"|"paleto"|"largehills"|"smallhills"
+---@param weatherType string GTA weather type, e.g. "RAIN"
+---@param windSpeed? number Default 1.0
+---@return boolean success false if region doesn't exist
+exports['ls_weather']:SetRegionWeather(region, weatherType, windSpeed)
+```
+
+```lua
+exports['ls_weather']:SetRegionWeather('desert', 'THUNDER', 3.0)
+```
+
+## AddWeatherSchedule
+
+```lua
+---@param region string
+---@param weatherType string
+---@param gameHour number 0-23
+---@param windSpeed? number Default 1.0
+---@param gameMinute? number 0-59, default 0
+---@return boolean
+exports['ls_weather']:AddWeatherSchedule(region, weatherType, gameHour, windSpeed, gameMinute)
+```
+
+```lua
+exports['ls_weather']:AddWeatherSchedule('paleto', 'SNOW', 22, 4.0, 30)
+```
+
+## UpdateWeatherSchedule / SwapWeatherSchedule / RemoveWeatherSchedule
+
+```lua
+---@param index number 1-based position in GetWeatherData().schedule
+---@param weatherType? string
+---@param windSpeed? number
+---@param gameHour? number
+---@param gameMinute? number
+---@return boolean success false if index doesn't exist
+exports['ls_weather']:UpdateWeatherSchedule(index, weatherType, windSpeed, gameHour, gameMinute)
+
+---@param indexA number
+---@param indexB number
+---@return boolean success false if either index doesn't exist
+exports['ls_weather']:SwapWeatherSchedule(indexA, indexB) -- swaps gameHour/gameMinute only
+
+---@param index number
+---@return boolean
+exports['ls_weather']:RemoveWeatherSchedule(index)
+```
+
+```lua
+exports['ls_weather']:UpdateWeatherSchedule(1, 'CLEAR', 1.5, 18, 0)
+exports['ls_weather']:SwapWeatherSchedule(1, 2)
+exports['ls_weather']:RemoveWeatherSchedule(1)
+```
+
+## GetWeatherData
+
+```lua
+---@return { zoneWeather: table, zoneTemp: table, schedule: table }
+exports['ls_weather']:GetWeatherData()
+```
+
+> No public events — sync is entirely `GlobalState`/`LocalPlayer` state bags via `AddStateBagChangeHandler`.
+
+## Integration: body temperature
+
+Felt temp = zone temp + `ClothingInsulation`. The clothing resource must publish insulation:
+
+```lua
+LocalPlayer.state:set('ClothingInsulation', value, true)
+```
+
+Target: a full winter outfit tops out around **+20°C** total (additive per slot).
+
+| Garment | Insulation (°C) |
+|---|---|
+| Beanie / hat | +2 |
+| Scarf | +1 |
+| Heavy winter coat | +8 |
+| Light jacket | +4 |
+| Sweater / hoodie | +3 |
+| Thick / jogging pants | +3 |
+| Regular pants | +1 |
+| Gloves | +1 |
+| Winter boots | +2 |
+| T-shirt / regular shoes | 0 |
+
+`BodyTemp` is derived from felt temp and written to `LocalPlayer.state.BodyTemp` once/sec — HUD/status resources subscribe via `AddStateBagChangeHandler`.
+
+Consumables: this resource has no item knowledge. `ls_inventory` sets `ls_statuses` `cooled`/`warmed` (0-100) on item use; weather reads them via `Statuses:Client:StatusUpdate` and nudges felt temp toward the comfort band only (never past it).

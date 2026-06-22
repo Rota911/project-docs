@@ -60,11 +60,12 @@ BillingService:GetByChar(charId, filter)
 
 ```lua
 ---@class BillFilter
----@field status? 'pending' | 'paid' | 'overdue' | 'cancelled'
+---@field status? 'active' | 'paid' | 'overdue' | 'cancelled'
+---@field limit? number
 ```
 
 ```lua
-local pending = BillingService:GetByChar(123, { status = 'pending' })
+local active = BillingService:GetByChar(123, { status = 'active' })
 ```
 
 ## Cancel
@@ -133,80 +134,22 @@ local remaining = bill:Remaining()
 
 ## Exports
 
-### CreateBill
+All exports are `exports['ls_banking']:Name(...)`, `toPlayer`/`playerId` accepts source, charId, or identifier.
+
+| Export | Params | Returns |
+|---|---|---|
+| `CreateBill` | `toPlayer, issuer: BillIssuer, data: BillCreateData` | `Bill?, error?` |
+| `GetBill` | `billId` | `Bill?` |
+| `GetPlayerBills` | `playerId, filter?: BillFilter` | `Bill[]` |
+| `PayBill` | `playerId, billId, amount?` | `success, error?` |
+| `CancelBill` | `billId` | `success, error?` |
+| `GetTotalOutstanding` | `playerId` | `number` |
+| `GetBillHistory` | `playerId, limit?` | `Bill[]` |
 
 ```lua
----@param toPlayer number|string -- source, charId, or identifier
----@param issuer BillIssuer
----@param data BillCreateData
----@return Bill? bill
----@return string? error
-exports['ls_banking']:CreateBill(toPlayer, issuer, data)
-```
-
-```lua
-local bill, err = exports['ls_banking']:CreateBill(source, {
-    type = 'job',
-    identifier = 'mechanic',
-    label = 'LS Customs'
-}, {
-    amount = 15000,
-    description = 'Vehicle repair'
-})
-```
-
-### GetPlayerBills
-
-```lua
----@param playerId number|string
----@param filter? BillFilter
----@return Bill[]
-exports['ls_banking']:GetPlayerBills(playerId, filter)
-```
-
-### PayBill
-
-```lua
----@param playerId number|string
----@param billId number
----@param amount? number
----@return boolean success
----@return string? error
-exports['ls_banking']:PayBill(playerId, billId, amount)
-```
-
-### CancelBill
-
-```lua
----@param billId number
----@return boolean success
----@return string? error
-exports['ls_banking']:CancelBill(billId)
-```
-
-### GetBill
-
-```lua
----@param billId number
----@return Bill?
-exports['ls_banking']:GetBill(billId)
-```
-
-### GetTotalOutstanding
-
-```lua
----@param playerId number|string
----@return number
-exports['ls_banking']:GetTotalOutstanding(playerId)
-```
-
-### GetBillHistory
-
-```lua
----@param playerId number|string
----@param limit? number
----@return Bill[]
-exports['ls_banking']:GetBillHistory(playerId, limit)
+local bill, err = exports['ls_banking']:CreateBill(source,
+    { type = 'job', identifier = 'mechanic', label = 'LS Customs' },
+    { amount = 15000, description = 'Vehicle repair' })
 ```
 
 > Overdue bills from jobs/factions trigger forced collection from personal account.

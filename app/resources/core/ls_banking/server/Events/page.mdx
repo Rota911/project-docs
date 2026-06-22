@@ -1,20 +1,75 @@
 # Events
 
-Banking system events for monitoring and integration.
+Banking system events for monitoring and integration. Access via `LS.Banking` exports or the internal `EventBus`.
+
+## BankEventPayload
+
+```lua
+---@class BankEventPayload
+---@field eventType BankEventType
+---@field accountId number?
+---@field charId number?
+---@field data table -- event-specific fields
+---@field timestamp number -- os.time()
+```
 
 ## Listening to Events
 
 ```lua
 local EventBus = require 'core.events'
 
-EventBus:On('account_created', function(data, accountId, charId)
-    print('New account:', data.accountNumber)
+---@param eventType BankEventType
+---@param handler fun(payload: BankEventPayload)
+---@return number listenerId
+EventBus:On(eventType, handler)
+```
+
+```lua
+EventBus:On('account_created', function(payload)
+    print('New account:', payload.data.accountNumber)
 end)
 ```
 
+Other resources should use the exported equivalent instead of `require`:
+
+```lua
+exports.ls_banking:OnBankEvent('transaction', function(payload)
+    print(payload.accountId, payload.data.amount)
+end)
+```
+
+## Middleware
+
+```lua
+---@param eventType BankEventType
+---@param handler fun(payload: BankEventPayload): boolean? -- return false to block
+---@return number middlewareId
+EventBus:Use(eventType, handler)
+```
+
+```lua
+exports.ls_banking:UseBankMiddleware('withdraw', function(payload)
+    if isFrozen(payload.accountId) then return false end
+end)
+```
+
+## Other EventBus methods
+
+```lua
+---@param eventType BankEventType
+---@param listenerId number
+EventBus:Off(eventType, listenerId)
+
+---@param eventType BankEventType
+---@return number
+EventBus:ListenerCount(eventType)
+```
+
+> Every emit also fires standard event `Banking:<eventType>` via `TriggerEvent`, carrying the same `BankEventPayload`.
+
 ## Account Events
 
-| Event | Parameters | Description |
+| Event | `data` fields | Description |
 |---|---|---|
 | `account_created` | `accountId, accountNumber, type, ownerCharId` | New account created |
 | `account_locked` | `accountId, previousStatus, newStatus, reason` | Account locked/frozen |
@@ -22,63 +77,45 @@ end)
 | `account_closed` | `accountId, previousStatus, newStatus, reason` | Account closed |
 
 ```lua
-EventBus:On('account_created', function(data, accountId, charId)
-    print(('Account %s created for char %d'):format(data.accountNumber, charId))
+AddEventHandler('Banking:account_created', function(payload)
+    print(('Account %s created for char %d'):format(payload.data.accountNumber, payload.charId))
 end)
 ```
 
 ## Card Events
 
-| Event | Parameters | Description |
+| Event | `data` fields | Description |
 |---|---|---|
 | `card_created` | `cardId, accountId, holderCharId, cardType` | New card issued |
 | `card_blocked` | `cardId, reason, previousStatus` | Card blocked/stolen |
 | `card_unblocked` | `cardId` | Card unblocked |
 
-```lua
-EventBus:On('card_blocked', function(data, accountId, charId)
-    print(('Card %d blocked: %s'):format(data.cardId, data.reason or 'no reason'))
-end)
-```
-
 ## Transaction Events
 
-| Event | Parameters | Description |
+| Event | `data` fields | Description |
 |---|---|---|
-| `transaction` | `transactionId, type, amount, balanceAfter, ...` | Transaction processed |
+| `transaction` | `transactionId, type, amount, balanceAfter, reason?, metadata?` (transfers add `fromAccountId, toAccountId, fromBalanceAfter, toBalanceAfter`) | Transaction processed |
 
 ```lua
-EventBus:On('transaction', function(data, accountId, charId)
-    print(('TX %s: %s by char %d'):format(data.type, data.amount, charId))
+AddEventHandler('Banking:transaction', function(payload)
+    print(payload.accountId, payload.data.type, payload.data.amount)
 end)
 ```
 
 ## Loan Events
 
-| Event | Parameters | Description |
+| Event | `data` fields | Description |
 |---|---|---|
 | `loan_created` | `loanId, charId, accountId, principal, total, tier, assetType, assetId` | Loan approved |
 | `loan_payment` | `loanId, charId, accountId, payAmount, remainingBalance` | Loan payment made |
 | `loan_paid_off` | `loanId, charId, accountId` | Loan fully paid |
 | `loan_overdue` | `loanId, charId, accountId` | Loan payment overdue |
 
-```lua
-EventBus:On('loan_paid_off', function(data, accountId, charId)
-    print(('Loan %d paid off by char %d'):format(data.loanId, charId))
-end)
-```
-
 ## Permission Events
 
-| Event | Parameters | Description |
+| Event | `data` fields | Description |
 |---|---|---|
-| `permission_changed` | `action, permission, targetCharId, grantedBy/revokedBy` | Permission granted/revoked |
-
-```lua
-EventBus:On('permission_changed', function(data, accountId, charId)
-    print(('%s: %s for char %d'):format(data.action, data.permission, data.targetCharId))
-end)
-```
+| `permission_changed` | `action ('grant'\|'revoke'), permission, targetCharId, grantedBy?, revokedBy?` | Permission granted/revoked |
 
 ## Billing Events
 
@@ -87,7 +124,7 @@ end)
 | `Billing:OnBillCreated` | `billData` | Bill created |
 | `Billing:OnBillPaid` | `billData, payAmount` | Bill payment processed |
 | `Billing:OnBillCancelled` | `billData` | Bill cancelled |
-| `Billing:OnBillOverdue` | `billData, forcedCollection` | Bill marked overdue |
+| `Billing:OnBillOverdue` | `billData, collected` | Bill marked overdue (`collected` = forced amount taken, 0 if none) |
 
 ```lua
 AddEventHandler('Billing:OnBillCreated', function(billData)

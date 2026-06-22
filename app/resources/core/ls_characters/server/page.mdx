@@ -1,59 +1,35 @@
-# Server
+# Characters — Server
 
-## Callbacks
+No Lua exports. Single callback for character creation from the identity form.
 
-### Identity:Server:CreateCharacter
+## Identity:Server:CreateCharacter
 
 ```lua
 ---@param source number
 ---@param data CharacterCreateData
----@return boolean
+---@return boolean success
 LS.Callback:Register('Identity:Server:CreateCharacter', function(source, data)
     local player = LS:GetPlayer(source)
     if not player then return false end
 
-    local success = player:CreateCharacter(data)
-    return success
+    return player:CreateCharacter(data)
 end)
 ```
 
-### CharacterCreateData
-
 ```lua
-{
-    first_name = string,
-    middle_name = string,
-    last_name = string,
-    birth_date = string,
-    gender = string,
-    nationality = string,
-    specialization = string,
-    appearance = table
-}
+---@class CharacterCreateData
+---@field first_name string
+---@field middle_name string
+---@field last_name string
+---@field birth_date string
+---@field gender string
+---@field nationality string
+---@field specialization string
+---@field appearance table
 ```
 
 ## GlobalState
 
 ```lua
 GlobalState['FinishButtonEnabled'] = true
-```
-
-## Events
-
-| Event | Parameters | Description |
-|---|---|---|
-| `Core:Server:CharacterLoaded` | `source, charId` | Character selected and loaded |
-| `Core:Server:CharacterLogout` | `source, charId` | Character unloaded |
-| `Core:Server:CharacterCreated` | `source, characterData` | New character created |
-
-## Reopen Character Selector
-
-```lua
-local player = GetPlayer(source)
-if not player then return end
-
-local Database = require 'core.server.player.modules.database'
-local characters = next(player.characters) and Database:GetCharacters(player.characters) or {}
-
-TriggerClientEvent('Core:Client:OpenCharacterSelector', source, characters)
 ```

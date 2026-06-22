@@ -1,0 +1,115 @@
+# ls_radio
+
+Radio UI and channel authorization layer on top of `ls_voip`. Access via `exports.ls_radio`.
+
+## Radio Types
+
+```lua
+---@alias RadioType string
+---| "low"   Low-end civilian radio
+---| "med"   Medium civilian radio
+---| "high"  High-end civilian radio
+---| "gov"   Government radio, required for gov channels
+```
+
+## Open
+
+```lua
+---@param radioType RadioType? Defaults to "low"
+exports.ls_radio:Open(radioType)
+```
+
+Opens the radio NUI and plays the prop animation. Client-side only.
+
+```lua
+exports.ls_radio:Open("gov")
+```
+
+## Close
+
+```lua
+exports.ls_radio:Close()
+```
+
+Closes the radio NUI and stops the animation. Safe to call when already closed. Client-side only.
+
+```lua
+exports.ls_radio:Close()
+```
+
+## RestrictChannel
+
+```lua
+---@param channel number Channel number, floored to integer
+---@param group string Group name required to access the channel
+---@param length number? Duration in seconds; nil for permanent
+---@return boolean success
+---@return string? error
+exports.ls_radio:RestrictChannel(channel, group, length)
+```
+
+Server-side. Persists the restriction to the `radio_channels` table.
+
+```lua
+-- Permanent restriction
+local ok, err = exports.ls_radio:RestrictChannel(50, "police")
+
+-- Temporary restriction (1 hour)
+local ok, err = exports.ls_radio:RestrictChannel(51, "ambulance", 3600)
+if not ok then
+    print("Failed:", err)
+end
+```
+
+## Callback: Radio:Server:CheckAuth
+
+```lua
+---@param channel number Target channel number
+---@param radioType RadioType? Defaults to "low"
+---@return boolean granted
+LS.Callback:Await("Radio:Server:CheckAuth", false, channel, radioType)
+```
+
+Checks whether the requesting player is authorized to connect to a channel. Called client-side before joining any non-zero frequency.
+
+```lua
+local canConnect = LS.Callback:Await("Radio:Server:CheckAuth", false, 50, "gov")
+if not canConnect then
+    -- deny access
+end
+```
+
+## Channel Authorization
+
+Checked in order:
+
+1. **Gov channel** — channels in `configs/govChannels.lua` (default 1-10) require `radioType == "gov"` and a gov group on the character.
+2. **Restriction** — if the channel has an active restriction, the character must have the owning group.
+3. Otherwise access is granted.
+
+Timed restrictions expire automatically; a cron runs every 10 minutes and clears expired entries from `Radio.RestrictedChannels` and the `radio_channels` table.
+
+## State
+
+| Key | Side | Type | Description |
+|-----|------|------|-------------|
+| `LocalPlayer.state.RadioType` | Client | `string \| nil` | Active radio type; `nil` when radio is closed |
+
+## Database
+
+`radio_channels`
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `channel` | `int` | Channel number |
+| `group_name` | `string` | Group required to access the channel |
+| `bought` | `int` | Unix timestamp the restriction was created |
+| `expires` | `int \| null` | Unix timestamp of expiry; `null` for permanent |
+
+## Command
+
+```
+/radio [type|close]  -- Opens with type (low/med/high/gov), or closes
+```
+
+> Requires the player to be logged in and alive.

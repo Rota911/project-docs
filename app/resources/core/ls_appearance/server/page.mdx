@@ -1,0 +1,39 @@
+# Appearance — Server
+
+Persists appearance per character to `character_appearance` (clothes + skin JSON columns). Saved every 5 minutes via cron and on `Core:Server:CharacterLogout`.
+
+## SaveAppearance
+
+```lua
+---@param source number Player server ID
+---@param appearanceData table Full appearance table (drawables, props, headOverlay, headBlend, headStructure, hairColor, model)
+---@param charId number? Target character; defaults to player's active character
+---@return boolean success
+exports.ls_appearance:SaveAppearance(source, appearanceData, charId)
+```
+
+## GetSavedAppearance
+
+```lua
+---@param source number Player server ID
+---@param charId number? Target character; defaults to player's active character
+---@return table|false|nil appearance, false if no row exists, nil if no character
+exports.ls_appearance:GetSavedAppearance(source, charId)
+```
+
+## Callbacks
+
+| Callback | Params | Returns |
+|---|---|---|
+| `Appearance:Server:GetSavedAppearance` | `source, charId?: number` | `table\|false\|nil` |
+| `Appearance:Server:SaveAppearance` | `source, appearanceData: table, charId?: number` | `boolean` |
+| `Appearance:Server:CartBuy` | `source, data: { cart: table[] }` | `{ ok: boolean, results: table[] }` per-item purchase results |
+| `Appearance:Server:GetClientAppearance` | `source` | `table\|nil` — live appearance read from client ped |
+
+> Cart purchases call `ls_inventory:GiveClothing` for the equipped piece and `ls_inventory:AddItem` for additional quantities.
+
+## Events (Server → Client)
+
+| Event | Payload | Description |
+|---|---|---|
+| `Appearance:Client:OpenAppearance` | `type: string, structure: table\|nil` | Opens appearance editor on target client |

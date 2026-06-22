@@ -1,0 +1,109 @@
+# Difficulty
+
+Resolves a player's minigame difficulty (multiplier + profile) from their current labor points. Shared module, server and client have different call signatures.
+
+```lua
+local DifficultyResolver = require 'core.difficulty'
+```
+
+## ResolveMinigameDifficulty
+
+```lua
+-- server
+---@param source number
+---@return number multiplier
+---@return string profile
+DifficultyResolver:ResolveMinigameDifficulty(source)
+```
+
+```lua
+-- client
+---@param callback fun(multiplier: number, profile: string)
+DifficultyResolver:ResolveMinigameDifficulty(callback)
+```
+
+Server reads labor directly via `exports.ls_statuses:GetLabor`. Client calls the server over `LS.Rpc` (`Jobs:Difficulty:Resolve`).
+
+```lua
+-- server
+local multiplier, profile = DifficultyResolver:ResolveMinigameDifficulty(source)
+```
+
+```lua
+-- client
+DifficultyResolver:ResolveMinigameDifficulty(function(multiplier, profile)
+    print(multiplier, profile)
+end)
+```
+
+## GetMultiplier
+
+```lua
+---@param source number
+---@return number multiplier
+DifficultyResolver:GetMultiplier(source) -- server
+```
+
+```lua
+---@param callback fun(multiplier: number)
+DifficultyResolver:GetMultiplier(callback) -- client
+```
+
+## GetProfile
+
+```lua
+---@param source number
+---@return string profile
+DifficultyResolver:GetProfile(source) -- server
+```
+
+```lua
+---@param callback fun(profile: string)
+DifficultyResolver:GetProfile(callback) -- client
+```
+
+## GetDifficultyByLabor
+
+```lua
+---@param labor number
+---@return DifficultyResult
+DifficultyResolver:GetDifficultyByLabor(labor)
+```
+
+Pure lookup against `Config.Difficulty.tiers`, no player/source involved. Available on both sides.
+
+```lua
+---@class DifficultyResult
+---@field multiplier number
+---@field profile string
+```
+
+## GetConfig / GetTiers
+
+```lua
+---@return JobDifficultyConfig
+DifficultyResolver:GetConfig()
+
+---@return JobDifficultyTier[]
+DifficultyResolver:GetTiers()
+```
+
+## Difficulty Config
+
+```lua
+---@class JobDifficultyTier
+---@field minLabor number
+---@field maxLabor number
+---@field multiplier number
+---@field profile string
+
+---@class JobDifficultyConfig
+---@field enabled boolean
+---@field tiers JobDifficultyTier[]
+---@field defaultMultiplier number
+---@field defaultProfile string
+```
+
+If `Config.Difficulty.enabled` is `false`, or no tier matches the labor value, falls back to `defaultMultiplier`/`defaultProfile`.
+
+> Not an export — accessed via `require 'core.difficulty'` on both server and client.

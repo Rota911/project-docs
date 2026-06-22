@@ -1,105 +1,71 @@
 # ls_density
 
-### Density beállítása
+Manages GTA world population density (peds, vehicles, parked vehicles, scenarios) on the client. No public exports — controlled via `GlobalState.Population` and zone/schedule config.
+
+## Density multipliers
+
+Five float values (`0.0`-`1.0`) applied every frame via natives:
+
+| Field | Native |
+|-------|--------|
+| `peds` | `SetPedDensityMultiplierThisFrame` |
+| `vehicles` | `SetVehicleDensityMultiplierThisFrame` |
+| `randomVehicles` | `SetRandomVehicleDensityMultiplierThisFrame` |
+| `parked` | `SetParkedVehicleDensityMultiplierThisFrame` |
+| `scenario` | `SetScenarioPedDensityMultiplierThisFrame` |
+
+## Resolution order
+
+1. `GlobalState.Population` — if set, used for all clients regardless of zone/schedule.
+2. `Config.Zones[zoneName]` — looked up by the player's current GTA zone name.
+3. `Config.Default` — time-scheduled fallback; each entry is `{ from, to, data }`, selected by current server clock hour.
+
+A zone thread re-evaluates the active data block every 2 seconds; a separate thread applies the resolved multipliers every frame.
+
+## GlobalState
 
 ```lua
--- Globális density
-exports.ls_density:SetVehicleDensity(0.5)  -- 50% járművek
-exports.ls_density:SetPedDensity(0.3)      -- 30% gyalogosok
-exports.ls_density:SetParkedDensity(0.7)   -- 70% parkolt járművek
+---@class Population
+---@field peds number
+---@field vehicles number
+---@field randomVehicles number
+---@field parked number
+---@field scenario number
 
--- Scenarios toggle
-exports.ls_density:SetScenarios(true)  -- Bekapcsolás
-exports.ls_density:SetScenarios(false) -- Kikapcsolás
-
--- Teljes forgalom letiltás
-exports.ls_density:SuppressTraffic(true)
+---@type Population|nil
+GlobalState.Population
 ```
 
-### Zóna alapú kezelés
+`nil` means use zone/schedule defaults.
+
+## Startup behavior
+
+On resource start: disables wanted levels, random cop vehicle spawns, all dispatch services, a large list of ambient scenarios, and sets ambient gang relationship groups to "Respect" toward the player.
+
+## Events
+
+### Core:Client:CharacterLoaded
+
+Starts the zone thread and density thread.
 
 ```lua
--- Zóna hozzáadása runtime-ban
-exports.ls_density:AddZone({
-    name = 'Custom Zone',
-    coords = vector3(100.0, 200.0, 30.0),
-    radius = 250.0,
-    settings = {
-        vehicles = 0.0,
-        peds = 0.0,
-        parked = 0.0,
-        scenarios = false,
-        suppressTraffic = true
-    }
-})
-
--- Zóna eltávolítása
-exports.ls_density:RemoveZone('Custom Zone')
-
--- Zóna módosítása
-exports.ls_density:UpdateZone('Custom Zone', {
-    vehicles = 0.5,
-    peds = 0.5
-})
+AddEventHandler("Core:Client:CharacterLoaded", function() end)
 ```
 
+### onResourceStart
 
-#### Set Vehicle Density
+Restarts threads if the player is already logged in (resource restart).
 
-```lua
-exports.ls_density:SetVehicleDensity(density)
--- density: 0.0 - 1.0
+## Admin Commands
+
+```
+setpop <peds> <vehicles> <randomVehicles> <parked> <scenario>  -- admin, sets GlobalState.Population
+resetpop                                                        -- admin, clears GlobalState.Population
 ```
 
-#### Set Ped Density
+All `setpop` args are `number` in range `0.0`-`1.0`.
 
-```lua
-exports.ls_density:SetPedDensity(density)
--- density: 0.0 - 1.0
 ```
-
-#### Set Parked Density
-
-```lua
-exports.ls_density:SetParkedDensity(density)
--- density: 0.0 - 1.0
-```
-
-#### Set Scenarios
-
-```lua
-exports.ls_density:SetScenarios(enabled)
--- enabled: true/false
-```
-
-#### Suppress Traffic
-
-```lua
-exports.ls_density:SuppressTraffic(suppress)
--- suppress: true/false
-```
-
-#### Add Zone
-
-```lua
-exports.ls_density:AddZone(zoneData)
-```
-
-#### Remove Zone
-
-```lua
-exports.ls_density:RemoveZone(zoneName)
-```
-
-#### Update Zone
-
-```lua
-exports.ls_density:UpdateZone(zoneName, settings)
-```
-
-#### Get Current Settings
-
-```lua
-local settings = exports.ls_density:GetCurrentSettings()
--- returns: {vehicles, peds, parked, scenarios, suppressTraffic}
+setpop 0.3 0.5 0.0 0.7 0.0
+resetpop
 ```

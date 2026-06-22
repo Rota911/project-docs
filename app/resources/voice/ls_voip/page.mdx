@@ -1,0 +1,140 @@
+# ls_voip
+
+Mumble-based proximity voice, radio, phone calls, megaphone, microphone, and gag effects. Access via `exports.ls_voip`.
+
+## Key Concepts
+
+- Each player gets a dedicated Mumble channel (1-2048), assigned on `Core:Server:CharacterLoaded` via the `voiceChannel` state bag, released on logout/drop.
+- Proximity cycling (F11) switches whisper/normal/shout, each mapping to a `MumbleSetTalkerProximity` radius in `shared/configs/modes.lua`.
+- Radio, phone, megaphone, microphone, and gag are layered on top using Mumble voice targets and per-player submixes (`MumbleSetSubmixForServerId`), IDs loaded from `shared/configs/submixes.lua`.
+- `RadioVolume` / `CallVolume` persist to KVP, adjustable via `SetVolume` / `GetVolume`.
+
+## Client Exports
+
+### SetVolume
+
+```lua
+---@param voiceType "RadioVolume"|"CallVolume"
+---@param volume number
+---@return false|nil success false+nil error on failure, nil on success
+exports.ls_voip:SetVolume(voiceType, volume)
+```
+
+```lua
+exports.ls_voip:SetVolume("RadioVolume", 0.8)
+```
+
+### GetVolume
+
+```lua
+---@param voiceType ("RadioVolume"|"CallVolume")?
+---@return number|table|nil value, or full settings table if voiceType omitted
+exports.ls_voip:GetVolume(voiceType)
+```
+
+```lua
+local vol = exports.ls_voip:GetVolume("RadioVolume")
+local settings = exports.ls_voip:GetVolume()
+```
+
+## Server Exports
+
+### AuthorizeCall
+
+```lua
+---@param src number
+---@param callChannel number
+exports.ls_voip:AuthorizeCall(src, callChannel)
+```
+
+Grants one-time authorization for `src` to join `callChannel` via the client net event `VOIP:Phone:Server:SetCall`. Must be called before the client triggers the event.
+
+### RevokeAuthorization
+
+```lua
+---@param src number
+exports.ls_voip:RevokeAuthorization(src)
+```
+
+Removes a pending call channel authorization (e.g. call cancelled before joining).
+
+### SetCall
+
+```lua
+---@param src number
+---@param callChannel number Pass 0 to hang up
+exports.ls_voip:SetCall(src, callChannel)
+```
+
+Puts a player directly into a call channel server-side, bypassing the client net event.
+
+```lua
+-- Option A: server drives everything (preferred)
+exports.ls_voip:SetCall(src, callChannel)
+exports.ls_voip:SetCall(src, 0) -- hang up
+
+-- Option B: authorize then let client confirm
+exports.ls_voip:AuthorizeCall(src, callChannel)
+-- client then triggers VOIP:Phone:Server:SetCall automatically
+```
+
+> The phone resource must use `SetCall`/`AuthorizeCall`. The client event `VOIP:Phone:Server:SetCall` is only accepted if the player was previously authorized.
+
+## Events: Client -> Server
+
+```lua
+---@param targetChannel number
+---@param radioType string?
+TriggerServerEvent("VOIP:Radio:Server:SetChannel", targetChannel, radioType) -- 0 = leave
+
+---@param isTalking boolean
+---@param radioType string?
+TriggerServerEvent("VOIP:Radio:Server:SetTalking", isTalking, radioType)
+
+---@param callChannel number
+TriggerServerEvent("VOIP:Phone:Server:SetCall", callChannel) -- 0 = hang up
+
+---@param talking boolean
+TriggerServerEvent("VOIP:Phone:Server:SetTalking", talking)
+
+---@param state boolean
+TriggerServerEvent("VOIP:Server:Microphone:SetPlayerState", state)
+TriggerServerEvent("VOIP:Server:Megaphone:SetPlayerState", state)
+TriggerServerEvent("VOIP:Server:Gag:SetPlayerState", state)
+```
+
+## Events: Server -> Client
+
+| Event | Payload |
+|-------|---------|
+| `VOIP:Client:ResetMumble` | _(none)_ — resets the full Mumble voice system |
+| `VOIP:Radio:Client:SetPlayerRadio` | `channel: number, radioType?: string` |
+| `VOIP:Radio:Client:SyncRadioData` | `radioData: table, coordsData: table` — full member list on join |
+| `VOIP:Radio:Client:SetPlayerTalkState` | `targetSource: number, isTalking: boolean, playerCoords: vector3, radioType?: string` |
+| `VOIP:Radio:Client:AddPlayerToRadio` | `targetSource: number` |
+| `VOIP:Radio:Client:RemovePlayerFromRadio` | `targetSource: number` |
+| `VOIP:Phone:Client:SetPlayerCall` | `callChannel: number` |
+| `VOIP:Phone:Client:SyncCallData` | `callTable: table` |
+| `VOIP:Phone:Client:AddPlayerToCall` | `plySource: number` |
+| `VOIP:Phone:Client:RemovePlayerFromCall` | `plySource: number` |
+| `VOIP:Phone:Client:SetPlayerTalkState` | `targetSource: number, enabled: boolean` |
+| `VOIP:Client:Microphone:SetPlayerState` | `targetSource: number, state: boolean` |
+| `VOIP:Client:Megaphone:SetPlayerState` | `targetSource: number, state: boolean` |
+| `VOIP:Client:Gag:SetPlayerState` | `targetSource: number, state: boolean` |
+
+## Local Event (client-only)
+
+```lua
+---@param state boolean
+AddEventHandler("VOIP:Client:TalkingState", function(state) end)
+```
+
+Fired by the proximity module when the local player starts/stops talking; consumed by the phone module to route Mumble targets.
+
+## State
+
+| Key | Bag | Description |
+|-----|-----|-------------|
+| `voiceChannel` | Player state bag | Assigned Mumble channel number; set by server, read by client on `mumbleConnected` |
+| `isTalkingOnRadio` | Player local state | `true` while actively transmitting on radio |
+| `proximity` | Player local state | Current mode: `"normal"`, `"shout"`, `"whisper"` |

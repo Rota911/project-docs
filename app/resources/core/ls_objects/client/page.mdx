@@ -1,48 +1,110 @@
-# Client
+# ls_objects (Client)
 
-## Exports
+Spawns/despawns world props by proximity (100m) and routing bucket. Supports temporary (session-only) and permanent (DB-persisted) objects, client-sided and server-sided.
 
-### Placer
+## Placer
+
+Interactive placement mode. Blocks until the player confirms or cancels.
 
 ```lua
+---@class PlacementData
+---@field model string|number required unless `entity` provided
+---@field entity number|nil existing entity to reposition (not deleted on cancel)
+---@field offset vector3|nil initial spawn offset from player
+---@field rotation vector3|nil starting rotation
+---@field distanceOverride number|nil max placement distance (default 5.0)
+---@field canPlaceInside boolean|nil
+---@field canPlaceOnRoad boolean|nil
+---@field useGizmo boolean|nil use gizmo mode instead of raycast loop
+---@field onFinish fun(result: PlacementResult)|nil
+---@field onCancel fun()|nil
+
 ---@param data PlacementData
----@return Placer|nil
-exports.ls_objects:Placer({
-    model = 'prop_box_wood02a',
-    position = vector3(100.0, 200.0, 100.0),
-    rotation = vector3(0.0, 0.0, 45.0),
-    metadata = { custom = 'value' }
+---@return PlacementResult|false|nil result false on cancel, nil on invalid data
+exports.ls_objects:Placer(data)
+```
+
+```lua
+local result = exports.ls_objects:Placer({
+    model = "prop_gumball_02",
+    canPlaceInside = false,
+    canPlaceOnRoad = false,
+    useGizmo = true,
+    onFinish = function(positions)
+        -- positions.position: vector4 (x,y,z,heading)
+        -- positions.rotation: vector3
+    end,
+    onCancel = function() end,
 })
 ```
 
-### Create
+## PlacerCancel
 
 ```lua
+---@param skipNotification boolean|nil suppress cancellation notification
+---@param skipFunction boolean|nil don't call onCancel
+exports.ls_objects:PlacerCancel(skipNotification, skipFunction)
+```
+
+## Create
+
+Creates an object locally. If `data.isTemp` is false, asks the server to persist it first via the `Objects:Server:Create` callback.
+
+```lua
+---@class ObjectDataClient
+---@field model string|number
+---@field position vector3|vector4
+---@field rotation vector3|nil default (0,0,0)
+---@field matrix table|nil custom transform matrix
+---@field metadata table|nil
+---@field target table|nil ls_interaction options attached to the entity
+---@field isTemp boolean|nil if true, not saved to DB
+---@field serverSided boolean|nil must be false for client-created objects
+---@field route number|nil routing bucket (default 0)
+
 ---@param data ObjectDataClient
 ---@return ObjectClient|nil
-exports.ls_objects:Create({
-    model = 'prop_box_wood02a',
-    position = vector3(100.0, 200.0, 100.0),
-    rotation = vector3(0.0, 0.0, 45.0),
-    matrix = nil,
-    metadata = { custom = 'value' },
-    serverSided = false,
-    isTemp = true,
-    route = 0
-})
+exports.ls_objects:Create(data)
 ```
 
-### Remove
+```lua
+local obj = exports.ls_objects:Create({
+    model = "prop_gumball_02",
+    position = vector3(100.0, 200.0, 30.0),
+    isTemp = true,
+})
+if obj then obj:Spawn() end
+```
+
+## Remove
+
+Removes a client-tracked object; if permanent, also tells the server to delete it from the DB.
 
 ```lua
 ---@param id string
-exports.ls_objects:Remove('core_perm_123')
+exports.ls_objects:Remove(id)
 ```
 
-### Get
+## Get
 
 ```lua
 ---@param id string
 ---@return ObjectClient|nil
-local object = exports.ls_objects:Get('core_perm_123')
+exports.ls_objects:Get(id)
 ```
+
+## Internal behavior
+
+A 1-second thread walks `LS.Grid` and calls `:Spawn()`/`:Despawn()` on `ObjectClient` instances as the player moves in/out of 100m range, respecting routing buckets.
+
+## Events
+
+| Event | Args | Notes |
+|-------|------|-------|
+| `Objects:Client:ObjectCreated` | `data: ObjectServer` | Server → client. Creates a local `ObjectClient` record. |
+| `Objects:Client:ObjectRemoved` | `id: string` | Server → client. Despawns and discards the local record. |
+| `Objects:Client:ObjectSync` | `objects: ObjectServer[]` | Server → client, on character load. All active non-server-sided objects. |
+| `Objects:Client:Spawned` | `id, entity, metadata` | Local. Fires when an `ObjectClient` entity spawns. |
+| `Objects:Client:Despawned` | `id, entity, metadata` | Local. Fires when an `ObjectClient` entity despawns. |
+
+> `LocalPlayer.state.placing` is `true` while the Placer is active.

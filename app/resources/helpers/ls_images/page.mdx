@@ -1,0 +1,35 @@
+# ls_images
+
+Static asset resource that serves item images for other resources (primarily `ls_inventory`). No Lua scripts, no exports, no events.
+
+## Structure
+
+```
+images/
+├── ammo/
+├── component/
+├── container/
+├── drink/
+├── electronic/
+├── food/
+├── magazine/
+├── misc/
+└── weapon/
+```
+
+All `.webp` files are exposed via `files { 'images/**/*' }` in `fxmanifest.lua`.
+
+## Usage
+
+Reference images by URL pattern from any NUI context:
+
+```
+nui://ls_images/images/<category>/<name>.webp
+```
+
+```lua
+-- Example: item icon in an inventory UI payload
+local icon = ("nui://ls_images/images/weapon/%s.webp"):format(itemName)
+```
+
+> Add new images under the matching category folder — no registration or restart-handling code exists, files are served statically.

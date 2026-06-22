@@ -1,74 +1,102 @@
 # Server
 
-## StatusHandler
+Decays statuses every minute via `LS.Cron` and persists them on `character:SetData('statuses', ...)`. Labor auto-increases on a separate cron and on character load (offline accumulation).
+
+## Exports
+
+All server-side. Identifiers accept a player source or character identifier (`LaborHandler` ones; `ModifyStatus` takes a source).
+
+### ModifyStatus
 
 ```lua
-local StatusHandler = require 'server.handlers.statusHandler'
-```
-
-### Register
-
-```lua
----@param name string
----@param statusData StatusData
+---@param source number
+---@param statusName string
+---@param operation "Add"|"Remove"|"Set"
+---@param value number
 ---@return boolean
-StatusHandler:Register('radiation', {
-    baseValue = 0,
-    icon = 'IconRadioactiveFilled',
-    color = 'lime',
-    flash = true,
-    modify = 0.5,
-    options = {
-        hide = true,
-        inverted = true,
-        order = 8,
-        protected = true
-    }
-})
+exports['ls_statuses']:ModifyStatus(source, statusName, operation, value)
 ```
 
-### Get
+`false` on unknown `operation` or status. Protected statuses still reject the change.
 
 ```lua
----@param status? string
----@return table
-local allStatuses = StatusHandler:Get()
-local singleStatus = StatusHandler:Get('hunger')
+-- Apply a ~15 min cooling buff (consumed via ls_inventory)
+exports['ls_statuses']:ModifyStatus(source, 'cooled', 'Set', 100)
 ```
 
-### Modify:Add
+### GetLabor
 
 ```lua
 ---@param identifier number|string
----@param status string
----@param value number
----@return boolean
-StatusHandler.Modify:Add(source, 'hunger', 25)
+---@return number|nil labor
+---@return string|nil error  -- "labor_system_disabled" | "character_not_found"
+exports['ls_statuses']:GetLabor(identifier)
 ```
 
-### Modify:Remove
+### SetLabor / AddLabor / RemoveLabor
 
 ```lua
 ---@param identifier number|string
----@param status string
----@param value number
----@return boolean
-StatusHandler.Modify:Remove(source, 'hunger', 10)
+---@param amount number
+---@return boolean success
+---@return string|nil error
+exports['ls_statuses']:SetLabor(identifier, amount)
+exports['ls_statuses']:AddLabor(identifier, amount)
+exports['ls_statuses']:RemoveLabor(identifier, amount)
 ```
 
-### Modify:Set
+Clamped to `[0, limit]`. `RemoveLabor` returns `false, "labor_already_at_minimum"` at 0; `AddLabor` returns `false, "labor_already_at_maximum"` at the limit.
 
 ```lua
----@param identifier number|string
----@param status string
----@param value number
----@return boolean
-StatusHandler.Modify:Set(source, 'hunger', 100)
+exports['ls_statuses']:AddLabor(source, 100)
 ```
+
+## Net Events
+
+| Event | Args | Description |
+|---|---|---|
+| `Status:Server:Update` | `statusName: string, value: number, operation: string` | Client-initiated status change. `operation` is `"Add"`\|`"Remove"`\|`"Set"`. Rejected if the status is `protected` or unknown. |
+
+## Config
+
+`LaborConfig` (`configs/sh_labor.lua`):
+
+```lua
+---@class LaborConfig
+---@field enabled boolean
+---@field limit number
+---@field increaseTime number    -- minutes between auto increases
+---@field increaseOffline number -- labor granted per increaseTime while offline
+---@field increase number        -- labor granted per increaseTime while online
+```
+
+## Built-in Statuses
+
+`configs/sh_statuses.lua` (permanent) — decayed every minute by `modify` (units/min):
+
+| Status | Base | Decay | Color | Flags |
+|---|---|---|---|---|
+| `thirst` | 100 | 1.66 | indigo | protected, hide |
+| `hunger` | 100 | 1.66 | yellow | protected, hide |
+| `stress` | 0 | 1.66 | red | inverted, hide |
+| `drunk` | 0 | 3.33 | pink | protected, inverted, hide |
+| `labor` | 10000 | 0 | green | hide — managed by labor exports |
+| `oxygen-tank` | 0 | — | white | inverted, hide |
+
+`configs/sh_tempStatuses.lua` (contextual/temp):
+
+| Status | Base | Decay | Notes |
+|---|---|---|---|
+| `oxygen` | 100 | — | |
+| `stamina` | 100 | — | |
+| `heal_ticks` | 0 | 50 | inverted — HP regen tick |
+| `speed_ticks` | 0 | 50 | inverted — speed boost tick |
+| `pursuit-modes` | 3 | — | patrol mode 1-5 |
+| `godmode` | false | — | |
+| `cooled` | 0 | 6.67 | inverted — ~15min cooling buff, read by `ls_weather` |
+| `warmed` | 0 | 6.67 | inverted — ~15min warming buff, read by `ls_weather` |
 
 ## Types
-
-### StatusData
 
 ```lua
 ---@class StatusData
@@ -76,38 +104,13 @@ StatusHandler.Modify:Set(source, 'hunger', 100)
 ---@field icon string
 ---@field color string
 ---@field flash boolean
----@field modify? number
+---@field modify? number          -- decay rate, units/minute
 ---@field options? StatusOptions
-```
 
-### StatusOptions
-
-```lua
 ---@class StatusOptions
 ---@field noReset? boolean
 ---@field inverted? boolean
 ---@field hide? boolean
 ---@field order? number
----@field protected? boolean
+---@field protected? boolean      -- rejects client-originated Status:Server:Update
 ```
-
-## Built-in Statuses
-
-| Status | Base | Decay | Color | Inverted |
-|---|---|---|---|---|
-| `thirst` | 100 | 1.66%/min | indigo | ✗ |
-| `hunger` | 100 | 1.66%/min | yellow | ✗ |
-| `stress` | 0 | 1.66%/min | red | ✓ |
-| `drunk` | 0 | 3.33%/min | pink | ✓ |
-| `oxygen-tank` | 0 | — | white | ✓ |
-
-## Temporary Statuses
-
-| Status | Base | Decay | Description |
-|---|---|---|---|
-| `oxygen` | 100 | — | Oxygen level |
-| `stamina` | 100 | — | Stamina level |
-| `heal_ticks` | 0 | 50%/min | HP regen |
-| `speed_ticks` | 0 | 50%/min | Speed boost |
-| `pursuit-modes` | 3 | — | Patrol mode (1-5) |
-| `godmode` | false | — | God mode flag |

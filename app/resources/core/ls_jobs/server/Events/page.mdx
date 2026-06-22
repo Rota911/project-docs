@@ -68,6 +68,16 @@ EventBus:Emit('job_completed', {
 EventBus:Off(eventType, listenerId)
 ```
 
+## RemoveMiddleware
+
+```lua
+---@param eventType JobEventType
+---@param middlewareId number
+EventBus:RemoveMiddleware(eventType, middlewareId)
+```
+
+Unsubscribes a middleware registered via `Use`, using the `middlewareId` it returned.
+
 ## ListenerCount
 
 ```lua
@@ -84,6 +94,14 @@ EventBus:Clear(eventType)
 ```
 
 Removes all listeners and middleware for an event type.
+
+## ClearAll
+
+```lua
+EventBus:ClearAll()
+```
+
+Removes all listeners and middleware for every event type.
 
 ## Event Payload
 

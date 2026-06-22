@@ -1,0 +1,93 @@
+# Component Registry
+
+HUD widget registration and the drag-and-drop layout editor (edit mode). Access via `LS.UI`.
+
+## RegisterUIComponent / UnregisterUIComponent
+
+```lua
+---@param component RegisteredComponent
+---@return boolean success, string? error
+LS.UI:RegisterUIComponent({
+    name = 'my_hud',
+    type = { name = 'hud', label = 'Hud' },
+    displayName = 'My HUD',
+    defaultAnchor = 'bottom-left',
+    estimatedSize = { width = 200, height = 60 },
+    skeleton = { layout = { type = 'rect', width = 200, height = 60, children = {} } }
+})
+
+---@param name string
+---@return boolean
+LS.UI:UnregisterUIComponent('my_hud')
+```
+
+## GetUIComponent / GetUIComponents / IsUIComponentRegistered
+
+```lua
+---@param name string
+---@return RegisteredComponent?
+LS.UI:GetUIComponent('my_hud')
+
+---@return table<string, RegisteredComponent>
+LS.UI:GetUIComponents()
+
+---@param name string
+---@return boolean
+LS.UI:IsUIComponentRegistered('my_hud')
+```
+
+## GetAllUIComponents / GetUIComponentsByTypeName / GetUIComponentByName
+
+```lua
+---@return RegisteredComponent[]
+LS.UI:GetAllUIComponents()
+
+---@param typeName string
+---@return RegisteredComponent[]
+LS.UI:GetUIComponentsByTypeName('hud')
+
+---@param name string
+---@return RegisteredComponent?
+LS.UI:GetUIComponentByName('my_hud')
+```
+
+## GetUIComponentNames / GetRegisteredUICategories
+
+```lua
+---@return string[]
+LS.UI:GetUIComponentNames()
+
+---@return ComponentCategory[]
+LS.UI:GetRegisteredUICategories()
+```
+
+## ToggleUIEditMode / IsUIEditModeEnabled
+
+```lua
+---@param enabled? boolean Toggles current state if omitted
+---@return boolean isEnabled
+LS.UI:ToggleUIEditMode()
+
+---@return boolean
+LS.UI:IsUIEditModeEnabled()
+```
+
+## Types
+
+```lua
+---@class RegisteredComponent
+---@field name string
+---@field type {name: string, label: string}
+---@field displayName string
+---@field defaultAnchor string
+---@field estimatedSize {width: number, height: number}
+---@field zIndex number
+---@field editModeZIndex number
+---@field resource string
+---@field skeleton table
+---@field orderChangeOnSideChange boolean
+---@field settingsSchema table?
+---@field registrationOrder number
+```
+
+> `defaultAnchor` must be one of: `top-left`, `top-center`, `top-right`, `center-left`, `center`, `center-right`, `bottom-left`, `bottom-center`, `bottom-right`.
